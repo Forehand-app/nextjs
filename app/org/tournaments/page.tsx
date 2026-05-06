@@ -28,7 +28,9 @@ function formatDate(value?: string | null) {
   });
 }
 
-function getTournamentStatus(tournament: TournamentData): "live" | "upcoming" | "past" {
+function getTournamentStatus(tournament: TournamentData): "live" | "upcoming" | "past" | "drafts" {
+  if (tournament.touenamentState === "draft" || tournament.touenamentState?.toLowerCase() === "draft") return "drafts";
+
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
@@ -116,7 +118,6 @@ export default function OrgTournamentsPage() {
   const visibleTournaments = useMemo(
     () =>
       tournaments.filter((tournament) => {
-        if (activeTab === "drafts") return false;
         return getTournamentStatus(tournament) === activeTab;
       }),
     [activeTab, tournaments],
@@ -161,13 +162,13 @@ export default function OrgTournamentsPage() {
 
         {/* Tournament List */}
         {activeTab !== "drafts" && activeTab !== "past" && (
-          <div className="space-y-3">
+          <div className="space-y-4">
             {isLoading ? (
               <p className="text-center text-sm text-[var(--color-muted)] py-8">
                 Loading tournaments...
               </p>
             ) : errorMessage ? (
-              <p className="rounded-xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm font-medium text-red-600 dark:text-red-400">
+              <p className="rounded-xl border border-[var(--color-border)] bg-red-500/10 px-4 py-3 text-sm font-medium text-[var(--color-error)]">
                 {errorMessage}
               </p>
             ) : visibleTournaments.length === 0 ? (
@@ -186,33 +187,43 @@ export default function OrgTournamentsPage() {
               <Link
                 key={t.id}
                 href={`/org/tournaments/detail${toQuery({ t: t.id })}`}
-                className="card p-4 block hover:border-primary/30 transition-colors"
+                className="relative flex flex-col p-5 bg-[var(--color-surface)] border border-[var(--color-border)] rounded-[var(--radius-card)] hover:shadow-[var(--shadow-card-hover)] transition-all overflow-hidden"
               >
-                <div className="flex items-start justify-between mb-2">
+                <div className="flex items-start justify-between mb-5">
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
-                      <TrophyIcon size={20} className="text-primary" />
+                    <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                      <TrophyIcon size={24} className="text-primary" />
                     </div>
                     <div>
-                      <h4 className="font-semibold">{t.name || "Untitled Tournament"}</h4>
-                      <p className="text-xs text-[var(--color-muted)]">
+                      <h4 className="text-xl font-bold text-[var(--color-text)] leading-tight">{t.name || "Untitled Tournament"}</h4>
+                      <p className="text-sm text-[var(--color-muted)] mt-1">
                         {t.description || getPrimarySport(t)}
                       </p>
                     </div>
                   </div>
                   <span
-                    className="px-2 py-1 rounded-full text-xs font-medium bg-primary/15 text-primary"
+                    className="shrink-0 px-3 py-1 rounded-full text-xs font-semibold bg-[var(--badge-success-bg)] text-[var(--badge-success-text)]"
                   >
                     {getGenderLabel(t)}
                   </span>
                 </div>
-                <div className="flex items-center gap-4 text-xs text-[var(--color-muted)]">
-                  <span className="flex items-center gap-1"><MapPinIcon size={12} /> {[t.venueCity, t.venueState].filter(Boolean).join(" | ") || t.venueName || "Venue TBA"}</span>
-                  <span className="flex items-center gap-1"><UsersIcon size={12} /> {t.events?.length ?? 0} events</span>
-                </div>
-                <div className="flex items-center gap-4 text-xs text-[var(--color-muted)] mt-1">
-                  <span className="flex items-center gap-1"><CalendarIcon size={12} /> {formatDate(t.startDate)}</span>
-                  <span className="flex items-center gap-1"><WalletIcon size={12} /> {getEntryFee(t)}</span>
+                <div className="grid grid-cols-2 gap-y-4 gap-x-4">
+                  <div className="flex items-center gap-2 text-sm text-[var(--color-muted)]">
+                    <MapPinIcon size={16} className="shrink-0" />
+                    <span className="truncate">{[t.venueCity, t.venueState].filter(Boolean).join(", ") || t.venueName || "Venue TBA"}</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-sm text-[var(--color-muted)]">
+                    <UsersIcon size={16} className="shrink-0" />
+                    <span>{t.events?.length ?? 0} Events</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-sm text-[var(--color-muted)]">
+                    <CalendarIcon size={16} className="shrink-0" />
+                    <span>{formatDate(t.startDate)}</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-sm text-[var(--color-muted)]">
+                    <WalletIcon size={16} className="shrink-0" />
+                    <span>{getEntryFee(t)}</span>
+                  </div>
                 </div>
               </Link>
             ))}
@@ -221,7 +232,7 @@ export default function OrgTournamentsPage() {
 
         {/* Past Tab - Empty State */}
         {activeTab === "past" && (
-          <div className="space-y-3">
+          <div className="space-y-4">
             {isLoading ? (
               <p className="text-center text-sm text-[var(--color-muted)] py-8">
                 Loading tournaments...
@@ -240,12 +251,39 @@ export default function OrgTournamentsPage() {
               <Link
                 key={t.id}
                 href={`/org/tournaments/detail${toQuery({ t: t.id })}`}
-                className="card p-4 block hover:border-primary/30 transition-colors"
+                className="relative block p-5 bg-[var(--color-surface)] border border-[var(--color-border)] rounded-[var(--radius-card)] hover:shadow-[var(--shadow-card-hover)] transition-all"
               >
-                <h4 className="font-semibold">{t.name || "Untitled Tournament"}</h4>
-                <p className="text-xs text-[var(--color-muted)] mt-1">
-                  {formatDate(t.startDate)} · {getPrimarySport(t)} · {t.events?.length ?? 0} events
-                </p>
+                <div className="flex items-start justify-between mb-6">
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                      <TrophyIcon size={24} className="text-primary" />
+                    </div>
+                    <div>
+                      <h4 className="text-lg font-bold text-[var(--color-text)] leading-tight">{t.name || "Untitled Tournament"}</h4>
+                      <p className="text-sm text-[var(--color-muted)] mt-1">{getPrimarySport(t)}</p>
+                    </div>
+                  </div>
+                  <div className="text-[var(--color-muted)] flex-shrink-0 mt-1">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m9 18 6-6-6-6" /></svg>
+                  </div>
+                </div>
+
+                <div className="flex justify-between items-end">
+                  <div className="flex flex-col gap-3">
+                    <div className="flex items-center gap-2 text-sm text-[var(--color-muted)]">
+                      <MapPinIcon size={16} className="shrink-0" />
+                      <span className="truncate">{[t.venueCity, t.venueState].filter(Boolean).join(", ") || t.venueName || "Venue TBA"}</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-sm text-[var(--color-muted)]">
+                      <CalendarIcon size={16} className="shrink-0" />
+                      <span>{formatDate(t.startDate)}</span>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 text-sm text-[var(--color-muted)]">
+                    <UsersIcon size={16} className="shrink-0" />
+                    <span>{t.events?.length ?? 0} Events</span>
+                  </div>
+                </div>
               </Link>
             ))}
           </div>
@@ -253,14 +291,56 @@ export default function OrgTournamentsPage() {
 
         {/* Drafts Tab */}
         {activeTab === "drafts" && (
-          <div className="text-center py-12">
-            <div className="w-20 h-20 mx-auto bg-[var(--color-surface-elevated)] rounded-full flex items-center justify-center mb-4">
-              <EditIcon size={32} className="text-[var(--color-muted)]" />
-            </div>
-            <p className="text-[var(--color-muted)]">No drafts</p>
-            <p className="text-sm text-[var(--color-muted)]">
-              Draft tournaments will appear here
-            </p>
+          <div className="space-y-4">
+            {isLoading ? (
+              <p className="text-center text-sm text-[var(--color-muted)] py-8">
+                Loading drafts...
+              </p>
+            ) : visibleTournaments.length === 0 ? (
+              <div className="text-center py-12">
+                <div className="w-20 h-20 mx-auto bg-[var(--color-surface-elevated)] rounded-full flex items-center justify-center mb-4">
+                  <EditIcon size={32} className="text-[var(--color-muted)]" />
+                </div>
+                <p className="text-[var(--color-muted)]">No drafts</p>
+                <p className="text-sm text-[var(--color-muted)]">
+                  Draft tournaments will appear here
+                </p>
+              </div>
+            ) : visibleTournaments.map((t) => (
+              <div
+                key={t.id}
+                className="relative block p-5 bg-[var(--color-surface)] border-2 border-dashed border-[var(--color-border)] rounded-[var(--radius-card)]"
+              >
+                <div className="flex items-start justify-between mb-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                      <TrophyIcon size={24} className="text-primary" />
+                    </div>
+                    <div>
+                      <h4 className="text-xl font-bold text-[var(--color-text)] leading-tight">{t.name || "Untitled Draft"}</h4>
+                      <p className="text-sm text-[var(--color-muted)] mt-1">{t.description || "Incomplete Setup"}</p>
+                    </div>
+                  </div>
+                  <button className="w-8 h-8 rounded-full bg-[var(--badge-error-bg)] text-[var(--badge-error-text)] flex items-center justify-center shrink-0 hover:bg-red-500/20 transition-colors">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18" /><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" /><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" /></svg>
+                  </button>
+                </div>
+
+                <div className="h-px w-full bg-[var(--color-border)] mb-4"></div>
+
+                <div className="mb-6">
+                  <p className="text-sm text-[var(--color-muted)]">Created: {formatDate(t.startDate)}</p>
+                </div>
+
+                <Link
+                  href={`/org/tournaments/detail${toQuery({ t: t.id })}`}
+                  className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-[var(--radius-button)] bg-[var(--color-surface-elevated)] border border-[var(--color-border)] text-[var(--color-text)] font-semibold hover:border-primary transition-colors"
+                >
+                  <EditIcon size={18} />
+                  <span>Complete Draft Setup</span>
+                </Link>
+              </div>
+            ))}
           </div>
         )}
 
