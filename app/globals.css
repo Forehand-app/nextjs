@@ -127,4 +127,19 @@ select,
   .no-scrollbar::-webkit-scrollbar {
     display: none;
   }
+
+  /* Themed input / select */
+  .surface-input {
+    @apply bg-surface border border-border text-text placeholder:text-placeholder rounded-input outline-none;
+  }
+
+  /* Popup / dialog surface */
+  .surface-popup {
+    @apply bg-surface border border-border rounded-card shadow-card-hover;
+  }
+
+  /* Subtle row item */
+  .surface-row {
+    @apply bg-surface-elevated border border-border rounded-input;
+  }
 }

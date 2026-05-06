@@ -1,15 +1,16 @@
 "use client";
 
 import Image from "next/image";
+import { MapPinIcon } from "@/components/Icons";
 
 type Team = {
-  players: string[];     // ["S. Williams", "A. Lee"]
-  image?: string;        // optional team image
+  players: string[];
+  images?: string[];
 };
 
 type LiveMatchCardProps = {
   tournamentName: string;
-  matchTitle: string;    // "Men's Doubles · Match #42"
+  matchTitle: string;
   teamA: Team;
   teamB: Team;
   score: {
@@ -17,10 +18,99 @@ type LiveMatchCardProps = {
     teamB: number;
     currentSet: number;
   };
-  court: string;         // "Court 3"
+  court: string;
   isLive?: boolean;
   onFollow?: () => void;
+  size?: "compact" | "spacious";
 };
+
+function HeartIcon({ size = 14 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+      <path d="m12 20.25-.9-.82C5.2 14.08 2 11.14 2 7.5A4.5 4.5 0 0 1 6.5 3 5 5 0 0 1 12 6.1 5 5 0 0 1 17.5 3 4.5 4.5 0 0 1 22 7.5c0 3.64-3.2 6.58-9.1 11.93Z" />
+    </svg>
+  );
+}
+
+function avatarDataUri(seed: string, accent: string, skin: string, shirt: string) {
+  const svg = `
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 72 72">
+      <defs>
+        <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stop-color="${accent}" />
+          <stop offset="100%" stop-color="#ffffff" />
+        </linearGradient>
+      </defs>
+      <rect width="72" height="72" rx="36" fill="url(#bg)" />
+      <circle cx="36" cy="26" r="13" fill="${skin}" />
+      <path d="M17 67c2-13 11-20 19-20s17 7 19 20" fill="${shirt}" />
+      <path d="M23 25c2-10 10-16 13-16 8 0 14 5 16 15-2-2-4-4-8-4-5 0-9 3-11 6-2-3-5-4-10-1Z" fill="#2f241f" />
+      <circle cx="31" cy="27" r="1.2" fill="#2f241f" />
+      <circle cx="41" cy="27" r="1.2" fill="#2f241f" />
+      <path d="M31 34c1.8 1.4 7.2 1.4 9 0" stroke="#8f5e45" stroke-width="1.8" stroke-linecap="round" />
+      <text x="36" y="63" text-anchor="middle" font-family="Arial, sans-serif" font-size="8" font-weight="700" fill="#ffffff" opacity="0.8">${seed}</text>
+    </svg>
+  `;
+
+  return `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`;
+}
+
+const avatarPalette = [
+  { accent: "#fed7aa", skin: "#f3c7a3", shirt: "#f97316" },
+  { accent: "#fde68a", skin: "#e9bb92", shirt: "#fb923c" },
+  { accent: "#bfdbfe", skin: "#f0c6a3", shirt: "#3b82f6" },
+  { accent: "#c7d2fe", skin: "#d8a47f", shirt: "#6366f1" },
+];
+
+function buildAvatar(name: string, index: number, provided?: string) {
+  if (provided) {
+    return provided;
+  }
+
+  const initials = name
+    .split(" ")
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase() ?? "")
+    .join("");
+  const palette = avatarPalette[index % avatarPalette.length];
+
+  return avatarDataUri(initials, palette.accent, palette.skin, palette.shirt);
+}
+
+function TeamAvatarStack({
+  players,
+  images,
+}: {
+  players: string[];
+  images?: string[];
+}) {
+  return (
+    <div className="flex items-center">
+      {players.slice(0, 2).map((player, index) => (
+        <div
+          key={`${player}-${index}`}
+          className={`relative ${index === 0 ? "z-20" : "z-10 -ml-3"}`}
+        >
+          <div
+            className={`relative h-9 w-9 overflow-hidden rounded-full border-2 bg-[var(--color-surface)] shadow-[0_4px_12px_rgba(15,23,42,0.18)] ${
+              index === 0 ? "border-orange-400 ring-2 ring-orange-200/80" : "border-white"
+            }`}
+          >
+            <Image
+              src={buildAvatar(player, index, images?.[index])}
+              alt={player}
+              fill
+              sizes="36px"
+              className="object-cover"
+              unoptimized
+            />
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
 
 export default function LiveMatchCard({
   tournamentName,
@@ -31,104 +121,71 @@ export default function LiveMatchCard({
   court,
   isLive = true,
   onFollow,
+  size = "compact",
 }: LiveMatchCardProps) {
+  const isSpacious = size === "spacious";
+
   return (
-    <div className="bg-[var(--color-surface)] rounded-2xl shadow-sm border border-[var(--color-border)] p-4 space-y-4">
-      
-      {/* ================= Top Section ================= */}
-      <div className="flex items-start justify-between">
-        <div>
-          <p className="text-xs text-[var(--color-muted)] font-medium">
+    <div className={`rounded-2xl border border-neutral-200/80 bg-[var(--color-surface)] shadow-[0_6px_18px_rgba(15,23,42,0.05)] ${isSpacious ? "space-y-4 p-5" : "space-y-3 p-3.5"}`}>
+      <div className={`flex items-start justify-between ${isSpacious ? "gap-4" : "gap-3"}`}>
+        <div className="min-w-0">
+          <p className={`truncate font-bold text-[var(--color-text)] ${isSpacious ? "text-sm" : "text-xs"}`}>
             {tournamentName}
           </p>
-          <p className="text-sm font-semibold text-[var(--color-text)] mt-0.5">
+          <p className={`mt-0.5 truncate font-medium text-[var(--color-text-secondary)] ${isSpacious ? "text-base" : "text-sm"}`}>
             {matchTitle}
           </p>
         </div>
 
         {isLive && (
-          <div className="flex items-center gap-1.5 bg-red-50 text-red-600 dark:bg-red-500/15 dark:text-red-300 text-[11px] font-semibold px-2 py-1 rounded-full">
-            <span className="h-1.5 w-1.5 rounded-full bg-red-500 animate-pulse" />
+          <div className={`flex shrink-0 items-center gap-1.5 rounded-full bg-red-50 font-semibold text-red-600 dark:bg-red-500/15 dark:text-red-300 ${isSpacious ? "px-3 py-1.5 text-xs" : "px-2 py-1 text-[11px]"}`}>
+            <span className={`animate-pulse rounded-full bg-red-500 ${isSpacious ? "h-2 w-2" : "h-1.5 w-1.5"}`} />
             LIVE
           </div>
         )}
       </div>
 
-      {/* ================= Score Row ================= */}
-      <div className="flex items-center justify-between">
-        
-        {/* Team A */}
-        <div className="flex flex-col items-center text-center w-24">
-          <div className="relative h-14 w-14 rounded-full overflow-hidden bg-[var(--color-surface-elevated)]">
-            {teamA.image ? (
-              <Image
-                src={teamA.image}
-                alt="Team A"
-                fill
-                className="object-cover"
-              />
-            ) : (
-              <div className="flex items-center justify-center h-full w-full text-sm font-bold text-[var(--color-muted)]">
-                {teamA.players[0]?.charAt(0)}
-              </div>
-            )}
+      <div className={`border-t border-neutral-200/70 ${isSpacious ? "pt-4" : "pt-3"}`}>
+        <div className={`grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center ${isSpacious ? "gap-4" : "gap-3"}`}>
+          <div className="flex min-w-0 flex-col items-center text-center">
+            <TeamAvatarStack players={teamA.players} images={teamA.images} />
+            <p className={`mt-1.5 w-full truncate font-semibold text-[var(--color-text)] ${isSpacious ? "max-w-[140px] text-sm" : "max-w-[110px] text-[13px]"}`}>
+              {teamA.players.join(" & ")}
+            </p>
           </div>
 
-          <p className="text-xs font-medium text-[var(--color-text)] mt-2 truncate w-full">
-            {teamA.players.join(" & ")}
-          </p>
-        </div>
-
-        {/* Score */}
-        <div className="flex flex-col items-center">
-          <div className="text-3xl font-bold text-[var(--color-text)] tracking-tight">
-            {score.teamA}{" "}
-            <span className="text-[var(--color-muted)]">–</span>{" "}
-            {score.teamB}
+          <div className={`flex flex-col items-center ${isSpacious ? "min-w-[96px]" : "min-w-[74px]"}`}>
+            <div className={`font-extrabold leading-none tracking-[-0.04em] text-[var(--color-text)] ${isSpacious ? "text-[42px]" : "text-[34px]"}`}>
+              {score.teamA} <span className="text-[var(--color-muted)]">{"\u2013"}</span> {score.teamB}
+            </div>
+            <div className={`rounded-full bg-orange-100 font-semibold text-orange-600 dark:bg-orange-500/15 dark:text-orange-300 ${isSpacious ? "mt-2 px-3 py-1 text-xs" : "mt-1.5 px-2 py-0.5 text-[10px]"}`}>
+              Set {score.currentSet}
+            </div>
           </div>
 
-          <div className="mt-1 text-[11px] font-semibold bg-orange-100 text-orange-600 dark:bg-orange-500/15 dark:text-orange-300 px-2 py-0.5 rounded-full">
-            Set {score.currentSet}
+          <div className="flex min-w-0 flex-col items-center text-center">
+            <TeamAvatarStack players={teamB.players} images={teamB.images} />
+            <p className={`mt-1.5 w-full truncate font-semibold text-[var(--color-text)] ${isSpacious ? "max-w-[140px] text-sm" : "max-w-[110px] text-[13px]"}`}>
+              {teamB.players.join(" & ")}
+            </p>
           </div>
-        </div>
-
-        {/* Team B */}
-        <div className="flex flex-col items-center text-center w-24">
-          <div className="relative h-14 w-14 rounded-full overflow-hidden bg-[var(--color-surface-elevated)]">
-            {teamB.image ? (
-              <Image
-                src={teamB.image}
-                alt="Team B"
-                fill
-                className="object-cover"
-              />
-            ) : (
-              <div className="flex items-center justify-center h-full w-full text-sm font-bold text-[var(--color-muted)]">
-                {teamB.players[0]?.charAt(0)}
-              </div>
-            )}
-          </div>
-
-          <p className="text-xs font-medium text-[var(--color-text)] mt-2 truncate w-full">
-            {teamB.players.join(" & ")}
-          </p>
         </div>
       </div>
 
-      {/* ================= Bottom Section ================= */}
-      <div className="flex items-center justify-between pt-2 border-t border-[var(--color-border)]">
-        <div className="text-xs text-[var(--color-muted)] font-medium">
-          {court}
+      <div className={`flex items-center justify-between border-t border-neutral-200/70 ${isSpacious ? "pt-3.5" : "pt-2.5"}`}>
+        <div className={`flex min-w-0 items-center gap-1.5 font-medium text-[var(--color-text-secondary)] ${isSpacious ? "text-sm" : "text-xs"}`}>
+          <MapPinIcon size={isSpacious ? 15 : 13} className="shrink-0 text-[var(--color-muted)]" />
+          <span className="truncate">{court}</span>
         </div>
 
         <button
           onClick={onFollow}
-          className="text-xs font-semibold text-[var(--color-text-secondary)] hover:text-orange-600 transition-colors"
+          className={`inline-flex items-center gap-1.5 rounded-full font-semibold text-[var(--color-text-secondary)] transition-all hover:bg-orange-50 hover:text-orange-600 active:scale-[0.98] ${isSpacious ? "px-2 py-1.5 text-sm" : "px-1.5 py-1 text-xs"}`}
         >
-          Follow
+          <span>Follow</span>
+          <HeartIcon size={isSpacious ? 15 : 13} />
         </button>
       </div>
     </div>
   );
 }
-

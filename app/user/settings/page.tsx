@@ -58,7 +58,7 @@ export default function UserSettingsPage() {
             className="flex items-center gap-1.5 font-bold text-[17px] tracking-tight hover:opacity-80 transition-opacity"
             aria-expanded={showSwitchModal}
           >
-            Individual Settings
+            Profile Switcher
             <ChevronDownIcon size={18} className="text-[var(--color-text-muted)] mt-0.5 shrink-0" />
           </button>
         </div>

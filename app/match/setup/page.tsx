@@ -5,13 +5,16 @@ import { useRouter } from "next/navigation";
 import CourtSlider from "@/components/QuickMatch/CourtSlider";
 import MatchSplash from "@/components/QuickMatch/MatchSplash";
 import { routes } from "@/lib/routes";
+import { useClientSearchParams } from "@/lib/useClientSearchParams";
 
 type PageState = "setup" | "loading";
 
 export default function QuickMatchSetupPage() {
     const router = useRouter();
+    const searchParams = useClientSearchParams();
     const [pageState, setPageState] = useState<PageState>("setup");
     const [pendingParams, setPendingParams] = useState<string | null>(null);
+    const returnToHome = searchParams.get("returnToHome") === "1";
 
     const handleStart = (payload: {
         courtId: string;
@@ -55,9 +58,15 @@ export default function QuickMatchSetupPage() {
     }
 
     return (
-        <div className="min-h-screen bg-[#ECECEC] dark:bg-[#3B2A63]">
+        <div className="min-h-screen bg-background">
             <CourtSlider
-                onBack={() => router.back()}
+                onBack={() => {
+                    if (returnToHome) {
+                        router.replace("/user/home");
+                        return;
+                    }
+                    router.back();
+                }}
                 onStart={handleStart}
             />
         </div>

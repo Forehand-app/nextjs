@@ -6,11 +6,12 @@ import { useApp } from "@/components/AppProvider";
 import BottomNav from "@/components/BottomNav";
 import LiveMatchCard from "@/components/Card/LiveMatchCard";
 import NextOnCourtSection from "@/components/Card/NextOnCourtSection";
+import PastMatchesSection from "@/components/Card/PastMatchesSection";
+import QuickMatchCard from "@/components/Card/QuickMatchCard";
 import QuickStatsSection from "@/components/Card/QuickStatsSection";
-import UserLiveMatchSection from "@/components/Card/UserLiveMatchSection";
+import UserTournamentCard from "@/components/Card/UserTournamentCard";
 import ColorfulTournamentCard from "@/components/Card/ColorfulTournamentCard";
 import OngoingTournamentCard from "@/components/Card/OngoingTournamentCard";
-import { TrophyIcon } from "@/components/Icons";
 import NotificationsSlideOver, { NotificationItem } from "@/components/NotificationsSlideOver";
 
 
@@ -31,15 +32,6 @@ function LightningIcon({ size = 18 }: { size?: number }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" strokeWidth={1} strokeLinecap="round" strokeLinejoin="round">
       <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
-    </svg>
-  );
-}
-
-function ArrowRightIcon({ size = 20 }: { size?: number }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-      <path d="M5 12h14" />
-      <path d="m12 5 7 7-7 7" />
     </svg>
   );
 }
@@ -126,18 +118,6 @@ const liveMatches = [
     court: "Court 3",
     isLive: true,
   },
-];
-
-const pastMatches = [
-  {
-    id: "p1",
-    sport: "Pickleball",
-    matchName: "Group Stage",
-    venue: "Court 2",
-    time: "Yesterday",
-    score: "Won (11-5, 11-8)",
-    colorVariant: "basketball" as const,
-  }
 ];
 
 const mockNotifications: NotificationItem[] = [
@@ -241,8 +221,8 @@ export default function UserHomePage() {
                 onClick={() => setActiveTab(tab.id)}
                 className={`snap-center shrink-0 px-6 py-2.5 rounded-full text-sm font-bold tracking-wide transition-all duration-200 ${
                   activeTab === tab.id
-                    ? "bg-white text-orange-600 shadow-md dark:bg-[var(--color-surface)] dark:text-[var(--color-text)] dark:shadow-sm dark:border dark:border-[var(--color-border)]"
-                    : "bg-white/20 text-white hover:bg-white/30 dark:bg-[var(--color-surface-elevated)] dark:text-[var(--color-text-secondary)] dark:border dark:border-[var(--color-border)] dark:hover:bg-[var(--color-surface)]"
+                    ? "bg-white text-orange-600 shadow-md"
+                    : "bg-white/20 text-white hover:bg-white/30"
                 }`}
               >
                 {tab.label}
@@ -291,17 +271,7 @@ export default function UserHomePage() {
         {activeTab === "explore" && (
           <div className="space-y-8 animate-fade-in mt-2">
             
-            <Link href="/match/setup" className="block active:scale-[0.98] transition-transform cursor-pointer group">
-              <section className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-2xl p-4 shadow-sm flex items-center justify-between hover:border-orange-500/50 transition-colors">
-                <div>
-                  <h3 className="font-heading text-lg font-bold text-[var(--color-text)] group-hover:text-orange-600 transition-colors">Quick Match</h3>
-                  <p className="text-xs font-medium text-[var(--color-text-secondary)] mt-0.5">Start a match quickly without saving data</p>
-                </div>
-                <div className="w-10 h-10 rounded-full bg-orange-100 dark:bg-orange-500/20 flex items-center justify-center text-orange-600 dark:text-orange-400 shrink-0 group-hover:scale-110 transition-transform">
-                  <ArrowRightIcon size={20} />
-                </div>
-              </section>
-            </Link>
+            <QuickMatchCard href="/match/setup" />
 
             {/* UPCOMING TOURNAMENTS */}
             <section>
@@ -316,7 +286,7 @@ export default function UserHomePage() {
                 onScroll={handleUpcomingScroll}
               >
                 {upcomingTournaments.map((t) => (
-                  <div key={t.id} className="min-w-[85vw] sm:min-w-[320px] snap-center shrink-0">
+                  <div key={t.id} className="min-w-[74vw] sm:min-w-[280px] snap-center shrink-0">
                     <ColorfulTournamentCard
                     id={t.id}
                     name={t.name}
@@ -342,7 +312,7 @@ export default function UserHomePage() {
                       className={`h-1.5 rounded-full transition-all duration-300 ${
                         activeUpcomingIndex === idx
                           ? "w-4 bg-orange-500"
-                          : "w-1.5 bg-neutral-300 dark:bg-neutral-600"
+                          : "w-1.5 bg-dot"
                       }`}
                     />
                   ))}
@@ -370,7 +340,7 @@ export default function UserHomePage() {
                 onScroll={handleOngoingScroll}
               >
                 {ongoingTournaments.map((t) => (
-                  <div key={t.id} className="min-w-[85vw] sm:min-w-[320px] snap-center shrink-0">
+                  <div key={t.id} className="min-w-[74vw] sm:min-w-[280px] snap-center shrink-0">
                     <OngoingTournamentCard 
                       id={t.id}
                       name={t.name}
@@ -392,7 +362,7 @@ export default function UserHomePage() {
                       className={`h-1.5 rounded-full transition-all duration-300 ${
                         activeOngoingIndex === idx
                           ? "w-4 bg-orange-500"
-                          : "w-1.5 bg-neutral-300 dark:bg-neutral-600"
+                          : "w-1.5 bg-dot"
                       }`}
                     />
                   ))}
@@ -423,6 +393,7 @@ export default function UserHomePage() {
               score={match.score}
               court={match.court}
               isLive={match.isLive}
+              size="spacious"
             />
           ))}
           </div>
@@ -448,11 +419,11 @@ export default function UserHomePage() {
 
       <LiveMatchCard
         tournamentName="Badminton Championship"
-        matchTitle="Men's Singles - Round 3"
-        teamA={{ players: ["You"] }}
-        teamB={{ players: ["Rohan K."] }}
-        score={{ teamA: 0, teamB: 0, currentSet: 1 }}
-        court="Court 2"
+        matchTitle="Men's Doubles - Round 3"
+        teamA={{ players: ["S. Verma", "A. Mehta"] }}
+        teamB={{ players: ["J. Brown", "K. Patel"] }}
+        score={{ teamA: 11, teamB: 9, currentSet: 2 }}
+        court="Sports Arena, 24 block street, Raipur"
         isLive={true}
       />
     </section>
@@ -463,27 +434,23 @@ export default function UserHomePage() {
         Your Tournaments
       </h3>
 
-      <Link
-        href="/user/tournaments"
-        className="block p-4 bg-[var(--color-surface)] border border-[var(--color-border)] rounded-2xl hover:border-orange-500/40 transition-colors active:scale-[0.98]"
-      >
-        <div className="flex items-center gap-3">
-          <div className="grid h-12 w-12 place-content-center rounded-full bg-orange-500/10 text-orange-600 shrink-0">
-            <TrophyIcon size={20} />
-          </div>
-
-          <div>
-            <h4 className="font-bold">Raipur League 2025</h4>
-            <p className="text-xs text-[var(--color-text-secondary)] mt-0.5">
-              View tournament events and brackets
-            </p>
-          </div>
-        </div>
-      </Link>
+      <div className="px-1">
+        <UserTournamentCard
+          href="/user/tournaments"
+          title="Raipur League 2025"
+          sport="Pickle ball"
+          category="Men's"
+          format="Doubles"
+          ctaLabel="View Tournament Events"
+        />
+      </div>
     </section>
 
     {/* Next On Court */}
     <NextOnCourtSection />
+
+    {/* Past Matches */}
+    <PastMatchesSection />
 
   </div>
 )}

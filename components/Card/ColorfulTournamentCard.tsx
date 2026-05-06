@@ -83,17 +83,15 @@ export default function ColorfulTournamentCard({
                     <div className="relative z-10 flex flex-col h-full">
 
                         {/* Reduced Logo from w-12/h-12 to w-8/h-8, smaller text */}
-                        <div className="w-8 h-8 bg-white dark:bg-[var(--color-surface-elevated)] text-gray-900 dark:text-orange-400 rounded-full flex items-center justify-center shadow-sm">
+                        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-white text-sm font-black text-gray-900 shadow-sm dark:bg-[var(--color-surface-elevated)] dark:text-orange-400">
                             {logoText || name.substring(0, 1)}
                         </div>
 
-                        {/* Reduced Title from text-2xl to text-[15px] */}
-                        <h3 className="font-heading text-[15px] font-black leading-tight mb-1.5 drop-shadow-sm tracking-tight text-white line-clamp-2">
+                        <h3 className="mb-2 font-heading text-[18px] font-black leading-tight tracking-tight text-white drop-shadow-sm line-clamp-2">
                             {name}
                         </h3>
 
-                        {/* Reduced Metadata text from 10px to 8px */}
-                        <div className="flex items-center flex-wrap gap-1 text-white/90 text-[8px] font-bold uppercase tracking-wider mb-3">
+                        <div className="mb-3 flex items-center flex-wrap gap-1.5 text-[10px] font-bold uppercase tracking-[0.18em] text-white/90">
                             <span>{sport}</span>
                             <span className="w-1 h-1 rounded-full bg-white/60" />
                             <span>{category}</span>
@@ -101,12 +99,11 @@ export default function ColorfulTournamentCard({
                             <span>{modes}</span>
                         </div>
 
-                        {/* Reduced Venue text */}
                         <div className="flex items-start gap-1.5 text-white/95 mt-auto">
                             <div className="mt-[2px] shrink-0 opacity-80">
-                                <MapPinIcon size={12} />
+                                <MapPinIcon size={13} />
                             </div>
-                            <p className="font-medium text-[10px] leading-snug truncate">
+                            <p className="truncate text-[11px] font-medium leading-snug">
                                 <span className="font-bold">{venue}</span>, {address}
                             </p>
                         </div>
@@ -114,19 +111,17 @@ export default function ColorfulTournamentCard({
                 </div>
 
                 {/* BOTTOM SECTION - Reduced padding from px-5 py-4 to px-3 py-2.5 */}
-                <div className="bg-[var(--color-surface)] px-3 py-2.5 flex items-center justify-between">
+                <div className="flex items-center justify-between bg-[var(--color-surface)] px-3 py-3">
                     <div>
-                        <p className="text-[var(--color-text-secondary)] text-[8px] font-bold uppercase tracking-wider mb-0.5">
+                        <p className="mb-0.5 text-[9px] font-bold uppercase tracking-[0.18em] text-[var(--color-text-secondary)]">
                             Entry Fee
                         </p>
-                        {/* Reduced Fee text from text-lg to text-sm */}
-                        <p className="text-[var(--color-text)] font-black text-sm leading-none">
+                        <p className="text-base font-black leading-none text-[var(--color-text)]">
                             {entryFee ? entryFee : "Free"}
                         </p>
                     </div>
 
-                    {/* Reduced Button padding and text size */}
-                    <div className={`px-3 py-1.5 rounded-full border-[1.5px] font-bold text-[10px] transition-colors ${btnClass}`}>
+                    <div className={`rounded-full border-[1.5px] px-3.5 py-1.5 text-[11px] font-bold transition-colors ${btnClass}`}>
                         {ctaText}
                     </div>
                 </div>
