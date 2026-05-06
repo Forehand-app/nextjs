@@ -29,7 +29,7 @@ function formatDate(value?: string | null) {
 }
 
 function getTournamentStatus(tournament: TournamentData): "live" | "upcoming" | "past" | "drafts" {
-  if (tournament.touenamentState === "draft" || tournament.touenamentState?.toLowerCase() === "draft") return "drafts";
+  if (tournament.touenamentState === "draft") return "drafts";
 
   const today = new Date();
   today.setHours(0, 0, 0, 0);

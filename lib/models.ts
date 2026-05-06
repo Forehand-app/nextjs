@@ -40,7 +40,7 @@ export interface OrganizationData {
     verified: boolean;
 }
 
-export type TournamentState = 'created'; // Add more states as needed
+export type TournamentState = 'created' | 'draft' | 'live' | 'past'; // Add more states as needed
 
 export interface TournamentData {
     id?: string | null;
