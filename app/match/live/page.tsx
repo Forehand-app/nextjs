@@ -116,7 +116,7 @@ export default function LiveMatchPage() {
       showWinnerConfirm={matchWinner != null}
       showExitConfirm={showExitConfirm}
       onBack={() => setShowExitConfirm(true)}
-      onConfirmExit={() => router.push("/match/setup")}
+      onConfirmExit={() => router.replace("/match/setup?returnToHome=1")}
       onCloseExitConfirm={() => setShowExitConfirm(false)}
       onUndo={undo}
       onSideARally={() => applyRallyAction(0)}
