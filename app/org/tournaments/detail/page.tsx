@@ -2,53 +2,13 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
-import { useClientSearchParams } from "@/lib/useClientSearchParams";
 import {
   ArrowLeftIcon, ShareIcon, EllipsisIcon, UsersIcon, MapPinIcon, PhoneIcon, MailIcon, TrophyIcon, CheckIcon, FilterIcon, ChevronDownIcon, ChevronRightIcon, TrashIcon, PlusIcon
 } from "@/components/Icons";
-import { routes } from "@/lib/routes";
-import { useApp } from "@/components/AppProvider";
+import { toQuery } from "@/lib/utils";
+import { tournamenApi } from "@/lib/api/tournamentApi";
+import { EventData, TournamentData } from "@/lib/models";
 
-type TournamentEvent = {
-  id?: string;
-  name?: string | null;
-  amount?: number | null;
-  dueDate?: string | null;
-  startDate?: string | null;
-  gender?: "male" | "female" | null;
-  pointsPerSet?: number | null;
-  setsPerMatch?: number | null;
-  paymentMode?: { name?: string | null; code?: string | null } | null;
-  sportsOption?: { name?: string | null; code?: string | null } | null;
-  eventFormat?: { name?: string | null; code?: string | null } | null;
-  teamType?: { name?: string | null; code?: string | null } | null;
-  teams?: unknown[];
-};
-
-type TournamentInfo = {
-  id: string;
-  name?: string | null;
-  description?: string | null;
-  startDate?: string | null;
-  endDate?: string | null;
-  venueName?: string | null;
-  venueAddress?: string | null;
-  venueCity?: string | null;
-  venueState?: string | null;
-  venuePostalCode?: string | null;
-  venueCourts?: number | null;
-  contactName?: string | null;
-  contactEmail?: string | null;
-  contactPhone?: string | null;
-  events?: TournamentEvent[];
-  organization?: { name?: string | null } | null;
-};
-
-type ApiResponse<T> = {
-  success?: boolean;
-  message?: string;
-  data?: T | null;
-};
 
 function formatDate(value?: string | null) {
   if (!value) return "TBA";
@@ -84,7 +44,7 @@ const TopAppBar = () => (
   </div>
 );
 
-const EventHeader = ({ tournament }: { tournament: TournamentInfo | null }) => (
+const EventHeader = ({ tournament }: { tournament: TournamentData | null }) => (
   <div className="flex gap-3 items-center">
     <div className="w-12 h-12 rounded-full bg-[var(--color-surface-elevated)] border border-[var(--color-border)] flex items-center justify-center overflow-hidden shrink-0">
       <TrophyIcon size={24} className="text-[var(--color-muted)]" />
@@ -96,29 +56,29 @@ const EventHeader = ({ tournament }: { tournament: TournamentInfo | null }) => (
   </div>
 );
 
-const EventStats = ({ tournament }: { tournament: TournamentInfo | null }) => {
+const EventStats = ({ tournament }: { tournament: TournamentData | null }) => {
   const registeredCount = tournament?.events?.reduce(
     (total, event) => total + (Array.isArray(event.teams) ? event.teams.length : 0),
     0,
   ) ?? 0;
 
   return (
-  <div className="grid grid-cols-2 gap-3">
-    <div className="rounded-xl bg-[var(--color-surface)] p-4 flex gap-3 items-center shadow-sm border border-[var(--color-border)]">
-      <div className="w-10 h-10 rounded-full bg-orange-100 flex items-center justify-center text-orange-500 shrink-0"><UsersIcon size={20} /></div>
-      <div>
-        <p className="text-lg font-semibold text-[var(--color-text)] leading-tight">{registeredCount}</p>
-        <p className="text-sm text-[var(--color-muted)]">Registered</p>
+    <div className="grid grid-cols-2 gap-3">
+      <div className="rounded-xl bg-[var(--color-surface)] p-4 flex gap-3 items-center shadow-sm border border-[var(--color-border)]">
+        <div className="w-10 h-10 rounded-full bg-orange-100 flex items-center justify-center text-orange-500 shrink-0"><UsersIcon size={20} /></div>
+        <div>
+          <p className="text-lg font-semibold text-[var(--color-text)] leading-tight">{registeredCount}</p>
+          <p className="text-sm text-[var(--color-muted)]">Registered</p>
+        </div>
+      </div>
+      <div className="rounded-xl bg-[var(--color-surface)] p-4 shadow-sm border border-[var(--color-border)]">
+        <p className="font-medium text-[var(--color-text)] text-sm mb-2">Registration</p>
+        <div className="flex gap-2">
+          <button className="bg-green-500 text-white px-3 py-1 rounded-full text-xs font-medium flex-1 transition-transform active:scale-95">Open</button>
+          <button className="bg-[var(--color-surface-elevated)] text-[var(--color-text-secondary)] px-3 py-1 rounded-full text-xs font-medium flex-1 transition-transform active:scale-95">Close</button>
+        </div>
       </div>
     </div>
-    <div className="rounded-xl bg-[var(--color-surface)] p-4 shadow-sm border border-[var(--color-border)]">
-      <p className="font-medium text-[var(--color-text)] text-sm mb-2">Registration</p>
-      <div className="flex gap-2">
-        <button className="bg-green-500 text-white px-3 py-1 rounded-full text-xs font-medium flex-1 transition-transform active:scale-95">Open</button>
-        <button className="bg-[var(--color-surface-elevated)] text-[var(--color-text-secondary)] px-3 py-1 rounded-full text-xs font-medium flex-1 transition-transform active:scale-95">Close</button>
-      </div>
-    </div>
-  </div>
   );
 };
 
@@ -137,7 +97,7 @@ const PrimaryTabs = ({ tabs, activeTab, setActiveTab }: { tabs: string[]; active
 // ==========================================
 // 2. TOURNAMENT LEVEL TABS (About, Events, Summary, Crew)
 // ==========================================
-const AboutTab = ({ tournament }: { tournament: TournamentInfo | null }) => {
+const AboutTab = ({ tournament }: { tournament: TournamentData | null }) => {
   const venue = [
     tournament?.venueName,
     tournament?.venueAddress,
@@ -147,49 +107,49 @@ const AboutTab = ({ tournament }: { tournament: TournamentInfo | null }) => {
   ].filter(Boolean).join(", ");
 
   return (
-  <>
-    <div className="bg-[var(--color-surface)] rounded-xl p-4 space-y-4 shadow-sm border border-[var(--color-border)]">
-      <h2 className="font-semibold text-[var(--color-text)]">Overview</h2>
-      <div className="grid grid-cols-2 gap-3">
-        <div className="border border-[var(--color-border)] rounded-xl p-3 bg-[var(--color-surface-elevated)]">
-          <p className="text-xs text-[var(--color-muted)] mb-1">Start Date</p>
-          <p className="text-sm font-medium text-[var(--color-text)]">{formatDate(tournament?.startDate)}</p>
-        </div>
-        <div className="border border-[var(--color-border)] rounded-xl p-3 bg-[var(--color-surface-elevated)]">
-          <p className="text-xs text-[var(--color-muted)] mb-1">End Date</p>
-          <p className="text-sm font-medium text-[var(--color-text)]">{formatDate(tournament?.endDate)}</p>
-        </div>
-        <div className="border border-[var(--color-border)] rounded-xl p-3 bg-[var(--color-surface-elevated)] col-span-2 flex gap-3 items-start">
-          <MapPinIcon size={18} className="text-[var(--color-muted)] shrink-0 mt-0.5" />
-          <div>
-            <p className="text-xs text-[var(--color-muted)] mb-1">Venue</p>
-            <p className="text-sm font-medium text-[var(--color-text)] leading-snug">{venue || "Venue TBA"}</p>
+    <>
+      <div className="bg-[var(--color-surface)] rounded-xl p-4 space-y-4 shadow-sm border border-[var(--color-border)]">
+        <h2 className="font-semibold text-[var(--color-text)]">Overview</h2>
+        <div className="grid grid-cols-2 gap-3">
+          <div className="border border-[var(--color-border)] rounded-xl p-3 bg-[var(--color-surface-elevated)]">
+            <p className="text-xs text-[var(--color-muted)] mb-1">Start Date</p>
+            <p className="text-sm font-medium text-[var(--color-text)]">{formatDate(tournament?.startDate)}</p>
+          </div>
+          <div className="border border-[var(--color-border)] rounded-xl p-3 bg-[var(--color-surface-elevated)]">
+            <p className="text-xs text-[var(--color-muted)] mb-1">End Date</p>
+            <p className="text-sm font-medium text-[var(--color-text)]">{formatDate(tournament?.endDate)}</p>
+          </div>
+          <div className="border border-[var(--color-border)] rounded-xl p-3 bg-[var(--color-surface-elevated)] col-span-2 flex gap-3 items-start">
+            <MapPinIcon size={18} className="text-[var(--color-muted)] shrink-0 mt-0.5" />
+            <div>
+              <p className="text-xs text-[var(--color-muted)] mb-1">Venue</p>
+              <p className="text-sm font-medium text-[var(--color-text)] leading-snug">{venue || "Venue TBA"}</p>
+            </div>
           </div>
         </div>
       </div>
-    </div>
-    <div className="bg-[var(--color-surface)] rounded-xl p-4 shadow-sm border border-[var(--color-border)] mt-4">
-      <h2 className="font-semibold text-[var(--color-text)] mb-2">Description</h2>
-      <p className="text-sm text-[var(--color-text-secondary)] leading-relaxed">{tournament?.description || "No description added."}</p>
-    </div>
-    <div className="bg-[var(--color-surface)] rounded-xl p-4 space-y-4 shadow-sm border border-[var(--color-border)] mt-4">
-      <h2 className="font-semibold text-[var(--color-text)]">Contact Information</h2>
-      <div className="space-y-3">
-        <div className="flex gap-3 items-center">
-          <div className="w-10 h-10 rounded-full bg-[var(--color-surface-elevated)] flex items-center justify-center overflow-hidden shrink-0 border border-[var(--color-border)]">
-            <img src={`https://api.dicebear.com/7.x/initials/svg?seed=PM&backgroundColor=f97316&textColor=ffffff`} alt="Piyush Mantri" className="w-full h-full object-cover" />
+      <div className="bg-[var(--color-surface)] rounded-xl p-4 shadow-sm border border-[var(--color-border)] mt-4">
+        <h2 className="font-semibold text-[var(--color-text)] mb-2">Description</h2>
+        <p className="text-sm text-[var(--color-text-secondary)] leading-relaxed">{tournament?.description || "No description added."}</p>
+      </div>
+      <div className="bg-[var(--color-surface)] rounded-xl p-4 space-y-4 shadow-sm border border-[var(--color-border)] mt-4">
+        <h2 className="font-semibold text-[var(--color-text)]">Contact Information</h2>
+        <div className="space-y-3">
+          <div className="flex gap-3 items-center">
+            <div className="w-10 h-10 rounded-full bg-[var(--color-surface-elevated)] flex items-center justify-center overflow-hidden shrink-0 border border-[var(--color-border)]">
+              <img src={`https://api.dicebear.com/7.x/initials/svg?seed=PM&backgroundColor=f97316&textColor=ffffff`} alt="Piyush Mantri" className="w-full h-full object-cover" />
+            </div>
+            <p className="font-medium text-[var(--color-text)]">{tournament?.contactName || "Contact person"}</p>
           </div>
-          <p className="font-medium text-[var(--color-text)]">{tournament?.contactName || "Contact person"}</p>
-        </div>
-        <div className="flex items-center gap-3 text-sm text-[var(--color-text-secondary)] ml-1">
-          <PhoneIcon size={16} className="text-[var(--color-muted)] shrink-0" /><p>{tournament?.contactPhone || "No phone added"}</p>
-        </div>
-        <div className="flex items-center gap-3 text-sm text-[var(--color-text-secondary)] ml-1">
-          <MailIcon size={16} className="text-[var(--color-muted)] shrink-0" /><p>{tournament?.contactEmail || "No email added"}</p>
+          <div className="flex items-center gap-3 text-sm text-[var(--color-text-secondary)] ml-1">
+            <PhoneIcon size={16} className="text-[var(--color-muted)] shrink-0" /><p>{tournament?.contactPhone || "No phone added"}</p>
+          </div>
+          <div className="flex items-center gap-3 text-sm text-[var(--color-text-secondary)] ml-1">
+            <MailIcon size={16} className="text-[var(--color-muted)] shrink-0" /><p>{tournament?.contactEmail || "No email added"}</p>
+          </div>
         </div>
       </div>
-    </div>
-  </>
+    </>
   );
 };
 
@@ -223,7 +183,7 @@ const StepRow = ({ title, state, subtext, actionLabel, href, isLast = false }: a
   );
 };
 
-const EventsTab = ({ tournamentId, events }: { tournamentId: string; events: TournamentEvent[] }) => {
+const EventsTab = ({ tournamentId, events }: { tournamentId: string; events: EventData[] }) => {
   const [activeFilter, setActiveFilter] = useState("All");
   const filters = ["All", "Upcoming", "Past", "Ongoing"];
 
@@ -243,58 +203,58 @@ const EventsTab = ({ tournamentId, events }: { tournamentId: string; events: Tou
         const participantCount = Array.isArray(event.teams) ? event.teams.length : 0;
 
         return (
-      <div key={eventId} className="bg-[var(--color-surface)] rounded-xl p-4 shadow-sm border border-[var(--color-border)]">
-        <div className="flex justify-between items-start mb-3">
-          <div>
-            <h3 className="font-semibold text-[var(--color-text)]">{event.name || `Event ${index + 1}`}</h3>
-            <p className="text-sm text-[var(--color-muted)] mt-0.5">{[genderLabel(event.gender), event.sportsOption?.name || event.sportsOption?.code, formatDate(event.startDate)].filter(Boolean).join(" | ")}</p>
+          <div key={eventId} className="bg-[var(--color-surface)] rounded-xl p-4 shadow-sm border border-[var(--color-border)]">
+            <div className="flex justify-between items-start mb-3">
+              <div>
+                <h3 className="font-semibold text-[var(--color-text)]">{event.name || `Event ${index + 1}`}</h3>
+                <p className="text-sm text-[var(--color-muted)] mt-0.5">{[genderLabel(event.gender), event.sportsOption?.label || event.sportsOption?.code, formatDate(event.startDate)].filter(Boolean).join(" | ")}</p>
+              </div>
+              <button className="text-[var(--color-muted)]"><EllipsisIcon size={20} /></button>
+            </div>
+            <div className="flex justify-between items-center mb-4">
+              <button className="border border-[var(--color-border)] px-3 py-1.5 rounded-lg text-sm font-medium text-[var(--color-text)] hover:bg-[var(--color-surface-elevated)] transition-colors">Extend Due Date</button>
+              <span className="px-3 py-1 rounded-full text-xs font-semibold tracking-wide bg-green-100 text-green-700">Active</span>
+            </div>
+
+            <div className="mt-2">
+              <p className="text-xs font-semibold text-[var(--color-muted)] uppercase tracking-wider mb-4">Workflow Progress</p>
+
+              {/* Linked exactly to your file routes */}
+              <StepRow
+                title="Participants"
+                state="active"
+                subtext={`${participantCount} Teams Registered`}
+                actionLabel="Manage"
+                href={`/org/tournaments/event/fixture${toQuery({ tournamentId, eventId })}`}
+              />
+              <StepRow
+                title="Fixtures"
+                state="inactive"
+                actionLabel="Create"
+                href={`/org/tournaments/event/fixture${toQuery({ tournamentId, eventId })}`}
+              />
+              <StepRow
+                title="Matches"
+                state="inactive"
+                actionLabel="Manage"
+                href={`/org/tournaments/event/fixture${toQuery({ tournamentId, eventId })}`}
+              />
+              <StepRow
+                title="Results"
+                state="inactive"
+                actionLabel="View Champion"
+                isLast={true}
+                href={`/org/tournaments/event/fixture${toQuery({ tournamentId, eventId })}`}
+              />
+            </div>
           </div>
-          <button className="text-[var(--color-muted)]"><EllipsisIcon size={20} /></button>
-        </div>
-        <div className="flex justify-between items-center mb-4">
-          <button className="border border-[var(--color-border)] px-3 py-1.5 rounded-lg text-sm font-medium text-[var(--color-text)] hover:bg-[var(--color-surface-elevated)] transition-colors">Extend Due Date</button>
-          <span className="px-3 py-1 rounded-full text-xs font-semibold tracking-wide bg-green-100 text-green-700">Active</span>
-        </div>
-        
-        <div className="mt-2">
-          <p className="text-xs font-semibold text-[var(--color-muted)] uppercase tracking-wider mb-4">Workflow Progress</p>
-          
-          {/* Linked exactly to your file routes */}
-          <StepRow 
-            title="Participants" 
-            state="active" 
-            subtext={`${participantCount} Teams Registered`} 
-            actionLabel="Manage" 
-            href={routes.orgEventParticipants(tournamentId, eventId)} 
-          />
-          <StepRow 
-            title="Fixtures" 
-            state="inactive" 
-            actionLabel="Create" 
-            href={routes.orgEventFixture(tournamentId, eventId)} 
-          />
-          <StepRow 
-            title="Matches" 
-            state="inactive" 
-            actionLabel="Manage" 
-            href={routes.orgEventMatches(tournamentId, eventId)} 
-          />
-          <StepRow 
-            title="Results" 
-            state="inactive" 
-            actionLabel="View Champion" 
-            isLast={true} 
-            href={routes.orgEventChampion(tournamentId, eventId)} 
-          />
-        </div>
-      </div>
         );
       })}
     </div>
   );
 };
 
-const SummaryTab = ({ events }: { events: TournamentEvent[] }) => {
+const SummaryTab = ({ events }: { events: EventData[] }) => {
   const [isExpanded, setIsExpanded] = useState(false);
   return (
     <div className="space-y-4">
@@ -385,51 +345,31 @@ const EventCrewTab = () => {
 // 3. MAIN PAGE EXPORT
 // ==========================================
 export default function TournamentEventDetailsPage() {
-  const searchParams = useClientSearchParams();
+
+  const [searchParams, setSearchParams] = useState<URLSearchParams>(() => new URLSearchParams());
   const tournamentId = searchParams.get("id") || "1";
-  const [tournament, setTournament] = useState<TournamentInfo | null>(null);
+  const [tournament, setTournament] = useState<TournamentData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState("");
-  const { session } = useApp();
 
   const primaryTabs = ["About", "Events", "Summary", "Event Crew"];
-  const [activeTab, setActiveTab] = useState("About"); 
+  const [activeTab, setActiveTab] = useState("About");
+
 
   useEffect(() => {
     let isActive = true;
 
-    const loadTournament = async () => {
-      if (!session?.access_token) {
-        setErrorMessage("Please sign in again to load this tournament.");
-        setIsLoading(false);
-        return;
-      }
+    setSearchParams(new URLSearchParams(window.location.search));
 
-      const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
-      if (!apiBaseUrl) {
-        setErrorMessage("Tournament service is not configured.");
-        setIsLoading(false);
-        return;
-      }
+    const loadTournament = async () => {
 
       try {
         setErrorMessage("");
         setIsLoading(true);
-        const response = await fetch(`${apiBaseUrl}/tournament/info/${tournamentId}`, {
-          headers: {
-            Authorization: `Bearer ${session.access_token}`,
-          },
-        });
-        const result = (await response.json().catch(() => null)) as
-          | ApiResponse<TournamentInfo>
-          | null;
-
-        if (!response.ok || result?.success === false) {
-          throw new Error(result?.message || "Unable to load tournament.");
-        }
+        const tournamentData = await tournamenApi.getInfo(tournamentId);
 
         if (isActive) {
-          setTournament(result?.data ?? null);
+          setTournament(tournamentData ?? null);
         }
       } catch (error) {
         if (!isActive) return;
@@ -449,7 +389,7 @@ export default function TournamentEventDetailsPage() {
     return () => {
       isActive = false;
     };
-  }, [tournamentId, session?.access_token]);
+  }, [tournamentId]);
 
   // Retrieve the saved tab from sessionStorage on initial load
   useEffect(() => {
@@ -478,18 +418,18 @@ export default function TournamentEventDetailsPage() {
         </p>
       ) : (
         <>
-      <EventHeader tournament={tournament} />
-      <EventStats tournament={tournament} />
+          <EventHeader tournament={tournament} />
+          <EventStats tournament={tournament} />
 
-      {/* Pass our custom handler to PrimaryTabs */}
-      <PrimaryTabs tabs={primaryTabs} activeTab={activeTab} setActiveTab={handleTabChange} />
+          {/* Pass our custom handler to PrimaryTabs */}
+          <PrimaryTabs tabs={primaryTabs} activeTab={activeTab} setActiveTab={handleTabChange} />
 
-      <div className="space-y-4">
-        {activeTab === "About" && <AboutTab tournament={tournament} />}
-        {activeTab === "Events" && <EventsTab tournamentId={tournamentId} events={tournament?.events ?? []} />}
-        {activeTab === "Summary" && <SummaryTab events={tournament?.events ?? []} />}
-        {activeTab === "Event Crew" && <EventCrewTab />}
-      </div>
+          <div className="space-y-4">
+            {activeTab === "About" && <AboutTab tournament={tournament} />}
+            {activeTab === "Events" && <EventsTab tournamentId={tournamentId} events={tournament?.events ?? []} />}
+            {activeTab === "Summary" && <SummaryTab events={tournament?.events ?? []} />}
+            {activeTab === "Event Crew" && <EventCrewTab />}
+          </div>
         </>
       )}
     </div>

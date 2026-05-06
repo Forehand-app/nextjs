@@ -11,7 +11,6 @@ export const organizationApi = {
     },
 
     getUserOrganizations: async (): Promise<OrganizationData[]> => {
-
         const { data } = await fetchApi(getApiUrl({ path: "/org/list" }));
 
         return data as OrganizationData[];

@@ -7,6 +7,8 @@ import Link from "next/link";
 import { useApp } from "@/components/AppProvider";
 import { TrophyIcon, MapPinIcon, CalendarIcon, WalletIcon, FilterIcon, EditIcon, UsersIcon } from "@/components/Icons";
 import { toQuery } from "@/lib/utils";
+import { tournamenApi } from "@/lib/api/tournamentApi";
+import { TournamentData } from "@/lib/models";
 
 
 const tabs: TabItem[] = [
@@ -15,37 +17,6 @@ const tabs: TabItem[] = [
   { id: "past", label: "Past" },
   { id: "drafts", label: "Drafts" },
 ];
-
-type TournamentEvent = {
-  id?: string;
-  name?: string | null;
-  amount?: number | null;
-  gender?: "male" | "female" | null;
-  sportsOption?: {
-    name?: string | null;
-    code?: string | null;
-  } | null;
-};
-
-type OrgTournament = {
-  id: string;
-  name?: string | null;
-  description?: string | null;
-  startDate?: string | null;
-  endDate?: string | null;
-  venueName?: string | null;
-  venueCity?: string | null;
-  venueState?: string | null;
-  venueCourts?: number | null;
-  events?: TournamentEvent[];
-};
-
-type ApiResponse<T> = {
-  success?: boolean;
-  message?: string;
-  data?: T;
-};
-
 function formatDate(value?: string | null) {
   if (!value) return "Date TBA";
   const date = new Date(value);
@@ -57,7 +28,7 @@ function formatDate(value?: string | null) {
   });
 }
 
-function getTournamentStatus(tournament: OrgTournament): "live" | "upcoming" | "past" {
+function getTournamentStatus(tournament: TournamentData): "live" | "upcoming" | "past" {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
@@ -77,20 +48,20 @@ function getTournamentStatus(tournament: OrgTournament): "live" | "upcoming" | "
   return "live";
 }
 
-function getPrimarySport(tournament: OrgTournament) {
+function getPrimarySport(tournament: TournamentData) {
   return (
-    tournament.events?.[0]?.sportsOption?.name ||
+    tournament.events?.[0]?.sportsOption?.label ||
     tournament.events?.[0]?.sportsOption?.code ||
     "No events"
   );
 }
 
-function getEntryFee(tournament: OrgTournament) {
+function getEntryFee(tournament: TournamentData) {
   const paidEvent = tournament.events?.find((event) => Number(event.amount) > 0);
   return paidEvent ? `₹${paidEvent.amount} Entry` : "Free Entry";
 }
 
-function getGenderLabel(tournament: OrgTournament) {
+function getGenderLabel(tournament: TournamentData) {
   const gender = tournament.events?.find((event) => event.gender)?.gender;
   if (gender === "male") return "Men's";
   if (gender === "female") return "Women's";
@@ -99,10 +70,10 @@ function getGenderLabel(tournament: OrgTournament) {
 
 export default function OrgTournamentsPage() {
   const [activeTab, setActiveTab] = useState("live");
-  const { session, activeOrganization } = useApp();
+  const { activeOrganization } = useApp();
   const activeOrgId = activeOrganization?.id ?? null;
   const [showFilters, setShowFilters] = useState(false);
-  const [tournaments, setTournaments] = useState<OrgTournament[]>([]);
+  const [tournaments, setTournaments] = useState<TournamentData[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState("");
   const orgId = activeOrgId;
@@ -111,36 +82,14 @@ export default function OrgTournamentsPage() {
     let isActive = true;
 
     const loadTournaments = async () => {
-      if (!session?.access_token || !orgId) {
-        setIsLoading(false);
-        return;
-      }
-
-      const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
-      if (!apiBaseUrl) {
-        setErrorMessage("Tournament service is not configured.");
-        setIsLoading(false);
-        return;
-      }
-
       try {
         setErrorMessage("");
         setIsLoading(true);
-        const response = await fetch(`${apiBaseUrl}/tournament/list/org/${orgId}`, {
-          headers: {
-            Authorization: `Bearer ${session.access_token}`,
-          },
-        });
-        const result = (await response.json().catch(() => null)) as
-          | ApiResponse<OrgTournament[]>
-          | null;
 
-        if (!response.ok || result?.success === false) {
-          throw new Error(result?.message || "Unable to load tournaments.");
-        }
+        const tournaments = await tournamenApi.getOrganizationTournaments(orgId!);
 
         if (isActive) {
-          setTournaments(Array.isArray(result?.data) ? result.data : []);
+          setTournaments(Array.isArray(tournaments) ? tournaments : []);
         }
       } catch (error) {
         if (!isActive) return;
@@ -162,7 +111,7 @@ export default function OrgTournamentsPage() {
     return () => {
       isActive = false;
     };
-  }, [orgId, session]);
+  }, [orgId]);
 
   const visibleTournaments = useMemo(
     () =>
