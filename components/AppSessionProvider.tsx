@@ -1,5 +1,11 @@
 "use client";
 
+/**
+ * AppSessionProvider — Manages the user's backend profile and active org.
+ * This is a clean rebuild. It reads the Supabase session from AuthProvider
+ * and fetches the backend profile once on login. No routing logic lives here.
+ */
+
 import React, {
   createContext,
   useCallback,
@@ -8,222 +14,119 @@ import React, {
   useMemo,
   useState,
 } from "react";
-import { usePathname, useRouter } from "next/navigation";
 import { useAuth } from "@/components/AuthProvider";
-import { fetchUserProfile, type UserProfile } from "@/lib/userProfile";
 
 const ACTIVE_ORG_STORAGE_KEY = "forehand:active-org-id";
 
-type OrganizationInfo = {
+export type UserProfile = {
+  id?: string;
+  name?: string | null;
+  phone?: string | null;
+  gender?: string | null;
+  dob?: string | null;
+  playingHand?: string | null;
+  primarySport?: string | null;
+};
+
+export type OrganizationInfo = {
   id?: string;
   name?: string | null;
   [key: string]: unknown;
 };
 
 type AppSessionContextValue = {
-  activeOrgId: string | null;
-  isResolving: boolean;
-  organization: OrganizationInfo | null;
   profile: UserProfile | null;
-  refreshAppSession: () => Promise<string>;
+  isResolving: boolean;
+  activeOrgId: string | null;
+  organization: OrganizationInfo | null;
   setActiveOrgId: (orgId: string | null) => void;
+  refreshProfile: () => Promise<void>;
 };
 
 const AppSessionContext = createContext<AppSessionContextValue | null>(null);
 
-function getStoredActiveOrgId() {
-  if (typeof window === "undefined") return null;
-  return localStorage.getItem(ACTIVE_ORG_STORAGE_KEY);
-}
-
-function isEntryRoute(pathname: string) {
-  return pathname === "/" || pathname === "/home" || pathname === "/splash";
-}
-
-async function fetchOrganizationInfo(accessToken: string, orgId: string) {
-  const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
-  if (!apiBaseUrl) {
-    throw new Error("Organization service is not configured.");
-  }
-
-  const response = await fetch(`${apiBaseUrl}/org/info/${orgId}`, {
-    headers: {
-      Authorization: `Bearer ${accessToken}`,
-    },
-  });
-  const result = await response.json().catch(() => null);
-
-  if (!response.ok || result?.success === false || !result?.data) {
-    throw new Error(result?.message || "Unable to load organization.");
-  }
-
-  return result.data as OrganizationInfo;
-}
-
 export function AppSessionProvider({ children }: { children: React.ReactNode }) {
-  const router = useRouter();
-  const pathname = usePathname();
-  const { isAuthenticated, isLoading, session } = useAuth();
-  const [activeOrgId, setActiveOrgIdState] = useState<string | null>(null);
-  const [isResolving, setIsResolving] = useState(true);
-  const [organization, setOrganization] = useState<OrganizationInfo | null>(null);
+  const { session, isAuthenticated, isLoading } = useAuth();
+
   const [profile, setProfile] = useState<UserProfile | null>(null);
+  const [isResolving, setIsResolving] = useState(true);
+  const [activeOrgId, setActiveOrgIdState] = useState<string | null>(null);
+  const [organization, setOrganization] = useState<OrganizationInfo | null>(null);
 
   const setActiveOrgId = useCallback((orgId: string | null) => {
     setActiveOrgIdState(orgId);
     if (typeof window === "undefined") return;
-
-    if (orgId) {
-      localStorage.setItem(ACTIVE_ORG_STORAGE_KEY, orgId);
-    } else {
-      localStorage.removeItem(ACTIVE_ORG_STORAGE_KEY);
-    }
+    if (orgId) localStorage.setItem(ACTIVE_ORG_STORAGE_KEY, orgId);
+    else localStorage.removeItem(ACTIVE_ORG_STORAGE_KEY);
   }, []);
 
-  const refreshAppSession = useCallback(async () => {
-    if (!session?.access_token) {
+  const refreshProfile = useCallback(async () => {
+    const accessToken = session?.access_token;
+    const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
+
+    if (!accessToken || !apiBaseUrl) {
       setProfile(null);
-      setOrganization(null);
-      return "/splash";
-    }
-
-    const userProfile = await fetchUserProfile(session);
-    setProfile(userProfile);
-
-    if (!userProfile) {
-      setOrganization(null);
-      return "/finalize";
-    }
-
-    const nextActiveOrgId = getStoredActiveOrgId();
-    setActiveOrgIdState(nextActiveOrgId);
-
-    if (!nextActiveOrgId) {
-      setOrganization(null);
-      return "/user/home";
+      return;
     }
 
     try {
-      const orgInfo = await fetchOrganizationInfo(
-        session.access_token,
-        nextActiveOrgId,
-      );
-      setOrganization(orgInfo);
-      return "/org/home";
-    } catch (error) {
-      console.error("Failed to load active organization", error);
-      setActiveOrgId(null);
-      setOrganization(null);
-      return "/user/home";
-    }
-  }, [session, setActiveOrgId]);
+      const res = await fetch(`${apiBaseUrl}/user/profile`, {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      });
 
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    const orgIdFromUrl = new URLSearchParams(window.location.search).get("orgId");
-    if (orgIdFromUrl) {
-      setActiveOrgId(orgIdFromUrl);
-    }
-  }, [pathname, setActiveOrgId]);
+      const result = await res.json().catch(() => null);
 
-  useEffect(() => {
-    let isActive = true;
-
-    const resolveSession = async () => {
-      if (isLoading) return;
-
-      if (pathname.startsWith("/auth/callback")) {
-        setIsResolving(false);
-        return;
-      }
-
-      if (!isAuthenticated) {
+      if (res.ok && result?.success && result?.data) {
+        setProfile(result.data as UserProfile);
+      } else {
         setProfile(null);
-        setActiveOrgId(null);
-        setOrganization(null);
-        setIsResolving(false);
-        if (pathname !== "/splash") {
-          router.replace("/splash");
-        }
-        return;
       }
+    } catch (err) {
+      console.error("Failed to fetch profile (backend might be offline):", err);
+      setProfile(null);
+    }
+  }, [session]);
 
-      try {
-        setIsResolving(true);
-        const target = await refreshAppSession();
-        if (!isActive) return;
+  // Fetch profile whenever the session changes
+  useEffect(() => {
+    if (isLoading) return;
 
-        if (target === "/finalize") {
-          if (pathname !== "/finalize") {
-            router.replace(target);
-          }
-          return;
-        }
+    if (!isAuthenticated) {
+      setProfile(null);
+      setOrganization(null);
+      setActiveOrgIdState(null);
+      setIsResolving(false);
+      return;
+    }
 
-        if (isEntryRoute(pathname)) {
-          router.replace(target);
-          return;
-        }
+    setIsResolving(true);
+    refreshProfile().finally(() => setIsResolving(false));
 
-        if (target === "/user/home" && pathname.startsWith("/org/")) {
-          router.replace(target);
-          return;
-        }
-
-        if (target === "/org/home" && pathname.startsWith("/user/")) {
-          router.replace(target);
-        }
-      } catch (error) {
-        console.error("Failed to resolve app session", error);
-        if (isActive && pathname !== "/finalize") {
-          router.replace("/finalize");
-        }
-      } finally {
-        if (isActive) {
-          setIsResolving(false);
-        }
-      }
-    };
-
-    void resolveSession();
-
-    return () => {
-      isActive = false;
-    };
-  }, [isAuthenticated, isLoading, pathname, refreshAppSession, router]);
+    // Restore active org from storage
+    if (typeof window !== "undefined") {
+      setActiveOrgIdState(localStorage.getItem(ACTIVE_ORG_STORAGE_KEY));
+    }
+  }, [isAuthenticated, isLoading, refreshProfile]);
 
   const value = useMemo<AppSessionContextValue>(
     () => ({
-      activeOrgId,
-      isResolving,
-      organization,
       profile,
-      refreshAppSession,
+      isResolving,
+      activeOrgId,
+      organization,
       setActiveOrgId,
+      refreshProfile,
     }),
-    [
-      activeOrgId,
-      isResolving,
-      organization,
-      profile,
-      refreshAppSession,
-      setActiveOrgId,
-    ],
+    [profile, isResolving, activeOrgId, organization, setActiveOrgId, refreshProfile]
   );
 
   return (
-    <AppSessionContext.Provider value={value}>
-      {children}
-    </AppSessionContext.Provider>
+    <AppSessionContext.Provider value={value}>{children}</AppSessionContext.Provider>
   );
 }
 
 export function useAppSession() {
-  const context = useContext(AppSessionContext);
-
-  if (!context) {
-    throw new Error("useAppSession must be used within an AppSessionProvider.");
-  }
-
-  return context;
+  const ctx = useContext(AppSessionContext);
+  if (!ctx) throw new Error("useAppSession must be used within an <AppSessionProvider>");
+  return ctx;
 }

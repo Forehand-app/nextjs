@@ -40,7 +40,7 @@ export default function UserSettingsPage() {
     try {
       setIsSigningOut(true);
       await signOut();
-      router.replace("/splash");
+      router.replace("/login");
     } catch (error) {
       console.error("Failed to sign out", error);
       setIsSigningOut(false);

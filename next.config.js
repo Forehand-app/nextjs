@@ -6,6 +6,7 @@ const nextConfig = {
     unoptimized: true,
   },
   trailingSlash: true,
+  allowedDevOrigins: ['192.168.1.8'],
 };
 
 module.exports = nextConfig;

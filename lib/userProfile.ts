@@ -50,6 +50,10 @@ export async function fetchUserProfile(session: Session | null): Promise<UserPro
     | UserProfileResponse
     | null;
 
+  if (response.status === 404) {
+    return null;
+  }
+
   if (!response.ok || result?.success === false) {
     throw new Error(result?.message || "Unable to load your profile.");
   }

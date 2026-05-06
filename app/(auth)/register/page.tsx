@@ -3,21 +3,13 @@
 import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/components/AuthProvider";
-import {
-  CalendarIcon,
-  GamepadIcon,
-  HandIcon,
-  PhoneIcon,
-  UserIcon,
-  UserIcon as GenderIcon,
-} from "@/components/Icons";
 
-export default function FinalizePage() {
+export default function RegisterPage() {
   const router = useRouter();
-  const { isAuthenticated, isLoading, session, signOut, user } = useAuth();
-  const [errorMessage, setErrorMessage] = useState("");
-  const [isRegistering, setIsRegistering] = useState(false);
+  const { isAuthenticated, isLoading, session, signOut } = useAuth();
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSigningOut, setIsSigningOut] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
   const [formData, setFormData] = useState({
     name: "",
     contactNumber: "",
@@ -29,20 +21,21 @@ export default function FinalizePage() {
 
   useEffect(() => {
     if (isLoading) return;
+    // Not logged in → back to login
     if (!isAuthenticated) {
-      router.replace("/splash");
+      router.replace("/login");
       return;
     }
-
-    setFormData((current) => ({
-      ...current,
+    // Pre-fill name from Google profile
+    setFormData((prev) => ({
+      ...prev,
       name:
-        current.name ||
-        user?.user_metadata?.full_name ||
-        user?.user_metadata?.name ||
+        prev.name ||
+        session?.user?.user_metadata?.full_name ||
+        session?.user?.user_metadata?.name ||
         "",
     }));
-  }, [isAuthenticated, isLoading, router, user]);
+  }, [isAuthenticated, isLoading, router, session]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -60,7 +53,7 @@ export default function FinalizePage() {
     }
 
     try {
-      setIsRegistering(true);
+      setIsSubmitting(true);
       const response = await fetch(`${apiBaseUrl}/user/register`, {
         method: "POST",
         headers: {
@@ -82,35 +75,29 @@ export default function FinalizePage() {
         throw new Error(result?.message || "Registration failed.");
       }
 
-      router.push("/user/home");
-    } catch (error) {
-      console.error("Failed to register user", error);
+      router.replace("/home");
+    } catch (err) {
       setErrorMessage(
-        error instanceof Error
-          ? error.message
-          : "Registration failed. Please try again.",
+        err instanceof Error ? err.message : "Registration failed. Please try again."
       );
-      setIsRegistering(false);
+      setIsSubmitting(false);
     }
   };
 
-  const handleBackToSignIn = async () => {
+  const handleSignOut = async () => {
     try {
       setIsSigningOut(true);
       await signOut();
-      router.replace("/splash");
-    } catch (error) {
-      console.error("Failed to sign out", error);
+      router.replace("/login");
+    } catch {
       setIsSigningOut(false);
     }
   };
 
   if (isLoading || !isAuthenticated) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[var(--color-background)] text-[var(--color-text)]">
-        <p className="text-sm text-[var(--color-muted)]">
-          Loading your account...
-        </p>
+      <div className="min-h-screen flex items-center justify-center bg-[var(--color-background)]">
+        <p className="text-sm text-[var(--color-muted)]">Loading...</p>
       </div>
     );
   }
@@ -118,59 +105,56 @@ export default function FinalizePage() {
   return (
     <div className="min-h-screen bg-[var(--color-background)] p-6 pb-safe">
       <div className="max-w-md mx-auto">
+        {/* Header */}
         <div
           className="rounded-2xl p-6 mb-6 text-white"
           style={{ background: "var(--gradient-orange)" }}
         >
-          <h1 className="text-2xl font-bold mb-1">Finalize Registration</h1>
-          <p className="text-sm opacity-90">
-            Let&apos;s set up your player profile
-          </p>
-          {user?.email ? (
-            <p className="text-xs opacity-75 mt-2">{user.email}</p>
-          ) : null}
+          <h1 className="text-2xl font-bold mb-1">Create your profile</h1>
+          <p className="text-sm opacity-90">Just a few details to get you started</p>
+          {session?.user?.email && (
+            <p className="text-xs opacity-75 mt-2">{session.user.email}</p>
+          )}
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
+          {/* Full Name */}
           <div>
-            <label className="block text-sm font-medium text-[var(--color-text)] mb-2 flex items-center gap-2">
-              <UserIcon size={14} /> Full Name
+            <label className="block text-sm font-medium text-[var(--color-text)] mb-2">
+              Full Name
             </label>
             <input
               type="text"
               value={formData.name}
-              onChange={(e) =>
-                setFormData({ ...formData, name: e.target.value })
-              }
+              required
+              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
               className="w-full px-4 py-3 rounded-[var(--radius-input)] bg-[var(--color-surface)] border border-[var(--color-border)] text-[var(--color-text)] placeholder:text-[var(--color-muted)] focus:border-primary focus:outline-none transition-colors"
               placeholder="Enter your full name"
             />
           </div>
 
+          {/* Contact Number */}
           <div>
-            <label className="block text-sm font-medium text-[var(--color-text)] mb-2 flex items-center gap-2">
-              <PhoneIcon size={14} /> Contact Number
+            <label className="block text-sm font-medium text-[var(--color-text)] mb-2">
+              Contact Number
             </label>
             <input
               type="tel"
               value={formData.contactNumber}
-              onChange={(e) =>
-                setFormData({ ...formData, contactNumber: e.target.value })
-              }
+              onChange={(e) => setFormData({ ...formData, contactNumber: e.target.value })}
               className="w-full px-4 py-3 rounded-[var(--radius-input)] bg-[var(--color-surface)] border border-[var(--color-border)] text-[var(--color-text)] placeholder:text-[var(--color-muted)] focus:border-primary focus:outline-none transition-colors"
               placeholder="Enter your contact number"
             />
           </div>
 
+          {/* Gender */}
           <div>
-            <label className="block text-sm font-medium text-[var(--color-text)] mb-2 flex items-center gap-2">
-              <GenderIcon size={14} /> Gender
+            <label className="block text-sm font-medium text-[var(--color-text)] mb-2">
+              Gender
             </label>
             <select
               value={formData.gender}
-              onChange={(e) =>
-                setFormData({ ...formData, gender: e.target.value })
-              }
+              onChange={(e) => setFormData({ ...formData, gender: e.target.value })}
               className="w-full px-4 py-3 rounded-[var(--radius-input)] bg-[var(--color-surface)] border border-[var(--color-border)] text-[var(--color-text)] focus:border-primary focus:outline-none transition-colors"
             >
               <option value="">Select gender</option>
@@ -179,29 +163,27 @@ export default function FinalizePage() {
             </select>
           </div>
 
+          {/* Date of Birth */}
           <div>
-            <label className="block text-sm font-medium text-[var(--color-text)] mb-2 flex items-center gap-2">
-              <CalendarIcon size={14} /> Date of Birth
+            <label className="block text-sm font-medium text-[var(--color-text)] mb-2">
+              Date of Birth
             </label>
             <input
               type="date"
               value={formData.dob}
-              onChange={(e) =>
-                setFormData({ ...formData, dob: e.target.value })
-              }
+              onChange={(e) => setFormData({ ...formData, dob: e.target.value })}
               className="w-full px-4 py-3 rounded-[var(--radius-input)] bg-[var(--color-surface)] border border-[var(--color-border)] text-[var(--color-text)] focus:border-primary focus:outline-none transition-colors"
             />
           </div>
 
+          {/* Playing Hand */}
           <div>
-            <label className="block text-sm font-medium text-[var(--color-text)] mb-2 flex items-center gap-2">
-              <HandIcon size={14} /> Playing Hand
+            <label className="block text-sm font-medium text-[var(--color-text)] mb-2">
+              Playing Hand
             </label>
             <select
               value={formData.playingHand}
-              onChange={(e) =>
-                setFormData({ ...formData, playingHand: e.target.value })
-              }
+              onChange={(e) => setFormData({ ...formData, playingHand: e.target.value })}
               className="w-full px-4 py-3 rounded-[var(--radius-input)] bg-[var(--color-surface)] border border-[var(--color-border)] text-[var(--color-text)] focus:border-primary focus:outline-none transition-colors"
             >
               <option value="">Select playing hand</option>
@@ -210,50 +192,48 @@ export default function FinalizePage() {
             </select>
           </div>
 
+          {/* Primary Sport */}
           <div>
-            <label className="block text-sm font-medium text-[var(--color-text)] mb-2 flex items-center gap-2">
-              <GamepadIcon size={14} /> Primary Sport
+            <label className="block text-sm font-medium text-[var(--color-text)] mb-2">
+              Primary Sport
             </label>
             <input
               type="text"
               value={formData.primarySport}
-              onChange={(e) =>
-                setFormData({ ...formData, primarySport: e.target.value })
-              }
-              className="w-full px-4 py-3 rounded-[var(--radius-input)] bg-[var(--color-surface)] border border-[var(--color-border)] text-[var(--color-text)] focus:border-primary focus:outline-none transition-colors"
+              onChange={(e) => setFormData({ ...formData, primarySport: e.target.value })}
+              className="w-full px-4 py-3 rounded-[var(--radius-input)] bg-[var(--color-surface)] border border-[var(--color-border)] text-[var(--color-text)] placeholder:text-[var(--color-muted)] focus:border-primary focus:outline-none transition-colors"
               placeholder="e.g. Badminton"
             />
           </div>
 
-          {errorMessage ? (
-            <p className="rounded-xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm font-medium text-red-600 dark:text-red-400">
+          {errorMessage && (
+            <p className="rounded-xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-600 dark:text-red-400">
               {errorMessage}
             </p>
-          ) : null}
+          )}
 
           <button
             type="submit"
-            disabled={isRegistering}
+            disabled={isSubmitting}
             className="w-full min-h-[52px] flex items-center justify-center rounded-xl font-semibold text-white shadow-lg transition-transform active:scale-95 mt-6 disabled:opacity-70"
             style={{ background: "var(--gradient-orange)" }}
           >
-            {isRegistering ? "Registering..." : "Register"}
+            {isSubmitting ? "Creating profile..." : "Create Profile"}
           </button>
         </form>
 
         <p className="text-xs text-[var(--color-muted)] text-center mt-6">
-          Want to continue later?{" "}
+          Wrong account?{" "}
           <button
             type="button"
-            onClick={handleBackToSignIn}
+            onClick={handleSignOut}
             disabled={isSigningOut}
             className="text-primary font-medium disabled:opacity-60"
           >
-            {isSigningOut ? "Signing out..." : "Back to sign in"}
+            {isSigningOut ? "Signing out..." : "Sign out"}
           </button>
         </p>
       </div>
     </div>
   );
 }
-
