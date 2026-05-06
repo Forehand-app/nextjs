@@ -3,7 +3,7 @@
 import React from "react";
 import Link from "next/link";
 import { CalendarIcon, ChevronRightIcon, MapPinIcon, WalletIcon } from "@/components/Icons";
-import { routes } from "@/lib/routes";
+import { toQuery } from "@/lib/utils";
 
 export type TournamentListItem = {
   id: string;
@@ -63,7 +63,7 @@ export default function TournamentListCard({ item }: { item: TournamentListItem 
   if (isHistory) {
     return (
       <Link
-        href={routes.tournamentDetail(item.id)}
+        href={`/tournaments/detail${toQuery({ id: item.id })}`}
         className="block rounded-[16px] border border-border bg-surface px-3.5 py-3 shadow-[var(--shadow-card)] transition hover:border-primary"
       >
         <div className="grid grid-cols-[42px_minmax(0,1fr)_18px] gap-x-3 gap-y-3">
@@ -103,7 +103,7 @@ export default function TournamentListCard({ item }: { item: TournamentListItem 
 
   return (
     <Link
-      href={routes.tournamentDetail(item.id)}
+      href={`/tournaments/detail${toQuery({ id: item.id })}`}
       className="block rounded-[18px] border border-border bg-surface px-4 py-3.5 shadow-[var(--shadow-card)] transition hover:border-primary"
     >
       <div className="grid grid-cols-[42px_minmax(0,1fr)] gap-x-3 gap-y-3">

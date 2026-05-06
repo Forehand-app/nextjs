@@ -3,17 +3,11 @@
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useAuth } from "@/components/AuthProvider";
-import { useAppSession } from "@/components/AppSessionProvider";
 import { BuildingIcon, CheckIcon, ChevronRightIcon, UserIcon } from "@/components/Icons";
+import { useApp } from "./AppProvider";
+import { organizationApi } from "@/lib/api/orgaizationApi";
+import { OrganizationData } from "@/lib/models";
 
-interface Org {
-  id: string;
-  name: string;
-  orgType?: {
-    name: string;
-  };
-}
 
 interface SwitchAccountModalProps {
   isOpen: boolean;
@@ -35,8 +29,8 @@ function AccountTile({ href, onClick, icon, iconTone, title, subtitle, active = 
   const content = (
     <div
       className={`flex items-center gap-3 rounded-[22px] border px-4 py-3.5 transition-colors ${active
-          ? "border-primary bg-primary/10 shadow-[0_8px_18px_rgba(255,138,36,0.12)]"
-          : "border-[var(--color-border)] bg-[var(--color-surface)] shadow-[0_6px_16px_rgba(15,23,42,0.04)]"
+        ? "border-primary bg-primary/10 shadow-[0_8px_18px_rgba(255,138,36,0.12)]"
+        : "border-[var(--color-border)] bg-[var(--color-surface)] shadow-[0_6px_16px_rgba(15,23,42,0.04)]"
         }`}
     >
       <div className={`grid h-11 w-11 shrink-0 place-content-center rounded-full ${iconTone}`}>
@@ -66,34 +60,19 @@ function AccountTile({ href, onClick, icon, iconTone, title, subtitle, active = 
 }
 
 export default function SwitchAccountModal({ isOpen, onClose }: SwitchAccountModalProps) {
-  const { user, session, activeOrganization, setOrganization } = useApp();
+  const { userProfile, activeOrganization, setOrganization } = useApp();
   const activeOrgId = activeOrganization?.id ?? null;
   const pathname = usePathname();
-  const [orgs, setOrgs] = useState<Org[]>([]);
+  const [orgs, setOrgs] = useState<OrganizationData[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     if (!isOpen) return;
-    const accessToken = session?.access_token;
-    if (!accessToken) {
-      setIsLoading(false);
-      return;
-    }
 
     async function fetchOrgs() {
       try {
-        const res = await fetch(
-          `${process.env.NEXT_PUBLIC_API_BASE_URL}/org/list`,
-          {
-            headers: {
-              Authorization: `Bearer ${accessToken}`
-            }
-          }
-        );
-        const json = await res.json();
-        if (json.success && Array.isArray(json.data)) {
-          setOrgs(json.data);
-        }
+        const orgs = await organizationApi.getUserOrganizations();
+        setOrgs(orgs);
       } catch (error) {
         console.error("Failed to fetch orgs", error);
       } finally {
@@ -102,12 +81,12 @@ export default function SwitchAccountModal({ isOpen, onClose }: SwitchAccountMod
     }
 
     fetchOrgs();
-  }, [isOpen, session]);
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
   const isIndividualActive = pathname.startsWith("/user/");
-  const userName = user?.user_metadata?.full_name || user?.user_metadata?.name || user?.email || "User";
+  const userName = userProfile?.name || "User";
   const userInitials = userName.charAt(0).toUpperCase();
   const activeOrg = orgs.find((org) => pathname.startsWith("/org/") && activeOrgId === org.id);
 
@@ -140,7 +119,7 @@ export default function SwitchAccountModal({ isOpen, onClose }: SwitchAccountMod
                 isIndividualActive
                   ? undefined
                   : () => {
-                    setActiveOrgId(null);
+                    setOrganization(null);
                     onClose();
                   }
               }
@@ -183,14 +162,14 @@ export default function SwitchAccountModal({ isOpen, onClose }: SwitchAccountMod
                       isThisOrgActive
                         ? undefined
                         : () => {
-                          setActiveOrgId(org.id);
+                          setOrganization(org.id);
                           onClose();
                         }
                     }
                     icon={<BuildingIcon size={18} className={isThisOrgActive ? "text-[#ff8a24]" : "text-[#6b7280]"} />}
                     iconTone={isThisOrgActive ? "border border-primary/30 bg-primary/20" : "border border-[var(--color-border)] bg-[var(--color-surface-elevated)]"}
                     title={org.name}
-                    subtitle={org.orgType?.name || "Organization"}
+                    subtitle={org.orgType?.label || "Organization"}
                     active={isThisOrgActive}
                     trailing={
                       isThisOrgActive ? (

@@ -30,7 +30,7 @@ type AppContextValue = {
   login: () => Promise<void>;
   logout: () => Promise<void>;
   register: (data: ProfileData) => Promise<void>;
-  setOrganization: (orgId: string | null) => Promise<void>;
+  setOrganization: (orgId?: string | null) => Promise<void>;
   refreshProfile: () => Promise<void>;
 };
 
@@ -168,8 +168,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   /** Sets or clears the active organisation. Persists in localStorage. */
   const setOrganization = useCallback(
-    async (orgId: string | null) => {
-      activeOrgIdRef.current = orgId;
+    async (orgId?: string | null) => {
+      activeOrgIdRef.current = orgId || "";
 
       if (typeof window !== "undefined") {
         if (orgId) localStorage.setItem(ACTIVE_ORG_STORAGE_KEY, orgId);

@@ -1,5 +1,6 @@
 import React from "react";
 import Link from "next/link";
+import { toQuery } from "@/lib/utils";
 
 interface OngoingTournamentCardProps {
   id: string;
@@ -13,16 +14,16 @@ interface OngoingTournamentCardProps {
 }
 
 export default function OngoingTournamentCard({
+  id,
   name,
   sport,
   category,
   modes,
   venue,
   logoText,
-  href,
 }: OngoingTournamentCardProps) {
   return (
-    <Link href={routes.tournamentDetail(id)} className="block w-full active:scale-[0.98] transition-transform group">
+    <Link href={`/tournaments/detail${toQuery({ id })}`} className="block w-full active:scale-[0.98] transition-transform group">
       <div className="flex flex-col overflow-hidden rounded-[18px] border border-[var(--color-border)] bg-[var(--color-surface)] shadow-sm">
 
         {/* --- TOP SECTION (Orange) --- */}
