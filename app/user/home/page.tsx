@@ -2,7 +2,7 @@
 
 import { useState, UIEvent } from "react";
 import Link from "next/link";
-import { useAuth } from "@/components/AuthProvider";
+import { useApp } from "@/components/AppProvider";
 import BottomNav from "@/components/BottomNav";
 import LiveMatchCard from "@/components/Card/LiveMatchCard";
 import NextOnCourtSection from "@/components/Card/NextOnCourtSection";
@@ -160,7 +160,7 @@ const mockNotifications: NotificationItem[] = [
 ];
 
 export default function UserHomePage() {
-  const { user } = useAuth();
+  const { user } = useApp();
   const [activeTab, setActiveTab] = useState("explore");
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   

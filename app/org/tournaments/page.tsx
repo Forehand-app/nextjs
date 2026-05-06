@@ -4,10 +4,9 @@ import React, { useEffect, useMemo, useState } from "react";
 import Layout from "@/components/Layout";
 import Tabs, { type TabItem } from "@/components/Tabs";
 import Link from "next/link";
-import { useAuth } from "@/components/AuthProvider";
-import { useAppSession } from "@/components/AppSessionProvider";
+import { useApp } from "@/components/AppProvider";
 import { TrophyIcon, MapPinIcon, CalendarIcon, WalletIcon, FilterIcon, EditIcon, UsersIcon } from "@/components/Icons";
-import { routes } from "@/lib/routes";
+import { toQuery } from "@/lib/utils";
 
 
 const tabs: TabItem[] = [
@@ -100,15 +99,13 @@ function getGenderLabel(tournament: OrgTournament) {
 
 export default function OrgTournamentsPage() {
   const [activeTab, setActiveTab] = useState("live");
-  const { session } = useAuth();
-  const { activeOrgId, organization } = useAppSession();
+  const { session, activeOrganization } = useApp();
+  const activeOrgId = activeOrganization?.id ?? null;
   const [showFilters, setShowFilters] = useState(false);
   const [tournaments, setTournaments] = useState<OrgTournament[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState("");
-  const orgId =
-    activeOrgId ||
-    (typeof organization?.id === "string" ? organization.id : null);
+  const orgId = activeOrgId;
 
   useEffect(() => {
     let isActive = true;
@@ -239,7 +236,7 @@ export default function OrgTournamentsPage() {
             ) : visibleTournaments.map((t) => (
               <Link
                 key={t.id}
-                href={routes.orgTournamentDetail(t.id)}
+                href={`/org/tournaments/detail${toQuery({ t: t.id })}`}
                 className="card p-4 block hover:border-primary/30 transition-colors"
               >
                 <div className="flex items-start justify-between mb-2">
@@ -293,7 +290,7 @@ export default function OrgTournamentsPage() {
             ) : visibleTournaments.map((t) => (
               <Link
                 key={t.id}
-                href={routes.orgTournamentDetail(t.id)}
+                href={`/org/tournaments/detail${toQuery({ t: t.id })}`}
                 className="card p-4 block hover:border-primary/30 transition-colors"
               >
                 <h4 className="font-semibold">{t.name || "Untitled Tournament"}</h4>

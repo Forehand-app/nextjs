@@ -1,9 +1,8 @@
 "use client";
 
 import React, { useEffect } from "react";
-import { useRouter, usePathname } from "next/navigation";
-import { useAuth } from "@/components/AuthProvider";
-import { useAppSession } from "@/components/AppSessionProvider";
+import { useRouter } from "next/navigation";
+import { useApp } from "@/components/AppProvider";
 
 /** 
  * Wraps protected route groups. 
@@ -11,9 +10,7 @@ import { useAppSession } from "@/components/AppSessionProvider";
  */
 export default function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const router = useRouter();
-  const pathname = usePathname();
-  const { isAuthenticated, isLoading } = useAuth();
-  const { profile, isResolving } = useAppSession();
+  const { isAuthenticated, isLoading, isResolving, userProfile } = useApp();
 
   useEffect(() => {
     if (isLoading || isResolving) return;
@@ -25,10 +22,10 @@ export default function ProtectedRoute({ children }: { children: React.ReactNode
     }
 
     // Authenticated but no backend profile -> register
-    if (!profile) {
+    if (!userProfile) {
       router.replace("/register");
     }
-  }, [isAuthenticated, isLoading, isResolving, profile, router]);
+  }, [isAuthenticated, isLoading, isResolving, userProfile, router]);
 
   if (isLoading || isResolving) {
     return (
@@ -41,7 +38,7 @@ export default function ProtectedRoute({ children }: { children: React.ReactNode
     );
   }
 
-  if (!isAuthenticated || !profile) {
+  if (!isAuthenticated || !userProfile) {
     return null;
   }
 

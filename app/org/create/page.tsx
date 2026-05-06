@@ -3,14 +3,12 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useAuth } from "@/components/AuthProvider";
-import { useAppSession } from "@/components/AppSessionProvider";
+import { useApp } from "@/components/AppProvider";
 import { XIcon, BuildingIcon, PhoneIcon, MapPinIcon, ArrowLeftIcon, ChevronRightIcon } from "@/components/Icons";
 
 export default function CreateOrgPage() {
   const router = useRouter();
-  const { session } = useAuth();
-  const { setActiveOrgId } = useAppSession();
+  const { session, setOrganization } = useApp();
   
   const [step, setStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -118,7 +116,7 @@ export default function CreateOrgPage() {
       }
 
       // Switch to org mode with the newly created org ID
-      setActiveOrgId(orgId);
+      setOrganization(orgId);
       router.push(`/org/home?orgId=${orgId}`);
     } catch (error) {
       console.error("Failed to register organization", error);

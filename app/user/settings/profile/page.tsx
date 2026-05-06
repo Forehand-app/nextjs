@@ -2,8 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import Layout from "@/components/Layout";
-import { useAuth } from "@/components/AuthProvider";
-import { useAppSession } from "@/components/AppSessionProvider";
+import { useApp } from "@/components/AppProvider";
 import { EditIcon, UserIcon, PhoneIcon, MailIcon, CalendarIcon, HandIcon, GamepadIcon } from "@/components/Icons";
 import {
     formatDateInputValue,
@@ -11,8 +10,7 @@ import {
 } from "@/lib/userProfile";
 
 export default function EditProfilePage() {
-    const { user } = useAuth();
-    const { isResolving, profile } = useAppSession();
+    const { user, isResolving, userProfile: profile } = useApp();
     const [formData, setFormData] = useState({
         fullName: "",
         contactNumber: "",

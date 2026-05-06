@@ -2,11 +2,11 @@
 
 import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { useAuth } from "@/components/AuthProvider";
+import { useApp } from "@/components/AppProvider";
 
 export default function LoginPage() {
   const router = useRouter();
-  const { isAuthenticated, isLoading, signInWithGoogle } = useAuth();
+  const { isAuthenticated, isLoading, login } = useApp();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -22,7 +22,7 @@ export default function LoginPage() {
     try {
       setIsSubmitting(true);
       setError(null);
-      await signInWithGoogle();
+      await login();
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "Unable to start Google sign-in.");
       setIsSubmitting(false);

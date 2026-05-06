@@ -4,8 +4,8 @@ import React, { useState } from "react";
 import Layout from "@/components/Layout";
 import Tabs, { type TabItem } from "@/components/Tabs";
 import Link from "next/link";
-import { routes } from "@/lib/routes";
 import { GamepadIcon, MapPinIcon, UsersIcon, CalendarIcon, UserIcon, MailIcon, PhoneIcon } from "@/components/Icons";
+import { toQuery } from "@/lib/utils";
 
 const tournamentTabs: TabItem[] = [
     { id: "about", label: "About" },
@@ -97,46 +97,46 @@ export default function TournamentOverviewPage() {
                         </section>
 
                         <section className="bg-[var(--color-surface)] rounded-[var(--radius-card)] border border-[var(--color-border)] p-4">
-                        <h3 className="font-semibold mb-4">Contact Information</h3>
+                            <h3 className="font-semibold mb-4">Contact Information</h3>
 
-                        <div className="divide-y divide-[var(--color-border)]">
-                            {/* Contact Item */}
-                            <div className="py-4 flex gap-4">
-                            {/* Avatar */}
-                            <div className="w-10 h-10 rounded-full bg-[var(--color-surface-elevated)] flex items-center justify-center font-semibold text-primary shrink-0">
-                                RM
-                            </div>
+                            <div className="divide-y divide-[var(--color-border)]">
+                                {/* Contact Item */}
+                                <div className="py-4 flex gap-4">
+                                    {/* Avatar */}
+                                    <div className="w-10 h-10 rounded-full bg-[var(--color-surface-elevated)] flex items-center justify-center font-semibold text-primary shrink-0">
+                                        RM
+                                    </div>
 
-                            {/* Content */}
-                            <div className="flex-1 min-w-0">
-                                <div className="flex items-center justify-between">
-                                <h4 className="font-medium truncate">Rajesh Mehta</h4>
+                                    {/* Content */}
+                                    <div className="flex-1 min-w-0">
+                                        <div className="flex items-center justify-between">
+                                            <h4 className="font-medium truncate">Rajesh Mehta</h4>
 
-                                <span className="text-xs px-2 py-0.5 rounded-full bg-primary/15 text-primary">
-                                    Organizer
-                                </span>
+                                            <span className="text-xs px-2 py-0.5 rounded-full bg-primary/15 text-primary">
+                                                Organizer
+                                            </span>
+                                        </div>
+
+                                        <div className="mt-2 space-y-1 text-sm text-[var(--color-text-secondary)]">
+                                            <a
+                                                href="mailto:rajesh@tournament.com"
+                                                className="flex items-center gap-2 hover:text-primary transition-colors"
+                                            >
+                                                <MailIcon size={14} />
+                                                rajesh@tournament.com
+                                            </a>
+
+                                            <a
+                                                href="tel:+919876543210"
+                                                className="flex items-center gap-2 hover:text-primary transition-colors"
+                                            >
+                                                <PhoneIcon size={14} />
+                                                +91 98765 43210
+                                            </a>
+                                        </div>
+                                    </div>
                                 </div>
-
-                                <div className="mt-2 space-y-1 text-sm text-[var(--color-text-secondary)]">
-                                <a
-                                    href="mailto:rajesh@tournament.com"
-                                    className="flex items-center gap-2 hover:text-primary transition-colors"
-                                >
-                                    <MailIcon size={14} />
-                                    rajesh@tournament.com
-                                </a>
-
-                                <a
-                                    href="tel:+919876543210"
-                                    className="flex items-center gap-2 hover:text-primary transition-colors"
-                                >
-                                    <PhoneIcon size={14} />
-                                    +91 98765 43210
-                                </a>
-                                </div>
                             </div>
-                            </div>
-                        </div>
                         </section>
                     </div>
                 )}
@@ -165,7 +165,7 @@ export default function TournamentOverviewPage() {
                                             </p>
                                         </div>
                                         <Link
-                                            href={routes.tournamentEvent("1")}
+                                            href={`/tournaments/event${toQuery({ id: "1" })}`}
                                             className="px-4 py-2 rounded-[var(--radius-button)] text-sm font-semibold text-white"
                                             style={{ background: "var(--gradient-orange)" }}
                                         >

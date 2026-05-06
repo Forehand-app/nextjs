@@ -2,8 +2,7 @@
 
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
-import { useAuth } from "@/components/AuthProvider";
-import { useAppSession } from "@/components/AppSessionProvider";
+import { useApp } from "@/components/AppProvider";
 import TournamentWizard from "@/components/Wizard/TournamentWizard";
 
 type TournamentFormData = {
@@ -93,15 +92,13 @@ function mapSetsPerMatch(value: string) {
 
 export default function CreateOrgTournamentPage() {
   const router = useRouter();
-  const { session } = useAuth();
-  const { activeOrgId, organization } = useAppSession();
+  const { session, activeOrganization } = useApp();
+  const activeOrgId = activeOrganization?.id ?? null;
   const [isPublishing, setIsPublishing] = useState(false);
 
   const handleComplete = async (tournament: TournamentFormData) => {
     const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
-    const organizationId =
-      activeOrgId ||
-      (typeof organization?.id === "string" ? organization.id : null);
+    const organizationId = activeOrgId;
 
     if (!apiBaseUrl) {
       alert("Tournament service is not configured.");

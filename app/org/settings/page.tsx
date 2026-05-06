@@ -4,7 +4,7 @@ import SwitchAccountModal from "@/components/SwitchAccountModal";
 import React, { useState } from "react";
 import Link from "next/link";
 import { useTheme } from "@/components/ThemeProvider";
-import { useAppSession } from "@/components/AppSessionProvider";
+import { useApp } from "@/components/AppProvider";
 import BottomNav from "@/components/BottomNav";
 import { 
   BellIcon, 
@@ -22,7 +22,7 @@ import {
 
 export default function OrgSettingsPage() {
   const { theme, toggleTheme } = useTheme();
-  const { organization } = useAppSession();
+  const { activeOrganization: organization } = useApp();
   const [showSwitchModal, setShowSwitchModal] = useState(false);
   const orgName = organization?.name || "Organization";
   const orgInitial = orgName.trim().charAt(0).toUpperCase() || "O";

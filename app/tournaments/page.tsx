@@ -11,7 +11,7 @@ import {
   SearchIcon,
 } from "@/components/Icons";
 import Layout from "@/components/Layout";
-import { routes } from "@/lib/routes";
+import { toQuery } from "@/lib/utils";
 
 type TopTab = "browse" | "joined" | "history";
 type FormatTab = "all" | "singles" | "doubles";
@@ -153,7 +153,7 @@ const historyItems: TournamentItem[] = [
 function TournamentCard({ item }: { item: TournamentItem }) {
   return (
     <Link
-      href={routes.tournamentDetail(item.id)}
+      href={`/tournaments/detail${toQuery({ id: item.id })}`}
       className="block rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-4 shadow-sm transition hover:border-primary"
     >
       <div className="flex items-start gap-3">
@@ -250,11 +250,10 @@ export default function TournamentsPage() {
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab)}
-                className={`h-10 capitalize border-b-2 transition-colors ${
-                  active
+                className={`h-10 capitalize border-b-2 transition-colors ${active
                     ? "border-primary font-semibold text-[var(--color-text)]"
                     : "border-transparent text-[var(--color-text-muted)] hover:text-[var(--color-text)]"
-                }`}
+                  }`}
               >
                 {tab}
               </button>
@@ -278,11 +277,10 @@ export default function TournamentsPage() {
               <button
                 key={tab.id}
                 onClick={() => setFormat(tab.id)}
-                className={`h-9 shrink-0 rounded-xl border px-6 text-[14px] font-medium transition-colors ${
-                  active
+                className={`h-9 shrink-0 rounded-xl border px-6 text-[14px] font-medium transition-colors ${active
                     ? "border-primary bg-primary text-white"
                     : "border-[var(--color-border)] bg-[var(--color-surface-elevated)] text-[var(--color-text-muted)]"
-                }`}
+                  }`}
               >
                 {tab.label}
               </button>

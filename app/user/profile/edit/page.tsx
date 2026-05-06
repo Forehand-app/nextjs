@@ -3,8 +3,7 @@
 import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Layout from "@/components/Layout";
-import { useAuth } from "@/components/AuthProvider";
-import { useAppSession } from "@/components/AppSessionProvider";
+import { useApp } from "@/components/AppProvider";
 import { ArrowLeftIcon, CameraIcon } from "@/components/Icons";
 import {
   formatDateInputValue,
@@ -13,8 +12,7 @@ import {
 
 export default function UserProfileEditPage() {
   const router = useRouter();
-  const { user } = useAuth();
-  const { isResolving, profile } = useAppSession();
+  const { user, isResolving, userProfile: profile } = useApp();
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [gender, setGender] = useState("");

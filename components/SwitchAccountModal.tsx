@@ -3,8 +3,7 @@
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useAuth } from "@/components/AuthProvider";
-import { useAppSession } from "@/components/AppSessionProvider";
+import { useApp } from "@/components/AppProvider";
 import { CheckIcon } from "@/components/Icons";
 
 interface Org {
@@ -21,8 +20,8 @@ interface SwitchAccountModalProps {
 }
 
 export default function SwitchAccountModal({ isOpen, onClose }: SwitchAccountModalProps) {
-  const { user, session } = useAuth();
-  const { activeOrgId, setActiveOrgId } = useAppSession();
+  const { user, session, activeOrganization, setOrganization } = useApp();
+  const activeOrgId = activeOrganization?.id ?? null;
   const pathname = usePathname();
   const [orgs, setOrgs] = useState<Org[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -87,7 +86,7 @@ export default function SwitchAccountModal({ isOpen, onClose }: SwitchAccountMod
               href="/user/settings"
               className="flex items-center gap-3.5 p-3.5 rounded-2xl border border-[var(--color-border)] text-[var(--color-text)] hover:bg-[var(--color-surface-elevated)] transition-colors"
               onClick={() => {
-                setActiveOrgId(null);
+                setOrganization(null);
                 onClose();
               }}
             >
@@ -123,7 +122,7 @@ export default function SwitchAccountModal({ isOpen, onClose }: SwitchAccountMod
                   href="/org/settings"
                   className="flex items-center gap-3.5 p-3.5 rounded-2xl border border-[var(--color-border)] text-[var(--color-text)] hover:bg-[var(--color-surface-elevated)] transition-colors"
                   onClick={() => {
-                    setActiveOrgId(org.id);
+                    setOrganization(org.id);
                     onClose();
                   }}
                 >

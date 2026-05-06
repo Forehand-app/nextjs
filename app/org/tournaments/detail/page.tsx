@@ -7,7 +7,7 @@ import {
   ArrowLeftIcon, ShareIcon, EllipsisIcon, UsersIcon, MapPinIcon, PhoneIcon, MailIcon, TrophyIcon, CheckIcon, FilterIcon, ChevronDownIcon, ChevronRightIcon, TrashIcon, PlusIcon
 } from "@/components/Icons";
 import { routes } from "@/lib/routes";
-import { useAuth } from "@/components/AuthProvider";
+import { useApp } from "@/components/AppProvider";
 
 type TournamentEvent = {
   id?: string;
@@ -390,7 +390,7 @@ export default function TournamentEventDetailsPage() {
   const [tournament, setTournament] = useState<TournamentInfo | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState("");
-  const { session } = useAuth();
+  const { session } = useApp();
 
   const primaryTabs = ["About", "Events", "Summary", "Event Crew"];
   const [activeTab, setActiveTab] = useState("About"); 

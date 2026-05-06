@@ -5,12 +5,9 @@ import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
 const clientSingletons: Partial<Record<"implicit" | "pkce", SupabaseClient>> = {};
 
-function getAuthFlowType(): "implicit" | "pkce" {
-  return Capacitor.isNativePlatform() ? "implicit" : "pkce";
-}
-
 export function getSupabaseBrowserClient() {
-  const flowType = getAuthFlowType();
+
+  const flowType = Capacitor.isNativePlatform() ? "implicit" : "pkce";
   const existingClient = clientSingletons[flowType];
   if (existingClient) return existingClient;
 

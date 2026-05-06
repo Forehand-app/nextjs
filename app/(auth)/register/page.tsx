@@ -2,11 +2,11 @@
 
 import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { useAuth } from "@/components/AuthProvider";
+import { useApp } from "@/components/AppProvider";
 
 export default function RegisterPage() {
   const router = useRouter();
-  const { isAuthenticated, isLoading, session, signOut } = useAuth();
+  const { isAuthenticated, isLoading, session, logout, register } = useApp();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSigningOut, setIsSigningOut] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
@@ -41,39 +41,16 @@ export default function RegisterPage() {
     e.preventDefault();
     setErrorMessage("");
 
-    if (!session?.access_token) {
-      setErrorMessage("Please sign in again before completing registration.");
-      return;
-    }
-
-    const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
-    if (!apiBaseUrl) {
-      setErrorMessage("Registration service is not configured.");
-      return;
-    }
-
     try {
       setIsSubmitting(true);
-      const response = await fetch(`${apiBaseUrl}/user/register`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${session.access_token}`,
-        },
-        body: JSON.stringify({
-          name: formData.name.trim(),
-          phone: formData.contactNumber.trim(),
-          gender: formData.gender,
-          dob: formData.dob,
-          playingHand: formData.playingHand || null,
-          primarySport: formData.primarySport.trim() || null,
-        }),
+      await register({
+        name: formData.name.trim(),
+        phone: formData.contactNumber.trim() || null,
+        gender: formData.gender || null,
+        dob: formData.dob || null,
+        playingHand: formData.playingHand || null,
+        primarySport: formData.primarySport.trim() || null,
       });
-
-      const result = await response.json().catch(() => null);
-      if (!response.ok || result?.success === false) {
-        throw new Error(result?.message || "Registration failed.");
-      }
 
       router.replace("/home");
     } catch (err) {
@@ -87,7 +64,7 @@ export default function RegisterPage() {
   const handleSignOut = async () => {
     try {
       setIsSigningOut(true);
-      await signOut();
+      await logout();
       router.replace("/login");
     } catch {
       setIsSigningOut(false);

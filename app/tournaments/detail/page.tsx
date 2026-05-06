@@ -1,10 +1,8 @@
 "use client";
 
-import React, { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { routes } from "@/lib/routes";
-import { useClientSearchParams } from "@/lib/useClientSearchParams";
 import {
   ArrowLeftIcon,
   CalendarIcon,
@@ -17,6 +15,7 @@ import {
   TrashIcon,
   UsersIcon,
 } from "@/components/Icons";
+import { toQuery } from "@/lib/utils";
 
 type MainTab = "about" | "events";
 type EventKind = "singles" | "doubles" | "mixed";
@@ -72,7 +71,7 @@ function PersonChip({ name }: { name: string }) {
 }
 
 export default function TournamentDetailPage() {
-  const searchParams = useClientSearchParams();
+  const [searchParams, setSearchParams] = useState<URLSearchParams>(() => new URLSearchParams());
   const router = useRouter();
   const id = searchParams.get("id") || "1";
 
@@ -96,6 +95,10 @@ export default function TournamentDetailPage() {
     setSelected((prev) => ({ ...prev, [ev.id]: true }));
     if (ev.kind === "doubles" && pairState === "idle") setPairState("adding");
   };
+
+  useEffect(() => {
+    setSearchParams(new URLSearchParams(window.location.search));
+  }, []);
 
   return (
     <div className="min-h-screen bg-[var(--color-background)] pb-24 text-[var(--color-text)]">
@@ -172,43 +175,43 @@ export default function TournamentDetailPage() {
             </section>
 
             <section className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-3">
-  <h2 className="text-[18px] font-semibold">Contact Information</h2>
+              <h2 className="text-[18px] font-semibold">Contact Information</h2>
 
-  <div className="mt-3 divide-y divide-[var(--color-border)]">
-    {contacts.map((contact) => (
-      <div key={contact.id} className="py-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="h-10 w-10 rounded-full bg-[radial-gradient(circle_at_30%_30%,#d1d1d1,#7b7b7b)]" />
-            <p className="text-[16px] font-medium">{contact.name}</p>
-          </div>
+              <div className="mt-3 divide-y divide-[var(--color-border)]">
+                {contacts.map((contact) => (
+                  <div key={contact.id} className="py-4">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className="h-10 w-10 rounded-full bg-[radial-gradient(circle_at_30%_30%,#d1d1d1,#7b7b7b)]" />
+                        <p className="text-[16px] font-medium">{contact.name}</p>
+                      </div>
 
-          <span className="rounded-full bg-primary px-3 py-0.5 text-[11px] font-semibold text-white">
-            {contact.role}
-          </span>
-        </div>
+                      <span className="rounded-full bg-primary px-3 py-0.5 text-[11px] font-semibold text-white">
+                        {contact.role}
+                      </span>
+                    </div>
 
-        <div className="mt-2 space-y-1 text-[14px]">
-          <a
-            href={`tel:${contact.phone}`}
-            className="flex items-center gap-2 text-[var(--color-muted)] hover:text-primary transition-colors"
-          >
-            <PhoneIcon size={14} />
-            {contact.phone}
-          </a>
+                    <div className="mt-2 space-y-1 text-[14px]">
+                      <a
+                        href={`tel:${contact.phone}`}
+                        className="flex items-center gap-2 text-[var(--color-muted)] hover:text-primary transition-colors"
+                      >
+                        <PhoneIcon size={14} />
+                        {contact.phone}
+                      </a>
 
-          <a
-            href={`mailto:${contact.email}`}
-            className="flex items-center gap-2 text-[var(--color-muted)] hover:text-primary transition-colors break-all"
-          >
-            <MailIcon size={14} />
-            {contact.email}
-          </a>
-        </div>
-      </div>
-    ))}
-  </div>
-</section>
+                      <a
+                        href={`mailto:${contact.email}`}
+                        className="flex items-center gap-2 text-[var(--color-muted)] hover:text-primary transition-colors break-all"
+                      >
+                        <MailIcon size={14} />
+                        {contact.email}
+                      </a>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </section>
           </>
         ) : (
           events.map((ev) => {
@@ -282,7 +285,7 @@ export default function TournamentDetailPage() {
               <p className="text-[14px] text-[var(--color-muted)]">Total Amount:</p>
               <p className="text-[24px] font-bold leading-7 text-primary"><span className="currency-inr">&#8377;</span>{total}</p>
             </div>
-            <Link href={routes.tournamentCheckout(id)} className="grid h-11 flex-1 place-content-center rounded-full bg-primary text-[18px] font-semibold text-white">Claim Spot</Link>
+            <Link href={`/tournaments/checkout${toQuery({ id })}`} className="grid h-11 flex-1 place-content-center rounded-full bg-primary text-[18px] font-semibold text-white">Claim Spot</Link>
           </div>
         </div>
       ) : null}

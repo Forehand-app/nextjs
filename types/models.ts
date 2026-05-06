@@ -129,28 +129,6 @@ export type ScoreLock = {
   expiresAt?: number;
 };
 
-// --- Learning session (Feynman loop) ---
-
-export type LearningSession = {
-  id: string;
-  topic: string;
-  level: "novice" | "intermediate" | "expert";
-  createdAt: number;
-  currentStep: number;
-  steps: FeynmanStep[];
-  progress: number;
-  lastModified: number;
-};
-
-export type FeynmanStep = {
-  id: string;
-  explanation: string;
-  analogy: string;
-  confusions: string[];
-  refinements: string[];
-  assessment: { prompt: string; expected: string } | null;
-};
-
 // --- App state (client) ---
 
 export type AppState = {
@@ -161,6 +139,5 @@ export type AppState = {
   tournaments: Record<string, TournamentSummary>;
   liveMatches: Record<string, LiveMatchState>;
   scoreLocks: Record<string, ScoreLock>;
-  learningSessions: Record<string, LearningSession>;
   offlineQueue: ScoreEvent[];
 };

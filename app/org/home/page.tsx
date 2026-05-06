@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import Layout from "@/components/Layout";
-import { useAppSession } from "@/components/AppSessionProvider";
+import { useApp } from "@/components/AppProvider";
 import { CalendarIcon, CircleIcon, TimerIcon, TrophyIcon } from "@/components/Icons";
 import { motion, useScroll, useTransform, type Variants, type MotionValue } from "framer-motion";
 import { useRef } from "react";
@@ -150,7 +150,7 @@ const ScrollIndicator = ({
 export default function OrgHomePage() {
   const tournamentContainerRef = useRef<HTMLDivElement>(null);
   const matchContainerRef = useRef<HTMLDivElement>(null);
-  const { organization, profile } = useAppSession();
+  const { activeOrganization: organization, userProfile: profile } = useApp();
   const orgName = organization?.name || "Organization";
   const userFirstName = (profile?.name || "there").split(" ")[0];
 

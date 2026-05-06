@@ -1,16 +1,16 @@
 "use client";
 
-import React from "react";
 import Link from "next/link";
-import { routes } from "@/lib/routes";
+import { toQuery } from "@/lib/utils";
+
 
 function MapPinIcon({ size = 12 }: { size?: number }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z" />
-      <circle cx="12" cy="10" r="3" />
-    </svg>
-  );
+    return (
+        <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z" />
+            <circle cx="12" cy="10" r="3" />
+        </svg>
+    );
 }
 
 export type ColorfulTournamentCardProps = {
@@ -42,7 +42,7 @@ export default function ColorfulTournamentCard({
     href,
     logoText,
 }: ColorfulTournamentCardProps) {
-    const url = href ?? routes.tournamentDetail(id);
+    const url = `/tournaments/detail${toQuery({ id })}`
 
     const bgVariants = {
         orange: "from-orange-500 to-orange-700 dark:from-orange-600 dark:to-orange-800",
@@ -67,10 +67,10 @@ export default function ColorfulTournamentCard({
         <Link href={url} className="block group w-full active:scale-[0.98] transition-transform">
             {/* Reduced border radius from 24px to 16px */}
             <div className="relative overflow-hidden rounded-[16px] bg-[var(--color-surface)] shadow-sm transition-shadow duration-300 group-hover:shadow-md flex flex-col border border-[var(--color-border)]">
-                
+
                 {/* TOP SECTION - Reduced padding from p-5 to p-3 */}
                 <div className={`relative bg-gradient-to-br ${bgClass} p-3 text-white flex-1 overflow-hidden`}>
-                    
+
                     {/* Scaled down geometric accents */}
                     <div className="absolute -right-4 -top-4 w-24 h-24 rounded-full bg-white/10 blur-xl group-hover:bg-white/20 transition-colors pointer-events-none" />
                     <div className="absolute right-0 bottom-0 opacity-[0.05] pointer-events-none">
@@ -81,7 +81,7 @@ export default function ColorfulTournamentCard({
                     </div>
 
                     <div className="relative z-10 flex flex-col h-full">
-                        
+
                         {/* Reduced Logo from w-12/h-12 to w-8/h-8, smaller text */}
                         <div className="w-8 h-8 bg-white dark:bg-[var(--color-surface-elevated)] text-gray-900 dark:text-orange-400 rounded-full flex items-center justify-center shadow-sm">
                             {logoText || name.substring(0, 1)}
@@ -124,7 +124,7 @@ export default function ColorfulTournamentCard({
                             {entryFee ? entryFee : "Free"}
                         </p>
                     </div>
-                    
+
                     {/* Reduced Button padding and text size */}
                     <div className={`px-3 py-1.5 rounded-full border-[1.5px] font-bold text-[10px] transition-colors ${btnClass}`}>
                         {ctaText}

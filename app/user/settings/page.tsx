@@ -5,7 +5,7 @@ import React, { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useTheme } from "@/components/ThemeProvider";
-import { useAuth } from "@/components/AuthProvider";
+import { useApp } from "@/components/AppProvider";
 import BottomNav from "@/components/BottomNav";
 import { 
   BellIcon, 
@@ -23,7 +23,7 @@ import {
 export default function UserSettingsPage() {
   const router = useRouter();
   const { theme, toggleTheme } = useTheme();
-  const { signOut, user } = useAuth();
+  const { logout, user } = useApp();
   const [showSwitchModal, setShowSwitchModal] = useState(false);
   const [isSigningOut, setIsSigningOut] = useState(false);
 
@@ -39,7 +39,7 @@ export default function UserSettingsPage() {
   const handleSignOut = async () => {
     try {
       setIsSigningOut(true);
-      await signOut();
+      await logout();
       router.replace("/login");
     } catch (error) {
       console.error("Failed to sign out", error);

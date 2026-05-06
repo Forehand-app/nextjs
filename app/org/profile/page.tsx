@@ -5,7 +5,7 @@ import SwitchAccountModal from "@/components/SwitchAccountModal";
 import React, { useState } from "react";
 import Layout from "@/components/Layout";
 import Link from "next/link";
-import { useAppSession } from "@/components/AppSessionProvider";
+import { useApp } from "@/components/AppProvider";
 import {
   BellIcon,
   BuildingIcon,
@@ -37,7 +37,7 @@ function getDisplayField(value: string, fallback = "Not added") {
 export default function OrgProfilePage() {
   const [showSwitchModal, setShowSwitchModal] = useState(false);
   const { theme, toggleTheme } = useTheme();
-  const { isResolving, organization, profile } = useAppSession();
+  const { isResolving, activeOrganization: organization, userProfile: profile } = useApp();
   const orgName = organization?.name || "Organization";
   const orgType =
     typeof organization?.orgType === "object" &&

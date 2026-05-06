@@ -3,12 +3,12 @@
 import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Layout from "@/components/Layout";
-import { useAppSession } from "@/components/AppSessionProvider";
+import { useApp } from "@/components/AppProvider";
 import { ArrowLeftIcon } from "@/components/Icons";
 
 export default function OrgProfileEditPage() {
   const router = useRouter();
-  const { organization } = useAppSession();
+  const { activeOrganization: organization } = useApp();
   const [formData, setFormData] = useState({
     name: "",
     description: "",
