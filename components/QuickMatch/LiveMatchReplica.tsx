@@ -18,17 +18,21 @@ interface LiveMatchReplicaProps {
   sideALabel?: string;
   sideBLabel?: string;
   showSwitchServe: boolean;
-  showWinner: boolean;
+  showWinnerConfirm: boolean;
+  showExitConfirm: boolean;
   onBack: () => void;
+  onConfirmExit: () => void;
+  onCloseExitConfirm: () => void;
   onUndo: () => void;
   onSideARally: () => void;
   onSideBRally: () => void;
   onSideAFault: () => void;
   onSideBFault: () => void;
   onCloseSwitch: () => void;
-  onCloseWinner: () => void;
+  onRestoreWinner: () => void;
+  onConfirmWinner: () => void;
   winnerName?: string;
-  confirmHref?: string;
+  winnerScore?: string;
 }
 
 function SetScoreText({ value }: { value: SetScore }) {
@@ -52,17 +56,21 @@ export default function LiveMatchReplica({
   sideALabel = "Kunal Verma",
   sideBLabel = "Anil Kumar",
   showSwitchServe,
-  showWinner,
+  showWinnerConfirm,
+  showExitConfirm,
   onBack,
+  onConfirmExit,
+  onCloseExitConfirm,
   onUndo,
   onSideARally,
   onSideBRally,
   onSideAFault,
   onSideBFault,
   onCloseSwitch,
-  onCloseWinner,
+  onRestoreWinner,
+  onConfirmWinner,
   winnerName = "Kunal Verma",
-  confirmHref = "/home",
+  winnerScore = "",
 }: LiveMatchReplicaProps) {
   const visibleSetScores: SetScore[] = Array.from({ length: bestOf }).map((_, index) => {
     const score = setScores[index];
@@ -221,26 +229,61 @@ export default function LiveMatchReplica({
         </div>
       )}
 
-      {showWinner && (
+      {showExitConfirm && (
+        <div className="fixed inset-0 z-[285] bg-black/50 backdrop-blur-[3px]">
+          <div className="absolute inset-0 bg-[#FFFFFF80] dark:bg-[#3D2B6390]" />
+          <div className="absolute left-1/2 top-1/2 w-[90%] max-w-[360px] -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-[#D7D7D7] bg-white p-4 text-center dark:border-[#68588D] dark:bg-[#3F2D67]">
+            <div className="mx-auto mb-2 flex h-8 w-8 items-center justify-center text-[#FF7A1A]">
+              <TimerReset size={20} />
+            </div>
+            <h3 className="text-[24px] font-semibold leading-none">Leave Match?</h3>
+            <p className="mx-auto mt-1 max-w-[250px] text-[13px] text-[#656565] dark:text-white/75">
+              Are you sure? The match will not be saved and you will return to match setup.
+            </p>
+            <div className="mt-3 grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={onCloseExitConfirm}
+                className="h-10 rounded-xl border border-[#D5D5D5] bg-[#F8F8F8] text-[14px] font-semibold dark:border-[#8A7BAC] dark:bg-[#4B3A73]"
+              >
+                Continue
+              </button>
+              <button
+                type="button"
+                onClick={onConfirmExit}
+                className="h-10 rounded-xl bg-[#FF7A1A] text-[14px] font-semibold text-white"
+              >
+                Yes, Leave
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showWinnerConfirm && (
         <div className="fixed inset-0 z-[290] bg-black/50 backdrop-blur-[3px]">
           <div className="absolute inset-0 bg-[#FFFFFF80] dark:bg-[#3D2B6390]" />
-          <div className="absolute inset-x-0 top-[34%] text-center text-[#1F1F1F] dark:text-white">
-            <div className="mb-1 flex justify-center text-[#F7B31B]">
-              <Trophy size={52} strokeWidth={2.2} />
+          <div className="absolute left-1/2 top-1/2 w-[90%] max-w-[360px] -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-[#D7D7D7] bg-white p-4 text-center dark:border-[#68588D] dark:bg-[#3F2D67]">
+            <div className="mx-auto mb-2 flex h-10 w-10 items-center justify-center text-[#F7B31B]">
+              <Trophy size={28} strokeWidth={2.2} />
             </div>
-            <p className="text-[28px] font-semibold">Winner</p>
-            <p className="text-[36px] font-bold leading-none">{winnerName}</p>
-            <p className="mt-1 text-[24px] font-semibold">Final Score: 12-08</p>
-          </div>
-
-          <div className="absolute inset-x-0 bottom-0 bg-white/10 px-4 pb-6 pt-3 backdrop-blur-md dark:bg-[#5C4B85]/50">
-            <Link
-              href={confirmHref}
-              onClick={onCloseWinner}
-              className="mx-auto flex h-12 w-full max-w-[360px] items-center justify-center rounded-xl bg-[#FF7A1A] text-[16px] font-semibold text-white"
+            <p className="text-[24px] font-semibold">Winner Ready</p>
+            <p className="mt-1 text-[28px] font-bold leading-none">{winnerName}</p>
+            {winnerScore ? <p className="mt-2 text-[14px] text-[#656565] dark:text-white/75">Final Score: {winnerScore}</p> : null}
+            <button
+              type="button"
+              onClick={onRestoreWinner}
+              className="mt-4 h-10 w-full rounded-xl border border-[#D5D5D5] bg-[#F8F8F8] text-[14px] font-semibold dark:border-[#8A7BAC] dark:bg-[#4B3A73]"
             >
-              Confirm Results
-            </Link>
+              Restore Match
+            </button>
+            <button
+              type="button"
+              onClick={onConfirmWinner}
+              className="mt-2 h-12 w-full rounded-xl bg-[#FF7A1A] text-[16px] font-semibold text-white"
+            >
+              Confirm Winner
+            </button>
           </div>
         </div>
       )}

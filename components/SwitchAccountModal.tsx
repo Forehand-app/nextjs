@@ -5,7 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useAuth } from "@/components/AuthProvider";
 import { useAppSession } from "@/components/AppSessionProvider";
-import { CheckIcon } from "@/components/Icons";
+import { BuildingIcon, CheckIcon, ChevronRightIcon, UserIcon } from "@/components/Icons";
 
 interface Org {
   id: string;
@@ -18,6 +18,52 @@ interface Org {
 interface SwitchAccountModalProps {
   isOpen: boolean;
   onClose: () => void;
+}
+
+type AccountTileProps = {
+  href?: string;
+  onClick?: () => void;
+  icon: React.ReactNode;
+  iconTone: string;
+  title: string;
+  subtitle: string;
+  active?: boolean;
+  trailing?: React.ReactNode;
+};
+
+function AccountTile({ href, onClick, icon, iconTone, title, subtitle, active = false, trailing }: AccountTileProps) {
+  const content = (
+    <div
+      className={`flex items-center gap-3 rounded-[22px] border px-4 py-3.5 transition-colors ${
+        active
+          ? "border-[#ff8a24] bg-[#fff5eb] shadow-[0_8px_18px_rgba(255,138,36,0.12)]"
+          : "border-[var(--color-border)] bg-[var(--color-surface)] shadow-[0_6px_16px_rgba(15,23,42,0.04)]"
+      }`}
+    >
+      <div className={`grid h-11 w-11 shrink-0 place-content-center rounded-full ${iconTone}`}>
+        {icon}
+      </div>
+      <div className="min-w-0 flex-1">
+        <p className="truncate text-[15px] font-semibold text-[var(--color-text)]">{title}</p>
+        <p className="mt-0.5 truncate text-[12px] text-[var(--color-text-muted)]">{subtitle}</p>
+      </div>
+      <div className="shrink-0">{trailing}</div>
+    </div>
+  );
+
+  if (href) {
+    return (
+      <Link href={href} onClick={onClick} className="block">
+        {content}
+      </Link>
+    );
+  }
+
+  return (
+    <button type="button" onClick={onClick} className="block w-full text-left">
+      {content}
+    </button>
+  );
 }
 
 export default function SwitchAccountModal({ isOpen, onClose }: SwitchAccountModalProps) {
@@ -64,97 +110,126 @@ export default function SwitchAccountModal({ isOpen, onClose }: SwitchAccountMod
   const isIndividualActive = pathname.startsWith("/user/");
   const userName = user?.user_metadata?.full_name || user?.user_metadata?.name || user?.email || "User";
   const userInitials = userName.charAt(0).toUpperCase();
+  const activeOrg = orgs.find((org) => pathname.startsWith("/org/") && activeOrgId === org.id);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" role="dialog" aria-modal="true">
-      <div className="w-full max-w-sm rounded-3xl bg-[var(--color-surface)] border border-[var(--color-border)] shadow-xl p-6 max-h-[85vh] flex flex-col">
-        <h2 className="text-xl font-bold mb-5 text-[var(--color-text)]">Switch Account</h2>
-        
-        <div className="space-y-3 overflow-y-auto hide-scrollbar flex-1 pb-2">
-          
-          {/* Individual Account */}
-          {isIndividualActive ? (
-            <div className="flex items-center gap-3.5 p-3.5 rounded-2xl border-2 border-primary bg-primary/5 text-[var(--color-text)]">
-              <div className="w-11 h-11 rounded-full bg-primary flex items-center justify-center font-bold text-white shadow-sm shrink-0">{userInitials}</div>
-              <div className="flex-1 min-w-0">
-                <p className="font-bold text-[15px] truncate">{userName}</p>
-                <p className="text-[13px] text-[var(--color-text-muted)]">Individual</p>
-              </div>
-              <CheckIcon size={20} className="text-primary shrink-0" />
+    <div className="fixed inset-0 z-50 flex items-end bg-black/40 backdrop-blur-[3px]" role="dialog" aria-modal="true">
+      <button type="button" className="absolute inset-0" onClick={onClose} aria-label="Close switch account" />
+      <div className="relative z-10 w-full rounded-t-[28px] bg-[var(--color-surface)] px-4 pb-[max(env(safe-area-inset-bottom),16px)] pt-3 shadow-[0_-10px_30px_rgba(15,23,42,0.16)]">
+        <div className="mx-auto h-1.5 w-12 rounded-full bg-[var(--color-border)]/90" />
+
+        <div className="mt-4 flex items-start justify-between gap-3">
+          <div>
+            <h2 className="text-[20px] font-bold text-[var(--color-text)]">Switch Account</h2>
+            <p className="mt-1 text-[13px] text-[var(--color-text-muted)]">
+              {activeOrg ? "Choose the profile you want to continue with." : "Pick your active profile for this session."}
+            </p>
+          </div>
+          {activeOrg || isIndividualActive ? (
+            <div className="rounded-full bg-[#fff5eb] px-2.5 py-1 text-[11px] font-semibold text-[#ff8a24]">
+              Active
             </div>
-          ) : (
-            <Link
-              href="/user/settings"
-              className="flex items-center gap-3.5 p-3.5 rounded-2xl border border-[var(--color-border)] text-[var(--color-text)] hover:bg-[var(--color-surface-elevated)] transition-colors"
-              onClick={() => {
-                setActiveOrgId(null);
-                onClose();
-              }}
-            >
-              <div className="w-11 h-11 rounded-full bg-[var(--color-surface-elevated)] border border-[var(--color-border)] flex items-center justify-center text-sm font-bold shrink-0">{userInitials}</div>
-              <div className="flex-1 min-w-0">
-                <p className="font-bold text-[15px] truncate">{userName}</p>
-                <p className="text-[13px] text-[var(--color-text-muted)]">Individual</p>
+          ) : null}
+        </div>
+
+        <div className="mt-4 space-y-3 overflow-y-auto hide-scrollbar max-h-[65vh] pb-2">
+          <div className="space-y-2">
+            <p className="px-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--color-text-muted)]">Personal</p>
+            <AccountTile
+              href={isIndividualActive ? undefined : "/user/settings"}
+              onClick={
+                isIndividualActive
+                  ? undefined
+                  : () => {
+                      setActiveOrgId(null);
+                      onClose();
+                    }
+              }
+              icon={<UserIcon size={18} className={isIndividualActive ? "text-[#ff8a24]" : "text-[#6b7280]"} />}
+              iconTone={isIndividualActive ? "border border-[#ffd8bb] bg-[#fff1e4]" : "border border-[var(--color-border)] bg-[var(--color-surface-elevated)]"}
+              title={userName}
+              subtitle="Individual profile"
+              active={isIndividualActive}
+              trailing={
+                isIndividualActive ? (
+                  <span className="grid h-6 w-6 place-content-center rounded-full bg-[#ff8a24] text-white">
+                    <CheckIcon size={13} />
+                  </span>
+                ) : (
+                  <ChevronRightIcon size={18} className="text-[var(--color-text-muted)]" />
+                )
+              }
+            />
+          </div>
+
+          <div className="space-y-2">
+            <p className="px-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--color-text-muted)]">Organizations</p>
+            {isLoading ? (
+              <div className="rounded-[22px] border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-5 text-center text-[13px] text-[var(--color-text-muted)] shadow-[0_6px_16px_rgba(15,23,42,0.04)]">
+                Loading organizations...
               </div>
-            </Link>
-          )}
+            ) : orgs.length === 0 ? (
+              <div className="rounded-[22px] border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-5 text-center text-[13px] text-[var(--color-text-muted)] shadow-[0_6px_16px_rgba(15,23,42,0.04)]">
+                No organizations found yet.
+              </div>
+            ) : (
+              orgs.map((org) => {
+                const isThisOrgActive = pathname.startsWith("/org/") && activeOrgId === org.id;
 
-          {/* Organizations */}
-          {isLoading ? (
-            <p className="text-sm text-center text-[var(--color-text-muted)] py-4">Loading organizations...</p>
-          ) : (
-            orgs.map((org, index) => {
-              const isThisOrgActive = pathname.startsWith("/org/") && activeOrgId === org.id;
-
-              return isThisOrgActive ? (
-                <div key={org.id} className="flex items-center gap-3.5 p-3.5 rounded-2xl border-2 border-primary bg-primary/5 text-[var(--color-text)]">
-                  <div className="w-11 h-11 rounded-full bg-primary flex items-center justify-center font-bold text-white shadow-sm shrink-0">
-                    {org.name?.charAt(0).toUpperCase() || "O"}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="font-bold text-[15px] truncate">{org.name}</p>
-                    <p className="text-[13px] text-[var(--color-text-muted)]">{org.orgType?.name || "Organization"}</p>
-                  </div>
-                  <CheckIcon size={20} className="text-primary shrink-0" />
-                </div>
-              ) : (
-                <Link
-                  key={org.id}
-                  href="/org/settings"
-                  className="flex items-center gap-3.5 p-3.5 rounded-2xl border border-[var(--color-border)] text-[var(--color-text)] hover:bg-[var(--color-surface-elevated)] transition-colors"
-                  onClick={() => {
-                    setActiveOrgId(org.id);
-                    onClose();
-                  }}
-                >
-                  <div className="w-11 h-11 rounded-full bg-[var(--color-surface-elevated)] border border-[var(--color-border)] flex items-center justify-center text-sm font-bold shrink-0">
-                    {org.name?.charAt(0).toUpperCase() || "O"}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="font-bold text-[15px] truncate">{org.name}</p>
-                    <p className="text-[13px] text-[var(--color-text-muted)]">{org.orgType?.name || "Organization"}</p>
-                  </div>
-                </Link>
-              );
-            })
-          )}
+                return (
+                  <AccountTile
+                    key={org.id}
+                    href={isThisOrgActive ? undefined : "/org/settings"}
+                    onClick={
+                      isThisOrgActive
+                        ? undefined
+                        : () => {
+                            setActiveOrgId(org.id);
+                            onClose();
+                          }
+                    }
+                    icon={<BuildingIcon size={18} className={isThisOrgActive ? "text-[#ff8a24]" : "text-[#6b7280]"} />}
+                    iconTone={isThisOrgActive ? "border border-[#ffd8bb] bg-[#fff1e4]" : "border border-[var(--color-border)] bg-[var(--color-surface-elevated)]"}
+                    title={org.name}
+                    subtitle={org.orgType?.name || "Organization"}
+                    active={isThisOrgActive}
+                    trailing={
+                      isThisOrgActive ? (
+                        <span className="grid h-6 w-6 place-content-center rounded-full bg-[#ff8a24] text-white">
+                          <CheckIcon size={13} />
+                        </span>
+                      ) : (
+                        <ChevronRightIcon size={18} className="text-[var(--color-text-muted)]" />
+                      )
+                    }
+                  />
+                );
+              })
+            )}
+          </div>
 
           <Link
             href="/org/create"
-            className="flex items-center justify-center gap-2 p-4 rounded-2xl border border-dashed border-[var(--color-border)] text-[var(--color-text-muted)] hover:bg-[var(--color-surface-elevated)] transition-colors mt-2"
+            className="mt-2 flex items-center gap-3 rounded-[22px] border border-dashed border-[#ffcfac] bg-[#fffaf5] px-4 py-4 text-left shadow-[0_6px_16px_rgba(15,23,42,0.03)]"
             onClick={onClose}
           >
-            <span className="text-xl font-light leading-none">+</span>
-            <span className="font-semibold text-[14px]">Create Organization</span>
+            <div className="grid h-11 w-11 shrink-0 place-content-center rounded-full bg-[#fff1e4] text-[22px] font-light leading-none text-[#ff8a24]">
+              +
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="text-[15px] font-semibold text-[var(--color-text)]">Add organization</p>
+              <p className="mt-0.5 text-[12px] text-[var(--color-text-muted)]">Create or connect another profile</p>
+            </div>
+            <ChevronRightIcon size={18} className="text-[var(--color-text-muted)]" />
           </Link>
         </div>
 
         <button
           type="button"
-          className="mt-6 w-full py-3 rounded-xl font-semibold text-[var(--color-text)] bg-[var(--color-surface-elevated)] border border-[var(--color-border)] hover:bg-[var(--color-border)] transition-colors shrink-0"
+          className="mt-4 w-full rounded-[18px] bg-[var(--color-surface-elevated)] px-4 py-3 text-[14px] font-semibold text-[var(--color-text)]"
           onClick={onClose}
         >
-          Close
+          Done
         </button>
       </div>
     </div>

@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { routes } from "@/lib/routes";
 import { useClientSearchParams } from "@/lib/useClientSearchParams";
+import TournamentHeroCard from "@/components/TournamentHeroCard";
 import {
   ArrowLeftIcon,
   CalendarIcon,
@@ -13,9 +14,7 @@ import {
   PhoneIcon,
   PlusIcon,
   SearchIcon,
-  ShareIcon,
   TrashIcon,
-  UsersIcon,
 } from "@/components/Icons";
 
 type MainTab = "about" | "events";
@@ -99,41 +98,14 @@ export default function TournamentDetailPage() {
 
   return (
     <div className="min-h-screen bg-[var(--color-background)] pb-24 text-[var(--color-text)]">
-      <div className="bg-primary pb-4 pt-[max(env(safe-area-inset-top),12px)] text-white">
-        <div className="px-4">
-          <div className="flex items-center justify-between">
-            <button onClick={() => router.back()} className="grid h-9 w-9 place-content-center rounded-full bg-white/35" aria-label="Back">
-              <ArrowLeftIcon size={18} />
-            </button>
-            <button className="grid h-9 w-9 place-content-center rounded-full bg-white/35" aria-label="Share">
-              <ShareIcon size={16} />
-            </button>
-          </div>
-
-          <div className="mt-4 flex items-start gap-3">
-            <div className="mt-1 grid h-12 w-12 place-content-center rounded-full border border-white/70 bg-[var(--color-surface-elevated)] text-[10px] font-bold text-[#555]">SOFT</div>
-            <div>
-              <h1 className="text-[24px] font-bold leading-7">Mumbai Men's 2025</h1>
-              <p className="text-[13px] text-white/90">Andheri West Organization</p>
-            </div>
-          </div>
-
-          <div className="mt-4 grid grid-cols-2 gap-3">
-            <div className="rounded-2xl bg-[var(--color-surface)] px-3 py-2 text-[var(--color-text)]">
-              <div className="flex items-center gap-2">
-                <div className="grid h-7 w-7 place-content-center rounded-full border border-[var(--color-border)] text-primary">
-                  <UsersIcon size={14} />
-                </div>
-                <span className="text-[24px] font-bold leading-none">64</span>
-              </div>
-              <p className="mt-0.5 text-[13px] text-[var(--color-muted)]">Registered</p>
-            </div>
-            <div className="rounded-2xl bg-[var(--color-surface)] px-3 py-2 text-[var(--color-text)]">
-              <p className="text-[18px] font-semibold leading-5">Registration</p>
-              <div className="mt-2 grid h-6 place-content-center rounded-full bg-[var(--color-chip)] text-[11px] font-semibold text-primary">Open</div>
-            </div>
-          </div>
-        </div>
+      <div>
+        <TournamentHeroCard
+          title="Mumbai Men's 2025"
+          subtitle="Andheri West Organization"
+          registeredCount={64}
+          registrationStatus="Open"
+          onBack={() => router.back()}
+        />
       </div>
 
       <div className="sticky top-0 z-30 grid grid-cols-2 border-y border-[var(--color-border)] bg-[var(--color-surface)]">

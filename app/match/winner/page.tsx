@@ -4,8 +4,14 @@ import React from "react";
 import Layout from "@/components/Layout";
 import Link from "next/link";
 import { TrophyIcon } from "@/components/Icons";
+import { useClientSearchParams } from "@/lib/useClientSearchParams";
 
 export default function MatchWinnerPage() {
+    const searchParams = useClientSearchParams();
+    const winnerName = searchParams.get("winner") || "Kunal Verma";
+    const finalScore = searchParams.get("score") || "15-08";
+    const playerA = searchParams.get("player_a") || "Kunal Verma";
+    const playerB = searchParams.get("player_b") || "Akshay Kumar";
     return (
         <Layout title="Match Complete" showBack showBottomNav={false}>
             <div className="min-h-screen bg-[var(--color-background)] flex flex-col items-center justify-center p-6">
@@ -22,10 +28,10 @@ export default function MatchWinnerPage() {
                 {/* Winner Announcement */}
                 <h1 className="text-3xl font-bold text-center mb-2">Winner</h1>
                 <h2 className="text-4xl font-bold text-primary text-center mb-6">
-                    Kunal Verma
+                    {winnerName}
                 </h2>
                 <p className="text-lg text-[var(--color-muted)] text-center mb-8">
-                    Final Score: 15-08
+                    Final Score: {finalScore}
                 </p>
 
                 {/* Match Stats */}
@@ -35,16 +41,16 @@ export default function MatchWinnerPage() {
                     <div className="space-y-3">
                         <div className="flex justify-between">
                             <span className="text-[var(--color-muted)]">Team KV</span>
-                            <span className="font-semibold">Kunal Verma</span>
+                            <span className="font-semibold">{playerA}</span>
                         </div>
                         <div className="flex justify-between">
                             <span className="text-[var(--color-muted)]">Team AK</span>
-                            <span className="font-semibold">Akshay Kumar</span>
+                            <span className="font-semibold">{playerB}</span>
                         </div>
                         <div className="h-px bg-[var(--color-border)]" />
                         <div className="flex justify-between">
                             <span className="text-[var(--color-muted)]">Set 1</span>
-                            <span className="font-semibold">15 - 08</span>
+                            <span className="font-semibold">{finalScore.replace("-", " - ")}</span>
                         </div>
                         <div className="flex justify-between">
                             <span className="text-[var(--color-muted)]">Set 2</span>

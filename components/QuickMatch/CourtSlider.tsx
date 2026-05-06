@@ -2,7 +2,7 @@
 
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { animate, motion, useMotionValue } from "framer-motion";
-import { ArrowLeft, Check, ChevronDown, Info, RotateCcw, X } from "lucide-react";
+import { ArrowLeft, ArrowRight, Check, ChevronDown, Info, RotateCcw, X } from "lucide-react";
 
 interface CourtSliderProps {
   onBack: () => void;
@@ -31,17 +31,6 @@ type MatchFormState = {
   warmup: boolean;
   serveRotation: "set" | "point" | "none";
 };
-
-const SAMPLE_PLAYERS = [
-  "Kunal Verma",
-  "Anil Kumar",
-  "Alex Costa",
-  "Arun Singh",
-  "Yug Mehta",
-  "Harsh Jain",
-  "Riya Shah",
-  "Neha Patel",
-];
 
 const SLOT_ORDER: SlotId[] = ["leftTop", "leftBottom", "rightTop", "rightBottom"];
 
@@ -129,8 +118,9 @@ export default function CourtSlider({ onBack, onStart }: CourtSliderProps) {
 const handleRef = useRef<HTMLSpanElement>(null);
 
   const [pickerSlot, setPickerSlot] = useState<SlotId | null>(null);
+  const [playerDraft, setPlayerDraft] = useState("");
 
-  const trackRef = useRef<HTMLButtonElement>(null);
+  const trackRef = useRef<HTMLDivElement>(null);
   const x = useMotionValue(0);
   const [maxDrag, setMaxDrag] = useState(180);
 
@@ -152,16 +142,6 @@ const handleRef = useRef<HTMLSpanElement>(null);
     : (["leftTop", "rightBottom"] as SlotId[]);
 
   const canStart = visibleSlots.every((slot) => Boolean(slots[slot]));
-
-  const availableForPicker = useMemo(() => {
-    const used = new Set(
-      Object.entries(slots)
-        .filter(([, name]) => Boolean(name))
-        .map(([, name]) => name)
-    );
-    if (pickerSlot && slots[pickerSlot]) used.delete(slots[pickerSlot]);
-    return SAMPLE_PLAYERS.filter((name) => !used.has(name));
-  }, [pickerSlot, slots]);
 
   const handleReset = () => {
     setForm((previous) => ({ ...previous, doubles: false, initialServer: 1, scoringSystem: "sideout", bestOf: "3", pointsToWin: "11", timeoutPerSet: true, winByTwo: true, warmup: false, serveRotation: "set" }));
@@ -189,6 +169,20 @@ const handleRef = useRef<HTMLSpanElement>(null);
       return;
     }
     animate(x, 0, { type: "spring", stiffness: 360, damping: 24 });
+  };
+
+  const handleOpenPlayerPrompt = (slot: SlotId) => {
+    setPickerSlot(slot);
+    setPlayerDraft(slots[slot] ?? "");
+  };
+
+  const handleSavePlayer = () => {
+    if (!pickerSlot) return;
+    const trimmed = playerDraft.trim();
+    if (!trimmed) return;
+    setSlots((previous) => ({ ...previous, [pickerSlot]: trimmed }));
+    setPickerSlot(null);
+    setPlayerDraft("");
   };
 
   return (
@@ -254,7 +248,7 @@ const handleRef = useRef<HTMLSpanElement>(null);
                 <button
                   key={slot}
                   type="button"
-                  onClick={() => setPickerSlot(slot)}
+                  onClick={() => handleOpenPlayerPrompt(slot)}
                   className={`absolute ${positionClass[slot]} flex h-7 w-7 items-center justify-center rounded-full border-2 border-white bg-[#1E1F23] text-[10px] font-bold text-white shadow-md`}
                   title={name ?? "Assign player"}
                 >
@@ -395,28 +389,27 @@ const handleRef = useRef<HTMLSpanElement>(null);
           />
         </section>
 
-        <button
-  ref={trackRef}
-  type="button"
-  className="relative flex h-12 w-full items-center overflow-hidden rounded-full bg-[#FF7A1A] px-1.5 text-white"
->
-  <motion.span
-    ref={handleRef}
-    drag="x"
-    dragConstraints={{ left: 0, right: maxDrag }}
-    dragElastic={0}
-    dragMomentum={false}
-    style={{ x }}
-    onDragEnd={handleSwipeEnd}
-    className="z-10 flex h-9 w-9 cursor-grab items-center justify-center rounded-full bg-white shadow-md active:cursor-grabbing"
-  >
-    <ChevronDown className="-rotate-90 text-[#FF7A1A]" size={18} />
-  </motion.span>
+        <div
+          ref={trackRef}
+          className="relative flex h-14 w-full items-center overflow-hidden rounded-full bg-[#FF7A1A] px-2 text-white shadow-[0_10px_22px_rgba(255,122,26,0.28)]"
+        >
+          <motion.span
+            ref={handleRef}
+            drag="x"
+            dragConstraints={{ left: 0, right: maxDrag }}
+            dragElastic={0}
+            dragMomentum={false}
+            style={{ x }}
+            onDragEnd={handleSwipeEnd}
+            className="z-10 flex h-10 w-10 cursor-grab items-center justify-center rounded-full bg-white shadow-[0_4px_12px_rgba(120,49,0,0.22)] active:cursor-grabbing"
+          >
+            <ArrowRight className="text-[#FF7A1A]" size={18} />
+          </motion.span>
 
-  <span className="pointer-events-none absolute inset-0 flex items-center justify-center text-[15px] font-semibold">
-    {canStart ? "Swipe to start match" : "Select players to start"}
-  </span>
-</button>
+          <span className="pointer-events-none absolute inset-0 flex items-center justify-center px-14 text-center text-[15px] font-bold">
+            {canStart ? "Swipe to start match" : "Enter players to start"}
+          </span>
+        </div>
       </div>
 
       {pickerSlot && (
@@ -429,38 +422,41 @@ const handleRef = useRef<HTMLSpanElement>(null);
             onClick={(event) => event.stopPropagation()}
           >
             <div className="mb-2 flex items-center justify-between">
-              <h4 className="text-sm font-semibold text-[#222] dark:text-white">Select Player</h4>
+              <h4 className="text-sm font-semibold text-[#222] dark:text-white">Enter Player Name</h4>
               <button type="button" onClick={() => setPickerSlot(null)} className="h-7 w-7">
                 <X size={16} />
               </button>
             </div>
 
-            <div className="max-h-48 space-y-1 overflow-y-auto">
-              {availableForPicker.map((player) => (
-                <button
-                  key={player}
-                  type="button"
-                  onClick={() => {
-                    setSlots((previous) => ({ ...previous, [pickerSlot]: player }));
-                    setPickerSlot(null);
-                  }}
-                  className="w-full rounded-lg border border-[#E6E6E6] px-3 py-2 text-left text-sm hover:bg-[#F7F7F7] dark:border-white/20 dark:hover:bg-[#5A467E]"
-                >
-                  {player}
-                </button>
-              ))}
-            </div>
+            <input
+              value={playerDraft}
+              onChange={(event) => setPlayerDraft(event.target.value)}
+              placeholder="Type player name"
+              className="h-11 w-full rounded-xl border border-[#E6E6E6] px-3 text-sm outline-none dark:border-white/20 dark:bg-[#5A467E] dark:text-white"
+              autoFocus
+            />
 
-            <button
-              type="button"
-              onClick={() => {
-                setSlots((previous) => ({ ...previous, [pickerSlot]: null }));
-                setPickerSlot(null);
-              }}
-              className="mt-2 w-full rounded-lg border border-[#E6E6E6] px-3 py-2 text-sm text-[#6C6C6C] dark:border-white/20 dark:text-white/80"
-            >
-              Clear Selection
-            </button>
+            <div className="mt-3 grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setSlots((previous) => ({ ...previous, [pickerSlot]: null }));
+                  setPickerSlot(null);
+                  setPlayerDraft("");
+                }}
+                className="rounded-xl border border-[#E6E6E6] px-3 py-2.5 text-sm text-[#6C6C6C] dark:border-white/20 dark:text-white/80"
+              >
+                Clear
+              </button>
+              <button
+                type="button"
+                onClick={handleSavePlayer}
+                className="rounded-xl bg-[#FF7A1A] px-3 py-2.5 text-sm font-semibold text-white disabled:opacity-50"
+                disabled={!playerDraft.trim()}
+              >
+                Save
+              </button>
+            </div>
           </div>
         </div>
       )}

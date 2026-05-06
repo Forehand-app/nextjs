@@ -1,0 +1,203 @@
+import Image from "next/image";
+
+type PastMatch = {
+  type: string;
+  timeAgo: string;
+  status: string;
+  leagueTitle: string;
+  leftTeamName: string;
+  rightTeamName: string;
+  leftTeamPlayers: string[];
+  rightTeamPlayers: string[];
+  score: string;
+  scoreLabel: string;
+  accentColor: string;
+};
+
+const pastMatches: PastMatch[] = [
+  {
+    type: "Doubles",
+    timeAgo: "2 Days Ago",
+    status: "WIN",
+    leagueTitle: "Raipur Pro League",
+    leftTeamName: "You & Arun",
+    rightTeamName: "Yug & Harsh",
+    leftTeamPlayers: ["You", "Arun"],
+    rightTeamPlayers: ["Yug", "Harsh"],
+    score: "21 - 18",
+    scoreLabel: "Final Score",
+    accentColor: "bg-yellow-400",
+  },
+  {
+    type: "Doubles",
+    timeAgo: "4 Days Ago",
+    status: "WIN",
+    leagueTitle: "City Smash Cup",
+    leftTeamName: "You & Neha",
+    rightTeamName: "Ravi & Ishita",
+    leftTeamPlayers: ["You", "Neha"],
+    rightTeamPlayers: ["Ravi", "Ishita"],
+    score: "18 - 14",
+    scoreLabel: "Final Score",
+    accentColor: "bg-lime-400",
+  },
+  {
+    type: "Mixed",
+    timeAgo: "1 Week Ago",
+    status: "WIN",
+    leagueTitle: "Weekend Rally Open",
+    leftTeamName: "You & Kabir",
+    rightTeamName: "Mehul & Siya",
+    leftTeamPlayers: ["You", "Kabir"],
+    rightTeamPlayers: ["Mehul", "Siya"],
+    score: "22 - 20",
+    scoreLabel: "Final Score",
+    accentColor: "bg-amber-400",
+  },
+];
+
+function avatarDataUri(seed: string, accent: string, skin: string, shirt: string) {
+  const svg = `
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 72 72">
+      <defs>
+        <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stop-color="${accent}" />
+          <stop offset="100%" stop-color="#ffffff" />
+        </linearGradient>
+      </defs>
+      <rect width="72" height="72" rx="36" fill="url(#bg)" />
+      <circle cx="36" cy="26" r="13" fill="${skin}" />
+      <path d="M17 67c2-13 11-20 19-20s17 7 19 20" fill="${shirt}" />
+      <path d="M23 25c2-10 10-16 13-16 8 0 14 5 16 15-2-2-4-4-8-4-5 0-9 3-11 6-2-3-5-4-10-1Z" fill="#2f241f" />
+      <circle cx="31" cy="27" r="1.2" fill="#2f241f" />
+      <circle cx="41" cy="27" r="1.2" fill="#2f241f" />
+      <path d="M31 34c1.8 1.4 7.2 1.4 9 0" stroke="#8f5e45" stroke-width="1.8" stroke-linecap="round" />
+      <text x="36" y="63" text-anchor="middle" font-family="Arial, sans-serif" font-size="8" font-weight="700" fill="#ffffff" opacity="0.8">${seed}</text>
+    </svg>
+  `;
+
+  return `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`;
+}
+
+const avatarPalette = [
+  { accent: "#fde68a", skin: "#efc39d", shirt: "#f97316" },
+  { accent: "#bfdbfe", skin: "#d9a885", shirt: "#0ea5e9" },
+  { accent: "#fed7aa", skin: "#f2c9a8", shirt: "#fb923c" },
+  { accent: "#c7d2fe", skin: "#e2b38f", shirt: "#6366f1" },
+];
+
+function buildAvatar(name: string, index: number) {
+  const initials = name
+    .split(" ")
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase() ?? "")
+    .join("");
+  const palette = avatarPalette[index % avatarPalette.length];
+  return avatarDataUri(initials, palette.accent, palette.skin, palette.shirt);
+}
+
+function TeamAvatarStack({ players }: { players: string[] }) {
+  return (
+    <div className="flex items-center justify-center">
+      {players.slice(0, 2).map((player, index) => (
+        <div
+          key={`${player}-${index}`}
+          className={`relative ${index === 0 ? "z-10" : "-ml-3.5 z-20"}`}
+        >
+          <div className="relative h-10 w-10 overflow-hidden rounded-full border-2 border-orange-400 bg-white shadow-[0_4px_10px_rgba(15,23,42,0.14)]">
+            <Image
+              src={buildAvatar(player, index)}
+              alt={player}
+              fill
+              sizes="40px"
+              className="object-cover"
+              unoptimized
+            />
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function PastMatchCard({ match }: { match: PastMatch }) {
+  return (
+    <article className="min-w-[72vw] max-w-[300px] overflow-hidden rounded-[18px] border border-neutral-200 bg-neutral-50 shadow-[0_4px_14px_rgba(15,23,42,0.04)] transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_10px_22px_rgba(15,23,42,0.08)] sm:min-w-[290px]">
+      <div className="flex">
+        <div className={`w-1.5 shrink-0 ${match.accentColor}`} />
+
+        <div className="flex-1 px-3.5 py-3.5">
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0">
+              <div className="flex items-center gap-2 text-[11px]">
+                <span className="font-medium text-neutral-900">{match.type}</span>
+                <span className="text-neutral-300">{"\u2022"}</span>
+                <span className="text-neutral-500">{match.timeAgo}</span>
+              </div>
+              <h4 className="mt-2 truncate text-[15px] font-semibold text-neutral-900">
+                {match.leagueTitle}
+              </h4>
+            </div>
+
+            <span className="shrink-0 rounded-full bg-orange-500 px-3 py-1 text-[11px] font-bold uppercase tracking-wide text-white">
+              {match.status}
+            </span>
+          </div>
+
+          <div className="mt-4 grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-3">
+            <div className="flex min-w-0 flex-col items-center text-center">
+              <TeamAvatarStack players={match.leftTeamPlayers} />
+              <p className="mt-2 w-full truncate text-[13px] font-medium text-neutral-900">
+                {match.leftTeamName}
+              </p>
+            </div>
+
+            <div className="flex min-w-[88px] flex-col items-center">
+              <div className="text-[28px] font-extrabold leading-none tracking-[-0.04em] text-neutral-950">
+                {match.score}
+              </div>
+              <p className="mt-1 text-[11px] font-medium text-neutral-500">
+                {match.scoreLabel}
+              </p>
+            </div>
+
+            <div className="flex min-w-0 flex-col items-center text-center">
+              <TeamAvatarStack players={match.rightTeamPlayers} />
+              <p className="mt-2 w-full truncate text-[13px] font-medium text-neutral-900">
+                {match.rightTeamName}
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </article>
+  );
+}
+
+export default function PastMatchesSection() {
+  return (
+    <section className="space-y-3">
+      <div className="flex items-end justify-between px-1">
+        <h3 className="text-xl font-bold tracking-tight text-[var(--color-text)]">
+          Past Matches
+        </h3>
+        <button className="pb-1 text-xs font-bold uppercase tracking-wider text-[var(--color-text-secondary)] transition-colors hover:text-orange-600">
+          View History
+        </button>
+      </div>
+
+      <div className="flex gap-3 overflow-x-auto [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden -mx-4 px-4 pb-1">
+        {pastMatches.map((match, index) => (
+          <div
+            key={`${match.leagueTitle}-${match.timeAgo}`}
+            className="animate-fade-in"
+            style={{ animationDelay: `${index * 100}ms`, animationFillMode: "both" }}
+          >
+            <PastMatchCard match={match} />
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}

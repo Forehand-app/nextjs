@@ -1,37 +1,21 @@
 "use client";
 
 import React, { useMemo, useState } from "react";
-import Link from "next/link";
 import {
   BellIcon,
-  CalendarIcon,
-  ChevronRightIcon,
   FilterIcon,
-  MapPinIcon,
   SearchIcon,
 } from "@/components/Icons";
-import Layout from "@/components/Layout";
-import { routes } from "@/lib/routes";
+import BottomNav from "@/components/BottomNav";
+import NotificationsSlideOver, { type NotificationItem } from "@/components/NotificationsSlideOver";
+import TournamentListCard, { type TournamentListItem } from "@/components/TournamentListCard";
 
 type TopTab = "browse" | "joined" | "history";
 type FormatTab = "all" | "singles" | "doubles";
 
-type TournamentItem = {
-  id: string;
-  name: string;
-  subtitle: string;
-  start: string;
-  end: string;
-  entry?: string;
-  location: string;
-  players: string;
-  cta: "Register" | "View" | "Chevron";
-  joinedStatus?: string;
-};
-
 const baseSubtitle = "Pickle ball | Men's | Multiple Modes";
 
-const browseItems: TournamentItem[] = [
+const browseItems: TournamentListItem[] = [
   {
     id: "1",
     name: "Monsoon Pickleball Op..",
@@ -67,7 +51,7 @@ const browseItems: TournamentItem[] = [
   },
 ];
 
-const joinedItems: TournamentItem[] = [
+const joinedItems: TournamentListItem[] = [
   {
     id: "4",
     name: "Monsoon Pickleball Op..",
@@ -103,7 +87,7 @@ const joinedItems: TournamentItem[] = [
   },
 ];
 
-const historyItems: TournamentItem[] = [
+const historyItems: TournamentListItem[] = [
   {
     id: "7",
     name: "Champions league",
@@ -150,80 +134,29 @@ const historyItems: TournamentItem[] = [
   },
 ];
 
-function TournamentCard({ item }: { item: TournamentItem }) {
-  return (
-    <Link
-      href={routes.tournamentDetail(item.id)}
-      className="block rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-4 shadow-sm transition hover:border-primary"
-    >
-      <div className="flex items-start gap-3">
-        <div className="mt-0.5 grid h-12 w-12 shrink-0 place-content-center rounded-full border border-[var(--color-border)] bg-[var(--color-surface-elevated)] text-[10px] font-bold text-[var(--color-text-muted)]">
-          SOFT
-        </div>
-
-        <div className="min-w-0 flex-1">
-          <div className="flex items-start justify-between gap-2">
-            <div className="min-w-0">
-              <h3 className="truncate text-[16px] font-bold leading-5 text-[var(--color-text)]">{item.name}</h3>
-              <p className="truncate text-[12px] text-[var(--color-text-muted)]">{item.subtitle}</p>
-            </div>
-            {item.cta === "Chevron" ? (
-              <ChevronRightIcon size={20} className="mt-1 text-[var(--color-text)]" />
-            ) : null}
-          </div>
-
-          <div className="mt-3 grid grid-cols-2 gap-y-2 text-[12px] text-[var(--color-text-muted)]">
-            <div className="flex items-center gap-1.5">
-              <CalendarIcon size={12} />
-              <span>Start: {item.start}</span>
-            </div>
-            <div className="flex items-center gap-1.5">
-              <CalendarIcon size={12} />
-              <span>End: {item.end}</span>
-            </div>
-            {item.entry ? (
-              <div className="flex items-center gap-1.5">
-                <span className="currency-inr text-primary font-bold">&#8377;</span> {item.entry}
-              </div>
-            ) : (
-              <div className="h-4" />
-            )}
-            <div className="flex items-center gap-1.5">
-              <MapPinIcon size={12} />
-              <span>{item.location}</span>
-            </div>
-            {item.joinedStatus ? (
-              <div className="col-span-2 text-[12px] flex items-center gap-1">
-                <BellIcon size={12} className="text-primary" /> {item.joinedStatus}
-              </div>
-            ) : null}
-          </div>
-
-          <div className="mt-3 flex items-center justify-between">
-            <div className="flex items-center gap-1 text-[11px] text-[var(--color-text-muted)]">
-              <div className="flex -space-x-1">
-                <div className="h-5 w-5 rounded-full bg-[#dbb27a] ring-1 ring-white dark:ring-[#1b1b1b]" />
-                <div className="h-5 w-5 rounded-full bg-[#3ea3bf] ring-1 ring-white dark:ring-[#1b1b1b]" />
-                <div className="h-5 w-5 rounded-full bg-[#2d6d94] ring-1 ring-white dark:ring-[#1b1b1b]" />
-              </div>
-              {item.players ? <span>{item.players}</span> : null}
-            </div>
-
-            {item.cta === "Register" || item.cta === "View" ? (
-              <span className="inline-flex h-8 min-w-[92px] items-center justify-center rounded-full border border-primary px-4 text-[14px] font-semibold text-primary">
-                {item.cta}
-              </span>
-            ) : null}
-          </div>
-        </div>
-      </div>
-    </Link>
-  );
-}
+const mockNotifications: NotificationItem[] = [
+  {
+    id: "1",
+    type: "registration",
+    title: "Registration confirmed",
+    body: "Mumbai Men's 2025",
+    timeAgo: "2h ago",
+    unread: true,
+  },
+  {
+    id: "2",
+    type: "info",
+    title: "Fixtures updated",
+    body: "Quarter finals published",
+    timeAgo: "5h ago",
+    unread: true,
+  },
+];
 
 export default function TournamentsPage() {
   const [activeTab, setActiveTab] = useState<TopTab>("browse");
   const [format, setFormat] = useState<FormatTab>("all");
+  const [notificationsOpen, setNotificationsOpen] = useState(false);
 
   const list = useMemo(() => {
     if (activeTab === "joined") return joinedItems;
@@ -231,83 +164,124 @@ export default function TournamentsPage() {
     return browseItems;
   }, [activeTab]);
 
+  const unreadCount = mockNotifications.filter((item) => item.unread).length;
+
   return (
-    <Layout title="Tournaments">
-      <div className="bg-[var(--color-surface)] px-4 pb-3 pt-4 border-b border-[var(--color-border)]">
-        <label className="flex h-10 items-center gap-2 rounded-xl bg-[var(--color-surface-elevated)] px-3 text-[var(--color-text-muted)] border border-[var(--color-border)]">
-          <SearchIcon size={16} />
-          <input
-            type="text"
-            placeholder="Search tournaments, cities..."
-            className="w-full bg-transparent text-[14px] text-[var(--color-text)] outline-none placeholder:text-[var(--color-text-muted)]"
-          />
-        </label>
+    <>
+      <div className="min-h-screen bg-[var(--color-background)] text-[var(--color-text)]">
+        <section className="bg-[linear-gradient(180deg,#ff8a24_0%,#ff7418_100%)] px-4 pb-0 pt-[calc(max(env(safe-area-inset-top),12px)+6px)]">
+          <div className="flex items-start justify-between gap-3">
+            <div className="flex min-w-0 items-center gap-3">
+              <div className="grid h-11 w-11 shrink-0 place-content-center overflow-hidden rounded-full border-2 border-white/65 bg-[radial-gradient(circle_at_30%_30%,#f7d8b5,#8f5f42)] shadow-[0_4px_10px_rgba(119,46,0,0.18)]">
+                <span className="text-[13px] font-semibold text-white">A</span>
+              </div>
+              <div className="min-w-0 pt-0.5">
+                <h1 className="truncate text-[32px] font-extrabold leading-none tracking-[-0.02em] text-white">Tournaments</h1>
+                <p className="mt-1 text-[14px] font-medium text-white/92">Browse and join tournaments</p>
+              </div>
+            </div>
 
-        <div className="mt-4 grid grid-cols-3 text-center text-[15px]">
-          {(["browse", "joined", "history"] as TopTab[]).map((tab) => {
-            const active = activeTab === tab;
-            return (
-              <button
-                key={tab}
-                onClick={() => setActiveTab(tab)}
-                className={`h-10 capitalize border-b-2 transition-colors ${
-                  active
-                    ? "border-primary font-semibold text-[var(--color-text)]"
-                    : "border-transparent text-[var(--color-text-muted)] hover:text-[var(--color-text)]"
-                }`}
-              >
-                {tab}
-              </button>
-            );
-          })}
+            <button
+              type="button"
+              onClick={() => setNotificationsOpen(true)}
+              className="relative mt-0.5 grid h-11 w-11 shrink-0 place-content-center rounded-full bg-white text-[#2a2a31] shadow-[0_8px_18px_rgba(130,55,0,0.18)]"
+              aria-label="Notifications"
+            >
+              <BellIcon size={19} />
+              {unreadCount > 0 ? (
+                <span className="absolute right-0.5 top-0.5 grid h-5 min-w-[20px] place-content-center rounded-full bg-[#ff6b00] px-1 text-[10px] font-bold text-white ring-2 ring-[#fff3ea]">
+                  {unreadCount}
+                </span>
+              ) : null}
+            </button>
+          </div>
+
+          <label className="mt-5 flex h-10 items-center gap-2 rounded-[14px] bg-white px-3.5 text-[#8e8e95] shadow-[0_8px_18px_rgba(130,55,0,0.14)]">
+            <SearchIcon size={16} />
+            <input
+              type="text"
+              placeholder="Search tournaments, cities..."
+              className="w-full bg-transparent text-[14px] text-[var(--color-text)] outline-none placeholder:text-[#a0a0a7]"
+            />
+          </label>
+
+          <div className="mt-5 grid grid-cols-3 text-center text-[16px] text-white/82">
+            {(["browse", "joined", "history"] as TopTab[]).map((tab) => {
+              const active = activeTab === tab;
+              return (
+                <button
+                  key={tab}
+                  onClick={() => setActiveTab(tab)}
+                  className={`h-11 capitalize border-b-2 transition-colors ${
+                    active
+                      ? "border-white font-semibold text-white"
+                      : "border-transparent"
+                  }`}
+                >
+                  {tab}
+                </button>
+              );
+            })}
+          </div>
+        </section>
+
+        <div className="border-b border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3">
+          <div className="hide-scrollbar flex items-center gap-2 overflow-x-auto">
+            <button className="grid h-9 w-9 shrink-0 place-content-center rounded-full border border-[var(--color-border)] bg-[var(--color-surface-elevated)] text-primary">
+              <FilterIcon size={14} />
+            </button>
+            {([
+              { id: "all", label: "All Formats" },
+              { id: "singles", label: "Singles" },
+              { id: "doubles", label: "Doubles" },
+            ] as { id: FormatTab; label: string }[]).map((tab) => {
+              const active = format === tab.id;
+              return (
+                <button
+                  key={tab.id}
+                  onClick={() => setFormat(tab.id)}
+                  className={`h-9 shrink-0 rounded-xl border px-6 text-[14px] font-medium transition-colors ${
+                    active
+                      ? "border-primary bg-primary text-white"
+                      : "border-[var(--color-border)] bg-[var(--color-surface-elevated)] text-[var(--color-text-muted)]"
+                  }`}
+                >
+                  {tab.label}
+                </button>
+              );
+            })}
+          </div>
         </div>
-      </div>
 
-      <div className="border-b border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3">
-        <div className="hide-scrollbar flex items-center gap-2 overflow-x-auto">
-          <button className="grid h-9 w-9 shrink-0 place-content-center rounded-full border border-[var(--color-border)] bg-[var(--color-surface-elevated)] text-primary">
-            <FilterIcon size={14} />
-          </button>
-          {([
-            { id: "all", label: "All Formats" },
-            { id: "singles", label: "Singles" },
-            { id: "doubles", label: "Doubles" },
-          ] as { id: FormatTab; label: string }[]).map((tab) => {
-            const active = format === tab.id;
-            return (
-              <button
-                key={tab.id}
-                onClick={() => setFormat(tab.id)}
-                className={`h-9 shrink-0 rounded-xl border px-6 text-[14px] font-medium transition-colors ${
-                  active
-                    ? "border-primary bg-primary text-white"
-                    : "border-[var(--color-border)] bg-[var(--color-surface-elevated)] text-[var(--color-text-muted)]"
-                }`}
-              >
-                {tab.label}
-              </button>
-            );
-          })}
+        <div className="space-y-4 px-4 pb-24 pt-4">
+          {activeTab === "browse" ? (
+            <>
+              <h2 className="text-[18px] font-semibold text-[var(--color-text)]">Trending Tournaments</h2>
+              {list.map((item) => (
+                <TournamentListCard key={item.id} item={item} />
+              ))}
+              <h2 className="pt-2 text-[18px] font-semibold text-[var(--color-text)]">Tournaments Near You</h2>
+              {browseItems.map((item) => (
+                <TournamentListCard key={`near-${item.id}`} item={item} />
+              ))}
+            </>
+          ) : (
+            list.map((item) => <TournamentListCard key={item.id} item={item} />)
+          )}
         </div>
+
+        <BottomNav />
       </div>
 
-      <div className="space-y-4 px-4 pb-8 pt-4">
-        {activeTab === "browse" ? (
-          <>
-            <h2 className="text-[18px] font-semibold text-[var(--color-text)]">Trending Tournaments</h2>
-            {list.map((item) => (
-              <TournamentCard key={item.id} item={item} />
-            ))}
-            <h2 className="pt-2 text-[18px] font-semibold text-[var(--color-text)]">Tournaments Near You</h2>
-            {browseItems.map((item) => (
-              <TournamentCard key={`near-${item.id}`} item={item} />
-            ))}
-          </>
-        ) : (
-          list.map((item) => <TournamentCard key={item.id} item={item} />)
-        )}
-      </div>
-    </Layout>
+      <NotificationsSlideOver
+        open={notificationsOpen}
+        onClose={() => setNotificationsOpen(false)}
+        items={mockNotifications}
+        unreadCount={unreadCount}
+        onMarkAllRead={() => undefined}
+        onClearAll={() => undefined}
+      />
+    </>
   );
 }
 

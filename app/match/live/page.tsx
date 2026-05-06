@@ -30,6 +30,7 @@ export default function LiveMatchPage() {
   const [seq, setSeq] = useState(0);
   const [showSwitchServe, setShowSwitchServe] = useState(false);
   const [matchWinner, setMatchWinner] = useState<0 | 1 | null>(null);
+  const [showExitConfirm, setShowExitConfirm] = useState(false);
   const playerAName = searchParams.get("p1") || "Kunal Verma";
   const playerBName = searchParams.get("p2") || "Anil Kumar";
 
@@ -97,6 +98,7 @@ export default function LiveMatchPage() {
     state.setScores[index]?.[0] ?? (index === 0 ? 0 : null),
     state.setScores[index]?.[1] ?? (index === 0 ? 0 : null),
   ]);
+  const winnerScore = `${String(currentSet[0] ?? 0).padStart(2, "0")}-${String(currentSet[1] ?? 0).padStart(2, "0")}`;
 
   return (
     <LiveMatchReplica
@@ -111,17 +113,28 @@ export default function LiveMatchPage() {
       sideALabel={playerAName}
       sideBLabel={playerBName}
       showSwitchServe={showSwitchServe}
-      showWinner={matchWinner != null}
-      onBack={() => router.back()}
+      showWinnerConfirm={matchWinner != null}
+      showExitConfirm={showExitConfirm}
+      onBack={() => setShowExitConfirm(true)}
+      onConfirmExit={() => router.push("/match/setup")}
+      onCloseExitConfirm={() => setShowExitConfirm(false)}
       onUndo={undo}
       onSideARally={() => applyRallyAction(0)}
       onSideBRally={() => applyRallyAction(1)}
       onSideAFault={() => applyFaultAction(0)}
       onSideBFault={() => applyFaultAction(1)}
       onCloseSwitch={() => setShowSwitchServe(false)}
-      onCloseWinner={() => setMatchWinner(null)}
+      onRestoreWinner={() => {
+        undo();
+        setMatchWinner(null);
+      }}
+      onConfirmWinner={() =>
+        router.push(
+          `/match/winner?winner=${encodeURIComponent(matchWinner === 1 ? playerBName : playerAName)}&score=${encodeURIComponent(winnerScore)}&player_a=${encodeURIComponent(playerAName)}&player_b=${encodeURIComponent(playerBName)}`
+        )
+      }
       winnerName={matchWinner === 1 ? playerBName : playerAName}
-      confirmHref="/home"
+      winnerScore={winnerScore}
     />
   );
 }
