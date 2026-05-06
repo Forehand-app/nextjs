@@ -6,7 +6,7 @@ import { useAuth } from "@/components/AuthProvider";
 
 export default function AuthCallbackPage() {
   const router = useRouter();
-  const { finishAuthFromUrl } = useAuth();
+  const { finishAuthFromUrl, getPostLoginRoute } = useAuth();
   const [error, setError] = useState<string | null>(null);
   const didRunRef = useRef(false);
 
@@ -22,7 +22,8 @@ export default function AuthCallbackPage() {
         const callbackStorageKey = code ? `forehand:auth-callback:${code}` : null;
 
         if (callbackStorageKey && sessionStorage.getItem(callbackStorageKey) === "done") {
-          router.replace("/finalize");
+          const target = await getPostLoginRoute();
+          router.replace(target);
           return;
         }
 
@@ -51,7 +52,7 @@ export default function AuthCallbackPage() {
     return () => {
       isActive = false;
     };
-  }, [finishAuthFromUrl, router]);
+  }, [finishAuthFromUrl, getPostLoginRoute, router]);
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-[var(--color-background)] px-6 text-center">

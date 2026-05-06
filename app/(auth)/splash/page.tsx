@@ -3,20 +3,46 @@
 import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/components/AuthProvider";
+import { useAppSession } from "@/components/AppSessionProvider";
 import { GamepadIcon } from "@/components/Icons";
 
 export default function SplashPage() {
   const router = useRouter();
   const { isAuthenticated, isLoading, signInWithGoogle } = useAuth();
+  const { refreshAppSession } = useAppSession();
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
+    let isActive = true;
     if (isLoading) return;
-    if (isAuthenticated) {
-      router.replace("/finalize");
+
+    if (!isAuthenticated) {
+      return;
     }
-  }, [isAuthenticated, isLoading, router]);
+
+    const redirectAuthenticatedUser = async () => {
+      try {
+        const target = await refreshAppSession();
+        if (isActive) {
+          router.replace(target);
+        }
+      } catch (cause) {
+        if (!isActive) return;
+        const message =
+          cause instanceof Error
+            ? cause.message
+            : "Unable to load your profile.";
+        setError(message);
+      }
+    };
+
+    void redirectAuthenticatedUser();
+
+    return () => {
+      isActive = false;
+    };
+  }, [isAuthenticated, isLoading, refreshAppSession, router]);
 
   const handleGoogleLogin = async () => {
     if (isLoading || isSubmitting) return;

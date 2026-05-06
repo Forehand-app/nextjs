@@ -7,6 +7,67 @@ import {
   ArrowLeftIcon, ShareIcon, EllipsisIcon, UsersIcon, MapPinIcon, PhoneIcon, MailIcon, TrophyIcon, CheckIcon, FilterIcon, ChevronDownIcon, ChevronRightIcon, TrashIcon, PlusIcon
 } from "@/components/Icons";
 import { routes } from "@/lib/routes";
+import { useAuth } from "@/components/AuthProvider";
+
+type TournamentEvent = {
+  id?: string;
+  name?: string | null;
+  amount?: number | null;
+  dueDate?: string | null;
+  startDate?: string | null;
+  gender?: "male" | "female" | null;
+  pointsPerSet?: number | null;
+  setsPerMatch?: number | null;
+  paymentMode?: { name?: string | null; code?: string | null } | null;
+  sportsOption?: { name?: string | null; code?: string | null } | null;
+  eventFormat?: { name?: string | null; code?: string | null } | null;
+  teamType?: { name?: string | null; code?: string | null } | null;
+  teams?: unknown[];
+};
+
+type TournamentInfo = {
+  id: string;
+  name?: string | null;
+  description?: string | null;
+  startDate?: string | null;
+  endDate?: string | null;
+  venueName?: string | null;
+  venueAddress?: string | null;
+  venueCity?: string | null;
+  venueState?: string | null;
+  venuePostalCode?: string | null;
+  venueCourts?: number | null;
+  contactName?: string | null;
+  contactEmail?: string | null;
+  contactPhone?: string | null;
+  events?: TournamentEvent[];
+  organization?: { name?: string | null } | null;
+};
+
+type ApiResponse<T> = {
+  success?: boolean;
+  message?: string;
+  data?: T | null;
+};
+
+function formatDate(value?: string | null) {
+  if (!value) return "TBA";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  return date.toLocaleString("en-IN", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
+function genderLabel(gender?: string | null) {
+  if (gender === "male") return "Men's";
+  if (gender === "female") return "Women's";
+  return "Open";
+}
 
 // ==========================================
 // 1. SHARED COMPONENTS & TOURNAMENT HEADER
@@ -23,24 +84,30 @@ const TopAppBar = () => (
   </div>
 );
 
-const EventHeader = () => (
+const EventHeader = ({ tournament }: { tournament: TournamentInfo | null }) => (
   <div className="flex gap-3 items-center">
     <div className="w-12 h-12 rounded-full bg-[var(--color-surface-elevated)] border border-[var(--color-border)] flex items-center justify-center overflow-hidden shrink-0">
       <TrophyIcon size={24} className="text-[var(--color-muted)]" />
     </div>
     <div>
-      <h1 className="font-semibold text-lg leading-tight text-[var(--color-text)]">Mumbai Men&apos;s 2025</h1>
-      <p className="text-sm text-[var(--color-muted)] mt-0.5">Andheri West Organization</p>
+      <h1 className="font-semibold text-lg leading-tight text-[var(--color-text)]">{tournament?.name || "Tournament"}</h1>
+      <p className="text-sm text-[var(--color-muted)] mt-0.5">{tournament?.organization?.name || "Organization"}</p>
     </div>
   </div>
 );
 
-const EventStats = () => (
+const EventStats = ({ tournament }: { tournament: TournamentInfo | null }) => {
+  const registeredCount = tournament?.events?.reduce(
+    (total, event) => total + (Array.isArray(event.teams) ? event.teams.length : 0),
+    0,
+  ) ?? 0;
+
+  return (
   <div className="grid grid-cols-2 gap-3">
     <div className="rounded-xl bg-[var(--color-surface)] p-4 flex gap-3 items-center shadow-sm border border-[var(--color-border)]">
       <div className="w-10 h-10 rounded-full bg-orange-100 flex items-center justify-center text-orange-500 shrink-0"><UsersIcon size={20} /></div>
       <div>
-        <p className="text-lg font-semibold text-[var(--color-text)] leading-tight">64</p>
+        <p className="text-lg font-semibold text-[var(--color-text)] leading-tight">{registeredCount}</p>
         <p className="text-sm text-[var(--color-muted)]">Registered</p>
       </div>
     </div>
@@ -52,7 +119,8 @@ const EventStats = () => (
       </div>
     </div>
   </div>
-);
+  );
+};
 
 const PrimaryTabs = ({ tabs, activeTab, setActiveTab }: { tabs: string[]; activeTab: string; setActiveTab: (tab: string) => void }) => (
   <div className="flex justify-center my-2">
@@ -69,31 +137,40 @@ const PrimaryTabs = ({ tabs, activeTab, setActiveTab }: { tabs: string[]; active
 // ==========================================
 // 2. TOURNAMENT LEVEL TABS (About, Events, Summary, Crew)
 // ==========================================
-const AboutTab = () => (
+const AboutTab = ({ tournament }: { tournament: TournamentInfo | null }) => {
+  const venue = [
+    tournament?.venueName,
+    tournament?.venueAddress,
+    tournament?.venueCity,
+    tournament?.venueState,
+    tournament?.venuePostalCode,
+  ].filter(Boolean).join(", ");
+
+  return (
   <>
     <div className="bg-[var(--color-surface)] rounded-xl p-4 space-y-4 shadow-sm border border-[var(--color-border)]">
       <h2 className="font-semibold text-[var(--color-text)]">Overview</h2>
       <div className="grid grid-cols-2 gap-3">
         <div className="border border-[var(--color-border)] rounded-xl p-3 bg-[var(--color-surface-elevated)]">
           <p className="text-xs text-[var(--color-muted)] mb-1">Start Date</p>
-          <p className="text-sm font-medium text-[var(--color-text)]">31 Dec 2025, 24:00</p>
+          <p className="text-sm font-medium text-[var(--color-text)]">{formatDate(tournament?.startDate)}</p>
         </div>
         <div className="border border-[var(--color-border)] rounded-xl p-3 bg-[var(--color-surface-elevated)]">
           <p className="text-xs text-[var(--color-muted)] mb-1">End Date</p>
-          <p className="text-sm font-medium text-[var(--color-text)]">05 Jan 2026, 20:00</p>
+          <p className="text-sm font-medium text-[var(--color-text)]">{formatDate(tournament?.endDate)}</p>
         </div>
         <div className="border border-[var(--color-border)] rounded-xl p-3 bg-[var(--color-surface-elevated)] col-span-2 flex gap-3 items-start">
           <MapPinIcon size={18} className="text-[var(--color-muted)] shrink-0 mt-0.5" />
           <div>
             <p className="text-xs text-[var(--color-muted)] mb-1">Venue</p>
-            <p className="text-sm font-medium text-[var(--color-text)] leading-snug">Andheri Sports Complex, Veera Desai Road, Mumbai</p>
+            <p className="text-sm font-medium text-[var(--color-text)] leading-snug">{venue || "Venue TBA"}</p>
           </div>
         </div>
       </div>
     </div>
     <div className="bg-[var(--color-surface)] rounded-xl p-4 shadow-sm border border-[var(--color-border)] mt-4">
       <h2 className="font-semibold text-[var(--color-text)] mb-2">Description</h2>
-      <p className="text-sm text-[var(--color-text-secondary)] leading-relaxed">Join the biggest Pickleball tournament in the city. Open to all men&apos;s and all city athletes. Experience state-of-the-art courts, competitive matches, and a chance to win amazing prizes.</p>
+      <p className="text-sm text-[var(--color-text-secondary)] leading-relaxed">{tournament?.description || "No description added."}</p>
     </div>
     <div className="bg-[var(--color-surface)] rounded-xl p-4 space-y-4 shadow-sm border border-[var(--color-border)] mt-4">
       <h2 className="font-semibold text-[var(--color-text)]">Contact Information</h2>
@@ -102,18 +179,19 @@ const AboutTab = () => (
           <div className="w-10 h-10 rounded-full bg-[var(--color-surface-elevated)] flex items-center justify-center overflow-hidden shrink-0 border border-[var(--color-border)]">
             <img src={`https://api.dicebear.com/7.x/initials/svg?seed=PM&backgroundColor=f97316&textColor=ffffff`} alt="Piyush Mantri" className="w-full h-full object-cover" />
           </div>
-          <p className="font-medium text-[var(--color-text)]">Piyush Mantri</p>
+          <p className="font-medium text-[var(--color-text)]">{tournament?.contactName || "Contact person"}</p>
         </div>
         <div className="flex items-center gap-3 text-sm text-[var(--color-text-secondary)] ml-1">
-          <PhoneIcon size={16} className="text-[var(--color-muted)] shrink-0" /><p>+91 99212 48196</p>
+          <PhoneIcon size={16} className="text-[var(--color-muted)] shrink-0" /><p>{tournament?.contactPhone || "No phone added"}</p>
         </div>
         <div className="flex items-center gap-3 text-sm text-[var(--color-text-secondary)] ml-1">
-          <MailIcon size={16} className="text-[var(--color-muted)] shrink-0" /><p>Email2019123@gmail.com</p>
+          <MailIcon size={16} className="text-[var(--color-muted)] shrink-0" /><p>{tournament?.contactEmail || "No email added"}</p>
         </div>
       </div>
     </div>
   </>
-);
+  );
+};
 
 const StepRow = ({ title, state, subtext, actionLabel, href, isLast = false }: any) => {
   const isCompleted = state === "completed";
@@ -145,25 +223,9 @@ const StepRow = ({ title, state, subtext, actionLabel, href, isLast = false }: a
   );
 };
 
-const EventsTab = ({ tournamentId }: { tournamentId: string }) => {
+const EventsTab = ({ tournamentId, events }: { tournamentId: string; events: TournamentEvent[] }) => {
   const [activeFilter, setActiveFilter] = useState("All");
   const filters = ["All", "Upcoming", "Past", "Ongoing"];
-  
-  // Example Event Workflow State
-  const event = {
-    id: "1", 
-    title: "Pickle Ball Men's", 
-    subInfo: "Under 20 | 26 Dec 2025, 9:00 AM", 
-    status: "active", 
-    quickAction: "Matches are ongoing. Keep scores updated.", 
-    participantCount: 36,
-    steps: { 
-      participants: "completed", 
-      fixtures: "completed", 
-      matches: "active",
-      champion: "inactive" // or 'active' once matches end
-    }
-  };
 
   return (
     <div className="space-y-4">
@@ -172,11 +234,20 @@ const EventsTab = ({ tournamentId }: { tournamentId: string }) => {
           <button key={filter} onClick={() => setActiveFilter(filter)} className={`whitespace-nowrap px-4 py-1.5 rounded-full text-sm font-medium transition-colors ${activeFilter === filter ? "bg-orange-500 text-white" : "bg-[var(--color-surface-elevated)] text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-elevated)]"}`}>{filter}</button>
         ))}
       </div>
-      <div className="bg-[var(--color-surface)] rounded-xl p-4 shadow-sm border border-[var(--color-border)]">
+      {events.length === 0 ? (
+        <div className="bg-[var(--color-surface)] rounded-xl p-6 shadow-sm border border-[var(--color-border)] text-center text-sm text-[var(--color-muted)]">
+          No events found for this tournament.
+        </div>
+      ) : events.map((event, index) => {
+        const eventId = event.id || String(index + 1);
+        const participantCount = Array.isArray(event.teams) ? event.teams.length : 0;
+
+        return (
+      <div key={eventId} className="bg-[var(--color-surface)] rounded-xl p-4 shadow-sm border border-[var(--color-border)]">
         <div className="flex justify-between items-start mb-3">
           <div>
-            <h3 className="font-semibold text-[var(--color-text)]">{event.title}</h3>
-            <p className="text-sm text-[var(--color-muted)] mt-0.5">{event.subInfo}</p>
+            <h3 className="font-semibold text-[var(--color-text)]">{event.name || `Event ${index + 1}`}</h3>
+            <p className="text-sm text-[var(--color-muted)] mt-0.5">{[genderLabel(event.gender), event.sportsOption?.name || event.sportsOption?.code, formatDate(event.startDate)].filter(Boolean).join(" | ")}</p>
           </div>
           <button className="text-[var(--color-muted)]"><EllipsisIcon size={20} /></button>
         </div>
@@ -185,70 +256,66 @@ const EventsTab = ({ tournamentId }: { tournamentId: string }) => {
           <span className="px-3 py-1 rounded-full text-xs font-semibold tracking-wide bg-green-100 text-green-700">Active</span>
         </div>
         
-        {event.quickAction && (
-          <div className="border border-orange-200 bg-orange-50 rounded-lg p-3 mb-5">
-            <p className="text-sm text-orange-800 font-medium">{event.quickAction}</p>
-          </div>
-        )}
-
         <div className="mt-2">
           <p className="text-xs font-semibold text-[var(--color-muted)] uppercase tracking-wider mb-4">Workflow Progress</p>
           
           {/* Linked exactly to your file routes */}
           <StepRow 
             title="Participants" 
-            state={event.steps.participants} 
-            subtext={`${event.participantCount} Participants Playing`} 
+            state="active" 
+            subtext={`${participantCount} Teams Registered`} 
             actionLabel="Manage" 
-            href={routes.orgEventParticipants(tournamentId, event.id)} 
+            href={routes.orgEventParticipants(tournamentId, eventId)} 
           />
           <StepRow 
             title="Fixtures" 
-            state={event.steps.fixtures} 
+            state="inactive" 
             actionLabel="Create" 
-            href={routes.orgEventFixture(tournamentId, event.id)} 
+            href={routes.orgEventFixture(tournamentId, eventId)} 
           />
           <StepRow 
             title="Matches" 
-            state={event.steps.matches} 
+            state="inactive" 
             actionLabel="Manage" 
-            href={routes.orgEventMatches(tournamentId, event.id)} 
+            href={routes.orgEventMatches(tournamentId, eventId)} 
           />
           <StepRow 
             title="Results" 
-            state={event.steps.champion} 
+            state="inactive" 
             actionLabel="View Champion" 
             isLast={true} 
-            href={routes.orgEventChampion(tournamentId, event.id)} 
+            href={routes.orgEventChampion(tournamentId, eventId)} 
           />
         </div>
       </div>
+        );
+      })}
     </div>
   );
 };
 
-const SummaryTab = () => {
+const SummaryTab = ({ events }: { events: TournamentEvent[] }) => {
   const [isExpanded, setIsExpanded] = useState(false);
   return (
     <div className="space-y-4">
       <div className="flex justify-between items-center px-1">
-        <h2 className="font-semibold text-lg text-[var(--color-text)]">1 Event</h2>
+        <h2 className="font-semibold text-lg text-[var(--color-text)]">{events.length} Events</h2>
         <button className="flex items-center gap-1.5 text-sm font-medium text-orange-500"><FilterIcon size={16} /> Filter</button>
       </div>
       <div className="bg-[var(--color-surface)] rounded-xl shadow-sm border border-[var(--color-border)] overflow-hidden">
         <div className="p-4 space-y-4">
-          <h3 className="font-semibold text-[var(--color-text)]">Men's Open | Pickleball</h3>
+          <h3 className="font-semibold text-[var(--color-text)]">{events[0]?.name || "No events yet"}</h3>
           <div className="flex gap-2 flex-wrap">
             <span className="px-2.5 py-1 text-[11px] font-semibold tracking-wide rounded-full border bg-red-100 text-red-700 border-red-200"> Round 2 Live</span>
-            <span className="px-2.5 py-1 text-[11px] font-semibold tracking-wide rounded-full border bg-green-100 text-green-700 border-green-200"> ₹3400 Collected</span>
+            <span className="px-2.5 py-1 text-[11px] font-semibold tracking-wide rounded-full border bg-green-100 text-green-700 border-green-200"> ₹{events.reduce((sum, event) => sum + Number(event.amount || 0), 0)} Listed Fees</span>
           </div>
           <div className="grid grid-cols-2 gap-3 text-sm text-[var(--color-text-secondary)] bg-[var(--color-surface-elevated)] p-3 rounded-lg border border-[var(--color-border)]">
             <div>3 Matches left in round 1</div>
             <div className="text-right">2 Bye Players</div>
           </div>
           <div className="grid grid-cols-2 mt-3 pt-2">
-            <div><p className="text-xs text-[var(--color-muted)] mb-0.5">Enrolled</p><p className="text-xl font-bold text-[var(--color-text)]">64</p></div>
-            <div><p className="text-xs text-[var(--color-muted)] mb-0.5">Confirmed (Paid)</p><p className="text-xl font-bold text-[var(--color-text)]">64</p></div>
+            <div><p className="text-xs text-[var(--color-muted)] mb-0.5">Teams</p><p className="text-xl font-bold text-[var(--color-text)]">{events.reduce((sum, event) => sum + (Array.isArray(event.teams) ? event.teams.length : 0), 0)}</p></div>
+            <div><p className="text-xs text-[var(--color-muted)] mb-0.5">Events</p><p className="text-xl font-bold text-[var(--color-text)]">{events.length}</p></div>
           </div>
         </div>
         <div className="border-t border-[var(--color-border)] bg-[var(--color-surface-elevated)]">
@@ -320,9 +387,69 @@ const EventCrewTab = () => {
 export default function TournamentEventDetailsPage() {
   const searchParams = useClientSearchParams();
   const tournamentId = searchParams.get("id") || "1";
+  const [tournament, setTournament] = useState<TournamentInfo | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [errorMessage, setErrorMessage] = useState("");
+  const { session } = useAuth();
 
   const primaryTabs = ["About", "Events", "Summary", "Event Crew"];
   const [activeTab, setActiveTab] = useState("About"); 
+
+  useEffect(() => {
+    let isActive = true;
+
+    const loadTournament = async () => {
+      if (!session?.access_token) {
+        setErrorMessage("Please sign in again to load this tournament.");
+        setIsLoading(false);
+        return;
+      }
+
+      const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
+      if (!apiBaseUrl) {
+        setErrorMessage("Tournament service is not configured.");
+        setIsLoading(false);
+        return;
+      }
+
+      try {
+        setErrorMessage("");
+        setIsLoading(true);
+        const response = await fetch(`${apiBaseUrl}/tournament/info/${tournamentId}`, {
+          headers: {
+            Authorization: `Bearer ${session.access_token}`,
+          },
+        });
+        const result = (await response.json().catch(() => null)) as
+          | ApiResponse<TournamentInfo>
+          | null;
+
+        if (!response.ok || result?.success === false) {
+          throw new Error(result?.message || "Unable to load tournament.");
+        }
+
+        if (isActive) {
+          setTournament(result?.data ?? null);
+        }
+      } catch (error) {
+        if (!isActive) return;
+        console.error("Failed to load tournament", error);
+        setErrorMessage(
+          error instanceof Error ? error.message : "Unable to load tournament.",
+        );
+      } finally {
+        if (isActive) {
+          setIsLoading(false);
+        }
+      }
+    };
+
+    void loadTournament();
+
+    return () => {
+      isActive = false;
+    };
+  }, [tournamentId, session?.access_token]);
 
   // Retrieve the saved tab from sessionStorage on initial load
   useEffect(() => {
@@ -341,18 +468,30 @@ export default function TournamentEventDetailsPage() {
   return (
     <div className="min-h-screen bg-[var(--color-background)] px-4 py-3 pb-24 space-y-4">
       <TopAppBar />
-      <EventHeader />
-      <EventStats />
+      {isLoading ? (
+        <p className="text-center text-sm text-[var(--color-muted)] py-8">
+          Loading tournament...
+        </p>
+      ) : errorMessage ? (
+        <p className="rounded-xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm font-medium text-red-600 dark:text-red-400">
+          {errorMessage}
+        </p>
+      ) : (
+        <>
+      <EventHeader tournament={tournament} />
+      <EventStats tournament={tournament} />
 
       {/* Pass our custom handler to PrimaryTabs */}
       <PrimaryTabs tabs={primaryTabs} activeTab={activeTab} setActiveTab={handleTabChange} />
 
       <div className="space-y-4">
-        {activeTab === "About" && <AboutTab />}
-        {activeTab === "Events" && <EventsTab tournamentId={tournamentId} />}
-        {activeTab === "Summary" && <SummaryTab />}
+        {activeTab === "About" && <AboutTab tournament={tournament} />}
+        {activeTab === "Events" && <EventsTab tournamentId={tournamentId} events={tournament?.events ?? []} />}
+        {activeTab === "Summary" && <SummaryTab events={tournament?.events ?? []} />}
         {activeTab === "Event Crew" && <EventCrewTab />}
       </div>
+        </>
+      )}
     </div>
   );
 }

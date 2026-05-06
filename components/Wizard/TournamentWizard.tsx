@@ -210,19 +210,20 @@ const CustomDatePicker = ({ value, onChange, placeholder }: any) => {
 // --- MAIN COMPONENT ---
 
 interface TournamentWizardProps {
+  isPublishing?: boolean;
   onComplete: (tournament: any) => void;
   onClose: () => void;
 }
 
-export default function TournamentWizard({ onComplete, onClose }: TournamentWizardProps) {
+export default function TournamentWizard({ isPublishing = false, onComplete, onClose }: TournamentWizardProps) {
   const [step, setStep] = useState(1);
   const totalSteps = 4;
 
   const [formData, setFormData] = useState({
     // Step 1
-    name: "", description: "", startDate: "", endDate: "",
+    name: "", description: "", startDate: "", endDate: "", logo: null as File | null,
     // Step 2
-    venueName: "", city: "", area: "", addressLine: "", zipCode: "", numCourts: 1, organizerName: "", organizerPhone: "", organizerEmail: "",
+    venueName: "", city: "", state: "", addressLine: "", zipCode: "", numCourts: 1, organizerName: "", organizerPhone: "", organizerEmail: "",
     // Step 3
     events: [] as any[],
   });
@@ -320,6 +321,30 @@ export default function TournamentWizard({ onComplete, onClose }: TournamentWiza
                   />
                 </div>
 
+                <div>
+                  <label className="block text-sm font-semibold text-[var(--color-text)] mb-2">Tournament Logo</label>
+                  <label className="relative flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed border-[var(--color-border)] bg-[var(--color-surface-elevated)] px-4 py-8 text-center hover:border-primary transition-colors">
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
+                      onChange={(event) =>
+                        setFormData({
+                          ...formData,
+                          logo: event.target.files?.[0] ?? null,
+                        })
+                      }
+                    />
+                    <ImageIcon size={24} className="mb-3 text-[var(--color-muted)]" />
+                    <span className="text-sm font-semibold text-[var(--color-text)]">
+                      {formData.logo ? formData.logo.name : "Upload tournament logo"}
+                    </span>
+                    <span className="mt-1 text-xs text-[var(--color-muted)]">
+                      PNG, JPG, or WebP
+                    </span>
+                  </label>
+                </div>
+
                 <div className="pt-4 border-t border-[var(--color-border)]">
                   <h3 className="text-lg font-bold mb-4 text-[var(--color-text)]">Timeline</h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
@@ -365,17 +390,24 @@ export default function TournamentWizard({ onComplete, onClose }: TournamentWiza
                     <input type="text" placeholder="e.g., Mumbai" value={formData.city} onChange={(e) => setFormData({ ...formData, city: e.target.value })} className="w-full px-4 py-3 rounded-xl bg-[var(--color-surface-elevated)] border border-[var(--color-border)] text-[var(--color-text)] focus:border-primary outline-none" />
                   </div>
                   <div>
-                    <label className="block text-sm font-semibold text-[var(--color-text)] mb-2">Area / Locality <span className="text-red-500">*</span></label>
-                    <input type="text" placeholder="e.g., Andheri West" value={formData.area} onChange={(e) => setFormData({ ...formData, area: e.target.value })} className="w-full px-4 py-3 rounded-xl bg-[var(--color-surface-elevated)] border border-[var(--color-border)] text-[var(--color-text)] focus:border-primary outline-none" />
+                    <label className="block text-sm font-semibold text-[var(--color-text)] mb-2">State <span className="text-red-500">*</span></label>
+                    <input type="text" placeholder="e.g., Maharashtra" value={formData.state} onChange={(e) => setFormData({ ...formData, state: e.target.value })} className="w-full px-4 py-3 rounded-xl bg-[var(--color-surface-elevated)] border border-[var(--color-border)] text-[var(--color-text)] focus:border-primary outline-none" />
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-5 items-end">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                   <div>
                     <label className="block text-sm font-semibold text-[var(--color-text)] mb-2">Zip Code <span className="text-red-500">*</span></label>
                     <input type="text" placeholder="000000" value={formData.zipCode} onChange={(e) => setFormData({ ...formData, zipCode: e.target.value })} className="w-full px-4 py-3 rounded-xl bg-[var(--color-surface-elevated)] border border-[var(--color-border)] text-[var(--color-text)] focus:border-primary outline-none" />
                   </div>
-                  
+                </div>
+
+                <div>
+                  <label className="block text-sm font-semibold text-[var(--color-text)] mb-2">Venue Address <span className="text-red-500">*</span></label>
+                  <input type="text" placeholder="Street address" value={formData.addressLine} onChange={(e) => setFormData({ ...formData, addressLine: e.target.value })} className="w-full px-4 py-3 rounded-xl bg-[var(--color-surface-elevated)] border border-[var(--color-border)] text-[var(--color-text)] focus:border-primary outline-none" />
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-5 items-end">
                   <div>
                     <label className="block text-sm font-semibold text-[var(--color-text)] mb-2">
                       Number of Courts
@@ -421,6 +453,10 @@ export default function TournamentWizard({ onComplete, onClose }: TournamentWiza
                       <div>
                         <label className="block text-sm font-semibold text-[var(--color-text)] mb-2">Phone Number <span className="text-red-500">*</span></label>
                         <input type="tel" placeholder="Phone" value={formData.organizerPhone} onChange={(e) => setFormData({ ...formData, organizerPhone: e.target.value })} className="w-full px-4 py-3 rounded-xl bg-[var(--color-surface-elevated)] border border-[var(--color-border)] text-[var(--color-text)] focus:border-primary outline-none" />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-semibold text-[var(--color-text)] mb-2">Email <span className="text-red-500">*</span></label>
+                        <input type="email" placeholder="Email" value={formData.organizerEmail} onChange={(e) => setFormData({ ...formData, organizerEmail: e.target.value })} className="w-full px-4 py-3 rounded-xl bg-[var(--color-surface-elevated)] border border-[var(--color-border)] text-[var(--color-text)] focus:border-primary outline-none" />
                       </div>
                     </div>
                   </div>
@@ -568,8 +604,10 @@ export default function TournamentWizard({ onComplete, onClose }: TournamentWiza
                     <h3 className="text-sm font-bold text-[var(--color-muted)] uppercase tracking-wider mb-4 border-b border-[var(--color-border)] pb-2">Venue & Organizer</h3>
                     <div className="space-y-3 text-sm">
                       <div className="flex justify-between"><span className="text-[var(--color-muted)]">Venue</span><span className="font-semibold text-[var(--color-text)]">{formData.venueName || '—'}</span></div>
+                      <div className="flex justify-between"><span className="text-[var(--color-muted)]">Location</span><span className="font-semibold text-[var(--color-text)]">{[formData.city, formData.state].filter(Boolean).join(", ") || '—'}</span></div>
                       <div className="flex justify-between"><span className="text-[var(--color-muted)]">Courts</span><span className="font-semibold text-[var(--color-text)]">{formData.numCourts}</span></div>
                       <div className="flex justify-between"><span className="text-[var(--color-muted)]">Organizer</span><span className="font-semibold text-[var(--color-text)]">{formData.organizerName || '—'}</span></div>
+                      <div className="flex justify-between"><span className="text-[var(--color-muted)]">Logo</span><span className="font-semibold text-[var(--color-text)]">{formData.logo?.name || '—'}</span></div>
                     </div>
                  </div>
 
@@ -621,10 +659,11 @@ export default function TournamentWizard({ onComplete, onClose }: TournamentWiza
           ) : (
             <button
               onClick={() => onComplete(formData)}
+              disabled={isPublishing}
               className="px-6 py-2.5 rounded-xl font-bold text-white flex items-center gap-2 shadow-[0_0_15px_rgba(255,107,0,0.3)] hover:scale-[1.02] transition-transform"
               style={{ background: "var(--gradient-orange)" }}
             >
-              Publish <ChevronRightIcon size={16} />
+              {isPublishing ? "Publishing..." : "Publish"} <ChevronRightIcon size={16} />
             </button>
           )}
         </div>

@@ -2,6 +2,7 @@
 
 import { useState, UIEvent } from "react";
 import Link from "next/link";
+import { useAuth } from "@/components/AuthProvider";
 import BottomNav from "@/components/BottomNav";
 import LiveMatchCard from "@/components/Card/LiveMatchCard";
 import NextOnCourtSection from "@/components/Card/NextOnCourtSection";
@@ -159,6 +160,7 @@ const mockNotifications: NotificationItem[] = [
 ];
 
 export default function UserHomePage() {
+  const { user } = useAuth();
   const [activeTab, setActiveTab] = useState("explore");
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   
@@ -167,6 +169,13 @@ export default function UserHomePage() {
   const [activeOngoingIndex, setActiveOngoingIndex] = useState(0);
 
   const unreadCount = mockNotifications.filter((n) => n.unread).length;
+  const userName =
+    user?.user_metadata?.full_name ||
+    user?.user_metadata?.name ||
+    user?.email?.split("@")[0] ||
+    "Player";
+  const displayName = userName.split(" ")[0] || userName;
+  const userInitial = userName.trim().charAt(0).toUpperCase() || "P";
 
   const homeTabs = [
     { id: "explore", label: "Explore" },
@@ -203,10 +212,10 @@ export default function UserHomePage() {
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center gap-3">
               <div className="w-12 h-12 rounded-full bg-white/20 border-2 border-white/40 flex items-center justify-center text-white font-bold text-lg overflow-hidden shrink-0">
-                A
+                {userInitial}
               </div>
               <div>
-                <h1 className="text-white font-bold text-xl leading-tight tracking-tight">Hey Alex!</h1>
+                <h1 className="text-white font-bold text-xl leading-tight tracking-tight">Hey {displayName}!</h1>
                 <p className="text-white/90 text-sm font-medium">Ready to dominate the court?</p>
               </div>
             </div>

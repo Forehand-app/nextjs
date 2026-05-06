@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/components/AuthProvider";
 import {
@@ -15,14 +14,17 @@ import {
 
 export default function FinalizePage() {
   const router = useRouter();
-  const { isAuthenticated, isLoading, user } = useAuth();
+  const { isAuthenticated, isLoading, session, signOut, user } = useAuth();
+  const [errorMessage, setErrorMessage] = useState("");
+  const [isRegistering, setIsRegistering] = useState(false);
+  const [isSigningOut, setIsSigningOut] = useState(false);
   const [formData, setFormData] = useState({
     name: "",
     contactNumber: "",
     gender: "",
     dob: "",
     playingHand: "",
-    privacySport: "",
+    primarySport: "",
   });
 
   useEffect(() => {
@@ -42,10 +44,65 @@ export default function FinalizePage() {
     }));
   }, [isAuthenticated, isLoading, router, user]);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log("Registration placeholder:", formData);
-    router.push("/user/home");
+    setErrorMessage("");
+
+    if (!session?.access_token) {
+      setErrorMessage("Please sign in again before completing registration.");
+      return;
+    }
+
+    const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
+    if (!apiBaseUrl) {
+      setErrorMessage("Registration service is not configured.");
+      return;
+    }
+
+    try {
+      setIsRegistering(true);
+      const response = await fetch(`${apiBaseUrl}/user/register`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({
+          name: formData.name.trim(),
+          phone: formData.contactNumber.trim(),
+          gender: formData.gender,
+          dob: formData.dob,
+          playingHand: formData.playingHand || null,
+          primarySport: formData.primarySport.trim() || null,
+        }),
+      });
+
+      const result = await response.json().catch(() => null);
+      if (!response.ok || result?.success === false) {
+        throw new Error(result?.message || "Registration failed.");
+      }
+
+      router.push("/user/home");
+    } catch (error) {
+      console.error("Failed to register user", error);
+      setErrorMessage(
+        error instanceof Error
+          ? error.message
+          : "Registration failed. Please try again.",
+      );
+      setIsRegistering(false);
+    }
+  };
+
+  const handleBackToSignIn = async () => {
+    try {
+      setIsSigningOut(true);
+      await signOut();
+      router.replace("/splash");
+    } catch (error) {
+      console.error("Failed to sign out", error);
+      setIsSigningOut(false);
+    }
   };
 
   if (isLoading || !isAuthenticated) {
@@ -119,7 +176,6 @@ export default function FinalizePage() {
               <option value="">Select gender</option>
               <option value="male">Male</option>
               <option value="female">Female</option>
-              <option value="other">Other</option>
             </select>
           </div>
 
@@ -156,33 +212,45 @@ export default function FinalizePage() {
 
           <div>
             <label className="block text-sm font-medium text-[var(--color-text)] mb-2 flex items-center gap-2">
-              <GamepadIcon size={14} /> Privacy Sport
+              <GamepadIcon size={14} /> Primary Sport
             </label>
             <input
               type="text"
-              value={formData.privacySport}
+              value={formData.primarySport}
               onChange={(e) =>
-                setFormData({ ...formData, privacySport: e.target.value })
+                setFormData({ ...formData, primarySport: e.target.value })
               }
               className="w-full px-4 py-3 rounded-[var(--radius-input)] bg-[var(--color-surface)] border border-[var(--color-border)] text-[var(--color-text)] focus:border-primary focus:outline-none transition-colors"
               placeholder="e.g. Badminton"
             />
           </div>
 
+          {errorMessage ? (
+            <p className="rounded-xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm font-medium text-red-600 dark:text-red-400">
+              {errorMessage}
+            </p>
+          ) : null}
+
           <button
             type="submit"
-            className="w-full min-h-[52px] flex items-center justify-center rounded-xl font-semibold text-white shadow-lg transition-transform active:scale-95 mt-6"
+            disabled={isRegistering}
+            className="w-full min-h-[52px] flex items-center justify-center rounded-xl font-semibold text-white shadow-lg transition-transform active:scale-95 mt-6 disabled:opacity-70"
             style={{ background: "var(--gradient-orange)" }}
           >
-            Continue
+            {isRegistering ? "Registering..." : "Register"}
           </button>
         </form>
 
         <p className="text-xs text-[var(--color-muted)] text-center mt-6">
           Want to continue later?{" "}
-          <Link href="/splash" className="text-primary font-medium">
-            Back to sign in
-          </Link>
+          <button
+            type="button"
+            onClick={handleBackToSignIn}
+            disabled={isSigningOut}
+            className="text-primary font-medium disabled:opacity-60"
+          >
+            {isSigningOut ? "Signing out..." : "Back to sign in"}
+          </button>
         </p>
       </div>
     </div>

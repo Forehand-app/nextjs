@@ -4,6 +4,7 @@ import "./globals.css";
 import ClientInit from "@/components/ClientInit";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { AuthProvider } from "@/components/AuthProvider";
+import { AppSessionProvider } from "@/components/AppSessionProvider";
 
 const dmSans = DM_Sans({
   subsets: ["latin"],
@@ -44,10 +45,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       </head>
       <body className={`${dmSans.variable} subpixel-antialiased`}>
         <AuthProvider>
-          <ThemeProvider>
-            <ClientInit />
-            {children}
-          </ThemeProvider>
+          <AppSessionProvider>
+            <ThemeProvider>
+              <ClientInit />
+              {children}
+            </ThemeProvider>
+          </AppSessionProvider>
         </AuthProvider>
       </body>
     </html>

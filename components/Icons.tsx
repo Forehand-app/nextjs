@@ -25,6 +25,7 @@ function SvgIcon({
       strokeLinejoin="round"
       aria-hidden
       className={className}
+      style={{ pointerEvents: "none" }}
     >
       {children}
     </svg>

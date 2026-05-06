@@ -1,19 +1,43 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import Layout from "@/components/Layout";
+import { useAuth } from "@/components/AuthProvider";
+import { useAppSession } from "@/components/AppSessionProvider";
 import { EditIcon, UserIcon, PhoneIcon, MailIcon, CalendarIcon, HandIcon, GamepadIcon } from "@/components/Icons";
+import {
+    formatDateInputValue,
+    getUserDisplayName,
+} from "@/lib/userProfile";
 
 export default function EditProfilePage() {
+    const { user } = useAuth();
+    const { isResolving, profile } = useAppSession();
     const [formData, setFormData] = useState({
-        fullName: "Alex Costa",
-        contactNumber: "+91-98765-43210",
-        email: "alex@forehand.app",
-        gender: "male",
-        dateOfBirth: "1995-06-15",
-        playingHand: "right",
-        privacySport: "badminton",
+        fullName: "",
+        contactNumber: "",
+        email: "",
+        gender: "",
+        dateOfBirth: "",
+        playingHand: "",
+        primarySport: "",
     });
+    const avatarInitial = (formData.fullName || getUserDisplayName(user) || "P")
+        .trim()
+        .charAt(0)
+        .toUpperCase();
+
+    useEffect(() => {
+        setFormData({
+            fullName: profile?.name || getUserDisplayName(user),
+            contactNumber: profile?.phone || "",
+            email: user?.email || "",
+            gender: profile?.gender || "",
+            dateOfBirth: formatDateInputValue(profile?.dob),
+            playingHand: profile?.playingHand || "",
+            primarySport: profile?.primarySport || "",
+        });
+    }, [profile, user]);
 
     return (
         <Layout title="Edit Profile" showBack>
@@ -22,13 +46,19 @@ export default function EditProfilePage() {
                 <div className="flex flex-col items-center mb-6">
                     <div className="relative">
                         <div className="w-24 h-24 rounded-full bg-gradient-to-br from-orange-400 to-orange-600 flex items-center justify-center text-white text-3xl font-bold">
-                            A
+                            {avatarInitial}
                         </div>
                         <button className="absolute bottom-0 right-0 w-8 h-8 rounded-full bg-primary text-white flex items-center justify-center shadow-lg">
                             <EditIcon size={14} />
                         </button>
                     </div>
                 </div>
+
+                {isResolving ? (
+                    <p className="text-center text-sm text-[var(--color-muted)]">
+                        Loading profile...
+                    </p>
+                ) : null}
 
                 {/* Form Fields */}
                 <div>
@@ -78,9 +108,9 @@ export default function EditProfilePage() {
                         }
                         className="w-full px-4 py-3 rounded-lg bg-[var(--color-surface)] border border-[var(--color-border)] text-[var(--color-text)] focus:border-primary focus:outline-none"
                     >
+                        <option value="">Select</option>
                         <option value="male">Male</option>
                         <option value="female">Female</option>
-                        <option value="other">Other</option>
                     </select>
                 </div>
 
@@ -109,6 +139,7 @@ export default function EditProfilePage() {
                         }
                         className="w-full px-4 py-3 rounded-lg bg-[var(--color-surface)] border border-[var(--color-border)] text-[var(--color-text)] focus:border-primary focus:outline-none"
                     >
+                        <option value="">Select</option>
                         <option value="right">Right</option>
                         <option value="left">Left</option>
                     </select>
@@ -116,19 +147,16 @@ export default function EditProfilePage() {
 
                 <div>
                     <label className="block text-sm font-medium mb-2 flex items-center gap-1">
-                        <GamepadIcon size={14} /> Privacy Sport
+                        <GamepadIcon size={14} /> Primary Sport
                     </label>
-                    <select
-                        value={formData.privacySport}
+                    <input
+                        type="text"
+                        value={formData.primarySport}
                         onChange={(e) =>
-                            setFormData({ ...formData, privacySport: e.target.value })
+                            setFormData({ ...formData, primarySport: e.target.value })
                         }
                         className="w-full px-4 py-3 rounded-lg bg-[var(--color-surface)] border border-[var(--color-border)] text-[var(--color-text)] focus:border-primary focus:outline-none"
-                    >
-                        <option value="badminton">Badminton</option>
-                        <option value="tennis">Tennis</option>
-                        <option value="squash">Squash</option>
-                    </select>
+                    />
                 </div>
 
                 {/* Save Button */}

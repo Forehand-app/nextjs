@@ -1,5 +1,6 @@
 "use client";
 
+import SwitchAccountModal from "@/components/SwitchAccountModal";
 import React, { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -156,66 +157,7 @@ export default function UserSettingsPage() {
 
       <BottomNav />
 
-      {/* Switch Account Modal */}
-      {showSwitchModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" role="dialog" aria-modal="true">
-          <div className="w-full max-w-sm rounded-3xl bg-[var(--color-surface)] border border-[var(--color-border)] shadow-xl p-6 max-h-[85vh] flex flex-col">
-            <h2 className="text-xl font-bold mb-5 text-[var(--color-text)]">Switch Account</h2>
-            
-            <div className="space-y-3 overflow-y-auto hide-scrollbar flex-1 pb-2">
-              <div className="flex items-center gap-3.5 p-3.5 rounded-2xl border-2 border-primary bg-primary/5 text-[var(--color-text)]">
-                <div className="w-11 h-11 rounded-full bg-primary flex items-center justify-center font-bold text-white shadow-sm shrink-0">A</div>
-                <div className="flex-1 min-w-0">
-                  <p className="font-bold text-[15px] truncate">Alex Costa</p>
-                  <p className="text-[13px] text-[var(--color-text-muted)]">Individual</p>
-                </div>
-                <CheckIcon size={20} className="text-primary shrink-0" />
-              </div>
-
-              <Link
-                href="/org/settings"
-                className="flex items-center gap-3.5 p-3.5 rounded-2xl border border-[var(--color-border)] text-[var(--color-text)] hover:bg-[var(--color-surface-elevated)] transition-colors"
-                onClick={() => setShowSwitchModal(false)}
-              >
-                <div className="w-11 h-11 rounded-full bg-[var(--color-surface-elevated)] border border-[var(--color-border)] flex items-center justify-center text-sm font-bold shrink-0">C</div>
-                <div className="flex-1 min-w-0">
-                  <p className="font-bold text-[15px] truncate">City Org Raipur</p>
-                  <p className="text-[13px] text-[var(--color-text-muted)]">Organization</p>
-                </div>
-              </Link>
-
-              <Link
-                href="/user/settings"
-                className="flex items-center gap-3.5 p-3.5 rounded-2xl border border-[var(--color-border)] text-[var(--color-text)] hover:bg-[var(--color-surface-elevated)] transition-colors"
-                onClick={() => setShowSwitchModal(false)}
-              >
-                <div className="w-11 h-11 rounded-full bg-[var(--color-surface-elevated)] border border-[var(--color-border)] flex items-center justify-center text-sm font-bold shrink-0">A</div>
-                <div className="flex-1 min-w-0">
-                  <p className="font-bold text-[15px] truncate">Anil Kumar</p>
-                  <p className="text-[13px] text-[var(--color-text-muted)]">Individual</p>
-                </div>
-              </Link>
-
-              <Link
-                href="/splash"
-                className="flex items-center justify-center gap-2 p-4 rounded-2xl border border-dashed border-[var(--color-border)] text-[var(--color-text-muted)] hover:bg-[var(--color-surface-elevated)] transition-colors mt-2"
-                onClick={() => setShowSwitchModal(false)}
-              >
-                <span className="text-xl font-light leading-none">+</span>
-                <span className="font-semibold text-[14px]">Add Forehand Account</span>
-              </Link>
-            </div>
-
-            <button
-              type="button"
-              className="mt-6 w-full py-3 rounded-xl font-semibold text-[var(--color-text)] bg-[var(--color-surface-elevated)] border border-[var(--color-border)] hover:bg-[var(--color-border)] transition-colors shrink-0"
-              onClick={() => setShowSwitchModal(false)}
-            >
-              Close
-            </button>
-          </div>
-        </div>
-      )}
+      <SwitchAccountModal isOpen={showSwitchModal} onClose={() => setShowSwitchModal(false)} />
     </div>
   );
 }

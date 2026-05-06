@@ -22,6 +22,7 @@ type AuthContextValue = {
   signInWithGoogle: () => Promise<void>;
   signOut: () => Promise<void>;
   finishAuthFromUrl: (url: string) => Promise<string>;
+  getPostLoginRoute: () => Promise<string>;
 };
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -95,7 +96,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (sessionError) throw sessionError;
 
     await hydrateSession(currentSession);
-    return getPostAuthRoute();
+    return getPostAuthRoute(currentSession?.access_token);
   };
 
   const signInWithGoogle = async () => {
@@ -125,6 +126,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const { error } = await supabase.auth.signOut();
     if (error) throw error;
     setSession(null);
+  };
+
+  const getPostLoginRoute = async () => {
+    const {
+      data: { session: currentSession },
+      error,
+    } = await supabase.auth.getSession();
+
+    if (error) throw error;
+    return getPostAuthRoute(currentSession?.access_token);
   };
 
   useEffect(() => {
@@ -183,6 +194,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       signInWithGoogle,
       signOut,
       finishAuthFromUrl,
+      getPostLoginRoute,
     }),
     [isLoading, session],
   );

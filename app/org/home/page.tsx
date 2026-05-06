@@ -3,6 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import Layout from "@/components/Layout";
+import { useAppSession } from "@/components/AppSessionProvider";
 import { CalendarIcon, CircleIcon, TimerIcon, TrophyIcon } from "@/components/Icons";
 import { motion, useScroll, useTransform, type Variants, type MotionValue } from "framer-motion";
 import { useRef } from "react";
@@ -149,6 +150,9 @@ const ScrollIndicator = ({
 export default function OrgHomePage() {
   const tournamentContainerRef = useRef<HTMLDivElement>(null);
   const matchContainerRef = useRef<HTMLDivElement>(null);
+  const { organization, profile } = useAppSession();
+  const orgName = organization?.name || "Organization";
+  const userFirstName = (profile?.name || "there").split(" ")[0];
 
   return (
     <Layout title="Home Dashboard">
@@ -166,8 +170,8 @@ export default function OrgHomePage() {
               />
             </div>
             <div>
-              <p className="font-heading text-xl font-bold leading-tight">Hey Alex!</p>
-              <p className="text-xs text-[var(--color-text-secondary)]">Demo Organization</p>
+              <p className="font-heading text-xl font-bold leading-tight">Hey {userFirstName}!</p>
+              <p className="text-xs text-[var(--color-text-secondary)]">{orgName}</p>
             </div>
           </header>
 

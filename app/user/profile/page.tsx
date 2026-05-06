@@ -1,5 +1,7 @@
 "use client";
 
+import SwitchAccountModal from "@/components/SwitchAccountModal";
+
 import React, { useState } from "react";
 import Layout from "@/components/Layout";
 import Link from "next/link";
@@ -174,62 +176,7 @@ export default function UserProfilePage() {
         </div>
       )}
 
-      {showSwitchModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50" role="dialog" aria-modal="true" aria-labelledby="switch-account-title">
-          <div className="w-full max-w-sm rounded-[var(--radius-card)] bg-[var(--color-surface)] border border-[var(--color-border)] shadow-lg p-6 max-h-[80vh] overflow-auto">
-            <h2 id="switch-account-title" className="text-lg font-semibold">Switch Account</h2>
-            <div className="mt-4 space-y-2">
-              <div className="flex items-center gap-3 p-3 rounded-[var(--radius-card)] border border-primary/50 bg-primary/5">
-                <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center font-bold text-primary">A</div>
-                <div className="flex-1 min-w-0">
-                  <p className="font-medium">Alex Costa</p>
-                  <p className="text-sm text-[var(--color-muted)]">Individual</p>
-                </div>
-                <CheckIcon size={18} className="text-primary shrink-0" />
-              </div>
-              <Link
-                href="/org/home"
-                className="flex items-center gap-3 p-3 rounded-[var(--radius-card)] border border-[var(--color-border)]"
-                onClick={() => setShowSwitchModal(false)}
-              >
-                <div className="w-10 h-10 rounded-full bg-[var(--color-surface-elevated)] flex items-center justify-center text-sm font-medium">C</div>
-                <div className="flex-1 min-w-0">
-                  <p className="font-medium">City Organization Raipur</p>
-                  <p className="text-sm text-[var(--color-muted)]">Organization</p>
-                </div>
-                <ChevronRightIcon size={18} className="text-[var(--color-muted)] shrink-0" />
-              </Link>
-              <Link
-                href="/user/profile"
-                className="flex items-center gap-3 p-3 rounded-[var(--radius-card)] border border-[var(--color-border)]"
-                onClick={() => setShowSwitchModal(false)}
-              >
-                <div className="w-10 h-10 rounded-full bg-[var(--color-surface-elevated)] flex items-center justify-center text-sm font-medium">A</div>
-                <div className="flex-1 min-w-0">
-                  <p className="font-medium">Anil Kumar</p>
-                  <p className="text-sm text-[var(--color-muted)]">Individual</p>
-                </div>
-                <ChevronRightIcon size={18} className="text-[var(--color-muted)] shrink-0" />
-              </Link>
-              <Link
-                href="/splash"
-                className="flex items-center gap-3 p-3 rounded-[var(--radius-card)] border border-[var(--color-border)] text-[var(--color-muted)]"
-                onClick={() => setShowSwitchModal(false)}
-              >
-                <span className="text-xl">+</span>
-                <span className="font-medium">Add Forehand account</span>
-              </Link>
-            </div>
-            <button
-              type="button"
-              className="mt-4 w-full min-h-[44px] rounded-[var(--radius-button)] border border-[var(--color-border)]"
-              onClick={() => setShowSwitchModal(false)}
-            >
-              Close
-            </button>
-          </div>
-        </div>
-      )}
+            <SwitchAccountModal isOpen={showSwitchModal} onClose={() => setShowSwitchModal(false)} />
     </Layout>
   );
 }

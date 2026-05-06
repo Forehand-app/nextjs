@@ -1,24 +1,65 @@
 "use client";
 
+import SwitchAccountModal from "@/components/SwitchAccountModal";
+
 import React, { useState } from "react";
 import Layout from "@/components/Layout";
 import Link from "next/link";
+import { useAppSession } from "@/components/AppSessionProvider";
 import {
   BellIcon,
-  CheckIcon,
+  BuildingIcon,
   ChevronDownIcon,
   ChevronRightIcon,
   HelpCircleIcon,
   LockIcon,
+  MailIcon,
+  MapPinIcon,
   MoonIcon,
+  PhoneIcon,
   SettingsIcon,
   UsersIcon,
 } from "@/components/Icons";
 import { useTheme } from "@/components/ThemeProvider";
 
+function getStringField(
+  source: Record<string, unknown> | null | undefined,
+  key: string,
+) {
+  const value = source?.[key];
+  return typeof value === "string" && value.trim() ? value : "";
+}
+
+function getDisplayField(value: string, fallback = "Not added") {
+  return value || fallback;
+}
+
 export default function OrgProfilePage() {
   const [showSwitchModal, setShowSwitchModal] = useState(false);
   const { theme, toggleTheme } = useTheme();
+  const { isResolving, organization, profile } = useAppSession();
+  const orgName = organization?.name || "Organization";
+  const orgType =
+    typeof organization?.orgType === "object" &&
+    organization.orgType !== null &&
+    "name" in organization.orgType
+      ? String(organization.orgType.name)
+      : "Organization";
+  const description = getStringField(organization, "description");
+  const contactEmail = getStringField(organization, "contactEmail");
+  const contactPhone = getStringField(organization, "contactPhone");
+  const website = getStringField(organization, "website");
+  const address = getStringField(organization, "address");
+  const city = getStringField(organization, "city");
+  const state = getStringField(organization, "state");
+  const postalCode = getStringField(organization, "postalCode");
+  const establishedYear =
+    typeof organization?.establishedYear === "number"
+      ? String(organization.establishedYear)
+      : getStringField(organization, "establishedYear");
+  const adminName = profile?.name || "Organizer";
+  const orgInitial = orgName.trim().charAt(0).toUpperCase() || "O";
+  const location = [city, state, postalCode].filter(Boolean).join(", ");
 
   return (
     <Layout>
@@ -41,16 +82,26 @@ export default function OrgProfilePage() {
             +
           </button>
         </div>
+        {isResolving ? (
+          <p className="text-center text-sm text-[var(--color-muted)]">
+            Loading organization...
+          </p>
+        ) : null}
         <div className="p-4 rounded-[var(--radius-card)] bg-[var(--color-surface)] border border-[var(--color-border)] shadow-[var(--shadow-card)]">
           <div className="flex gap-4">
             <div className="w-16 h-16 rounded-full bg-primary/20 flex items-center justify-center text-2xl font-bold text-primary shrink-0">
-              A
+              {orgInitial}
             </div>
             <div className="min-w-0 flex-1">
-              <h2 className="text-lg font-semibold">Alex Costa</h2>
-              <p className="text-sm text-[var(--color-muted)]">Forehand Organization</p>
-              <p className="text-sm text-[var(--color-muted)]">alex@forehand.app</p>
-              <p className="text-sm text-[var(--color-muted)]">+91 96764 …</p>
+              <h2 className="text-lg font-semibold truncate">{orgName}</h2>
+              <p className="text-sm text-[var(--color-muted)] truncate">{orgType}</p>
+              <p className="text-sm text-[var(--color-muted)] truncate">Admin: {adminName}</p>
+              <p className="text-sm text-[var(--color-muted)] truncate">
+                {getDisplayField(contactPhone, "No phone added")}
+              </p>
+              <p className="text-sm text-[var(--color-muted)] truncate">
+                {getDisplayField(contactEmail, "No email added")}
+              </p>
               <Link
                 href="/org/profile/edit"
                 className="mt-3 inline-flex min-h-[44px] px-4 py-2 rounded-[var(--radius-button)] bg-primary text-[var(--color-primary-contrast)] font-medium"
@@ -60,6 +111,80 @@ export default function OrgProfilePage() {
             </div>
           </div>
         </div>
+
+        <section className="p-4 rounded-[var(--radius-card)] bg-[var(--color-surface)] border border-[var(--color-border)] shadow-[var(--shadow-card)]">
+          <div className="flex items-center gap-2 mb-3">
+            <BuildingIcon size={18} className="text-[var(--color-muted)]" />
+            <h3 className="font-semibold">Organization Details</h3>
+          </div>
+          <div className="space-y-3 text-sm">
+            <div>
+              <p className="text-[var(--color-muted)]">Description</p>
+              <p className="mt-1 text-[var(--color-text)]">
+                {getDisplayField(description, "No description added.")}
+              </p>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <p className="text-[var(--color-muted)]">Type</p>
+                <p className="mt-1 font-medium">{orgType}</p>
+              </div>
+              <div>
+                <p className="text-[var(--color-muted)]">Established</p>
+                <p className="mt-1 font-medium">
+                  {getDisplayField(establishedYear)}
+                </p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section className="p-4 rounded-[var(--radius-card)] bg-[var(--color-surface)] border border-[var(--color-border)] shadow-[var(--shadow-card)]">
+          <h3 className="font-semibold mb-3">Contact</h3>
+          <div className="space-y-3">
+            <div className="flex items-start gap-3">
+              <MailIcon size={18} className="mt-0.5 text-[var(--color-muted)] shrink-0" />
+              <div className="min-w-0">
+                <p className="text-xs text-[var(--color-muted)]">Email</p>
+                <p className="text-sm truncate">
+                  {getDisplayField(contactEmail, "No email added")}
+                </p>
+              </div>
+            </div>
+            <div className="flex items-start gap-3">
+              <PhoneIcon size={18} className="mt-0.5 text-[var(--color-muted)] shrink-0" />
+              <div className="min-w-0">
+                <p className="text-xs text-[var(--color-muted)]">Phone</p>
+                <p className="text-sm truncate">
+                  {getDisplayField(contactPhone, "No phone added")}
+                </p>
+              </div>
+            </div>
+            <div className="flex items-start gap-3">
+              <MapPinIcon size={18} className="mt-0.5 text-[var(--color-muted)] shrink-0" />
+              <div className="min-w-0">
+                <p className="text-xs text-[var(--color-muted)]">Address</p>
+                <p className="text-sm">
+                  {getDisplayField(address, "No address added.")}
+                </p>
+                {location ? (
+                  <p className="text-sm text-[var(--color-muted)]">{location}</p>
+                ) : null}
+              </div>
+            </div>
+            {website ? (
+              <a
+                href={website}
+                target="_blank"
+                rel="noreferrer"
+                className="block rounded-[var(--radius-button)] border border-[var(--color-border)] px-4 py-3 text-center text-sm font-medium text-primary"
+              >
+                Visit Website
+              </a>
+            ) : null}
+          </div>
+        </section>
+
         <button
           type="button"
           onClick={toggleTheme}
@@ -139,42 +264,7 @@ export default function OrgProfilePage() {
         </button>
       </div>
 
-      {showSwitchModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50" role="dialog" aria-modal="true">
-          <div className="w-full max-w-sm rounded-[var(--radius-card)] bg-[var(--color-surface)] border border-[var(--color-border)] shadow-lg p-6">
-            <h2 className="text-lg font-semibold">Switch Account</h2>
-            <div className="mt-4 space-y-2">
-              <Link
-                href="/user/profile"
-                className="flex items-center gap-3 p-3 rounded-[var(--radius-card)] border border-[var(--color-border)]"
-                onClick={() => setShowSwitchModal(false)}
-              >
-                <div className="w-10 h-10 rounded-full bg-[var(--color-surface-elevated)] flex items-center justify-center font-bold">A</div>
-                <div className="flex-1 min-w-0">
-                  <p className="font-medium">Alex Costa</p>
-                  <p className="text-sm text-[var(--color-muted)]">Individual</p>
-                </div>
-                <ChevronRightIcon size={18} className="text-[var(--color-muted)] shrink-0" />
-              </Link>
-              <div className="flex items-center gap-3 p-3 rounded-[var(--radius-card)] border border-primary/50 bg-primary/5">
-                <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center font-bold text-primary">C</div>
-                <div className="flex-1 min-w-0">
-                  <p className="font-medium">City Organization Raipur</p>
-                  <p className="text-sm text-[var(--color-muted)]">Organization</p>
-                </div>
-                <CheckIcon size={18} className="text-primary shrink-0" />
-              </div>
-              <Link href="/splash" className="flex items-center gap-3 p-3 rounded-[var(--radius-card)] border border-[var(--color-border)] text-[var(--color-muted)]">
-                <span className="text-xl">+</span>
-                <span className="font-medium">Add Forehand account</span>
-              </Link>
-            </div>
-            <button type="button" className="mt-4 w-full min-h-[44px] rounded-[var(--radius-button)] border border-[var(--color-border)]" onClick={() => setShowSwitchModal(false)}>
-              Close
-            </button>
-          </div>
-        </div>
-      )}
+            <SwitchAccountModal isOpen={showSwitchModal} onClose={() => setShowSwitchModal(false)} />
     </Layout>
   );
 }
