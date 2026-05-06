@@ -36,7 +36,7 @@ function AccountTile({ href, onClick, icon, iconTone, title, subtitle, active = 
     <div
       className={`flex items-center gap-3 rounded-[22px] border px-4 py-3.5 transition-colors ${
         active
-          ? "border-[#ff8a24] bg-[#fff5eb] shadow-[0_8px_18px_rgba(255,138,36,0.12)]"
+          ? "border-primary bg-primary/10 shadow-[0_8px_18px_rgba(255,138,36,0.12)]"
           : "border-[var(--color-border)] bg-[var(--color-surface)] shadow-[0_6px_16px_rgba(15,23,42,0.04)]"
       }`}
     >
@@ -126,7 +126,7 @@ export default function SwitchAccountModal({ isOpen, onClose }: SwitchAccountMod
             </p>
           </div>
           {activeOrg || isIndividualActive ? (
-            <div className="rounded-full bg-[#fff5eb] px-2.5 py-1 text-[11px] font-semibold text-[#ff8a24]">
+            <div className="rounded-full bg-primary/20 px-2.5 py-1 text-[11px] font-semibold text-primary">
               Active
             </div>
           ) : null}
@@ -146,7 +146,7 @@ export default function SwitchAccountModal({ isOpen, onClose }: SwitchAccountMod
                     }
               }
               icon={<UserIcon size={18} className={isIndividualActive ? "text-[#ff8a24]" : "text-[#6b7280]"} />}
-              iconTone={isIndividualActive ? "border border-[#ffd8bb] bg-[#fff1e4]" : "border border-[var(--color-border)] bg-[var(--color-surface-elevated)]"}
+              iconTone={isIndividualActive ? "border border-primary/30 bg-primary/20" : "border border-[var(--color-border)] bg-[var(--color-surface-elevated)]"}
               title={userName}
               subtitle="Individual profile"
               active={isIndividualActive}
@@ -189,7 +189,7 @@ export default function SwitchAccountModal({ isOpen, onClose }: SwitchAccountMod
                           }
                     }
                     icon={<BuildingIcon size={18} className={isThisOrgActive ? "text-[#ff8a24]" : "text-[#6b7280]"} />}
-                    iconTone={isThisOrgActive ? "border border-[#ffd8bb] bg-[#fff1e4]" : "border border-[var(--color-border)] bg-[var(--color-surface-elevated)]"}
+                    iconTone={isThisOrgActive ? "border border-primary/30 bg-primary/20" : "border border-[var(--color-border)] bg-[var(--color-surface-elevated)]"}
                     title={org.name}
                     subtitle={org.orgType?.name || "Organization"}
                     active={isThisOrgActive}
@@ -210,10 +210,10 @@ export default function SwitchAccountModal({ isOpen, onClose }: SwitchAccountMod
 
           <Link
             href="/org/create"
-            className="mt-2 flex items-center gap-3 rounded-[22px] border border-dashed border-[#ffcfac] bg-[#fffaf5] px-4 py-4 text-left shadow-[0_6px_16px_rgba(15,23,42,0.03)]"
+            className="mt-2 flex items-center gap-3 rounded-[22px] border border-dashed border-primary/40 bg-primary/5 px-4 py-4 text-left shadow-sm"
             onClick={onClose}
           >
-            <div className="grid h-11 w-11 shrink-0 place-content-center rounded-full bg-[#fff1e4] text-[22px] font-light leading-none text-[#ff8a24]">
+            <div className="grid h-11 w-11 shrink-0 place-content-center rounded-full bg-primary/20 text-[22px] font-light leading-none text-primary">
               +
             </div>
             <div className="min-w-0 flex-1">
@@ -224,13 +224,6 @@ export default function SwitchAccountModal({ isOpen, onClose }: SwitchAccountMod
           </Link>
         </div>
 
-        <button
-          type="button"
-          className="mt-4 w-full rounded-[18px] bg-[var(--color-surface-elevated)] px-4 py-3 text-[14px] font-semibold text-[var(--color-text)]"
-          onClick={onClose}
-        >
-          Done
-        </button>
       </div>
     </div>
   );

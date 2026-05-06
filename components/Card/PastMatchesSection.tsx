@@ -105,7 +105,7 @@ function TeamAvatarStack({ players }: { players: string[] }) {
           key={`${player}-${index}`}
           className={`relative ${index === 0 ? "z-10" : "-ml-3.5 z-20"}`}
         >
-          <div className="relative h-10 w-10 overflow-hidden rounded-full border-2 border-orange-400 bg-white shadow-[0_4px_10px_rgba(15,23,42,0.14)]">
+          <div className="relative h-10 w-10 overflow-hidden rounded-full border-2 border-primary bg-surface shadow-[var(--shadow-card)]">
             <Image
               src={buildAvatar(player, index)}
               alt={player}
@@ -123,7 +123,7 @@ function TeamAvatarStack({ players }: { players: string[] }) {
 
 function PastMatchCard({ match }: { match: PastMatch }) {
   return (
-    <article className="min-w-[72vw] max-w-[300px] overflow-hidden rounded-[18px] border border-neutral-200 bg-neutral-50 shadow-[0_4px_14px_rgba(15,23,42,0.04)] transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_10px_22px_rgba(15,23,42,0.08)] sm:min-w-[290px]">
+    <article className="min-w-[72vw] max-w-[300px] overflow-hidden rounded-[18px] border border-border bg-surface shadow-[var(--shadow-card)] transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[var(--shadow-card-hover)] sm:min-w-[290px]">
       <div className="flex">
         <div className={`w-1.5 shrink-0 ${match.accentColor}`} />
 
@@ -131,11 +131,11 @@ function PastMatchCard({ match }: { match: PastMatch }) {
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
               <div className="flex items-center gap-2 text-[11px]">
-                <span className="font-medium text-neutral-900">{match.type}</span>
-                <span className="text-neutral-300">{"\u2022"}</span>
-                <span className="text-neutral-500">{match.timeAgo}</span>
+                <span className="font-medium text-text">{match.type}</span>
+                <span className="text-muted">{"\u2022"}</span>
+                <span className="text-muted">{match.timeAgo}</span>
               </div>
-              <h4 className="mt-2 truncate text-[15px] font-semibold text-neutral-900">
+              <h4 className="mt-2 truncate text-[15px] font-semibold text-text">
                 {match.leagueTitle}
               </h4>
             </div>
@@ -148,23 +148,23 @@ function PastMatchCard({ match }: { match: PastMatch }) {
           <div className="mt-4 grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-3">
             <div className="flex min-w-0 flex-col items-center text-center">
               <TeamAvatarStack players={match.leftTeamPlayers} />
-              <p className="mt-2 w-full truncate text-[13px] font-medium text-neutral-900">
+              <p className="mt-2 w-full truncate text-[13px] font-medium text-text">
                 {match.leftTeamName}
               </p>
             </div>
 
             <div className="flex min-w-[88px] flex-col items-center">
-              <div className="text-[28px] font-extrabold leading-none tracking-[-0.04em] text-neutral-950">
+              <div className="text-[28px] font-extrabold leading-none tracking-[-0.04em] text-text">
                 {match.score}
               </div>
-              <p className="mt-1 text-[11px] font-medium text-neutral-500">
+              <p className="mt-1 text-[11px] font-medium text-muted">
                 {match.scoreLabel}
               </p>
             </div>
 
             <div className="flex min-w-0 flex-col items-center text-center">
               <TeamAvatarStack players={match.rightTeamPlayers} />
-              <p className="mt-2 w-full truncate text-[13px] font-medium text-neutral-900">
+              <p className="mt-2 w-full truncate text-[13px] font-medium text-text">
                 {match.rightTeamName}
               </p>
             </div>

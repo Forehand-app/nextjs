@@ -64,7 +64,7 @@ export default function TournamentListCard({ item }: { item: TournamentListItem 
     return (
       <Link
         href={routes.tournamentDetail(item.id)}
-        className="block rounded-[16px] border border-[#f28a36] bg-[#f9f9f7] px-3.5 py-3 shadow-[0_4px_12px_rgba(27,31,35,0.05)] transition hover:border-[#eb7a1e]"
+        className="block rounded-[16px] border border-border bg-surface px-3.5 py-3 shadow-[var(--shadow-card)] transition hover:border-primary"
       >
         <div className="grid grid-cols-[42px_minmax(0,1fr)_18px] gap-x-3 gap-y-3">
           <div className="row-span-2 self-start pt-0.5">
@@ -76,7 +76,7 @@ export default function TournamentListCard({ item }: { item: TournamentListItem 
             <p className="mt-[2px] truncate text-[11px] text-[var(--color-text-muted)]">{item.subtitle}</p>
           </div>
 
-          <ChevronRightIcon size={16} className="mt-0.5 text-[#2f2f35]" />
+          <ChevronRightIcon size={16} className="mt-0.5 text-muted" />
 
           <div className="col-span-2 grid grid-cols-2 gap-x-4 gap-y-2 text-[11px] text-[var(--color-text-secondary)]">
             <div className="flex min-w-0 items-center gap-1.5">
@@ -104,7 +104,7 @@ export default function TournamentListCard({ item }: { item: TournamentListItem 
   return (
     <Link
       href={routes.tournamentDetail(item.id)}
-      className="block rounded-[18px] border border-[#f28a36] bg-[#f9f9f7] px-4 py-3.5 shadow-[0_4px_12px_rgba(27,31,35,0.05)] transition hover:border-[#eb7a1e]"
+      className="block rounded-[18px] border border-border bg-surface px-4 py-3.5 shadow-[var(--shadow-card)] transition hover:border-primary"
     >
       <div className="grid grid-cols-[42px_minmax(0,1fr)] gap-x-3 gap-y-3">
         <div className="self-start pt-0.5">
@@ -138,15 +138,15 @@ export default function TournamentListCard({ item }: { item: TournamentListItem 
         <div className="col-span-2 grid grid-cols-2 items-end gap-x-6 pt-1">
           <div className="flex items-center gap-2 text-[11px] text-[var(--color-text)]">
             <div className="-mt-1 flex -space-x-1.5">
-              <div className="h-6 w-6 rounded-full bg-[#dbb27a] ring-2 ring-[#f9f9f7]" />
-              <div className="h-6 w-6 rounded-full bg-[#3ea3bf] ring-2 ring-[#f9f9f7]" />
-              <div className="h-6 w-6 rounded-full bg-[#2d6d94] ring-2 ring-[#f9f9f7]" />
+              <div className="h-6 w-6 rounded-full bg-[#dbb27a] ring-2 ring-surface" />
+              <div className="h-6 w-6 rounded-full bg-[#3ea3bf] ring-2 ring-surface" />
+              <div className="h-6 w-6 rounded-full bg-[#2d6d94] ring-2 ring-surface" />
             </div>
             <span>{item.players}</span>
           </div>
 
           <div className="justify-self-end">
-            <span className="inline-flex h-8 min-w-[96px] items-center justify-center rounded-full border border-[#f28a36] bg-[#fffaf4] px-5 text-[13px] font-semibold text-[#f28a36]">
+            <span className="inline-flex h-8 min-w-[96px] items-center justify-center rounded-full border border-primary bg-background px-5 text-[13px] font-semibold text-primary">
               {item.cta}
             </span>
           </div>

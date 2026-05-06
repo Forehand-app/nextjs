@@ -26,7 +26,7 @@ export default function OngoingTournamentCard({
       <div className="flex flex-col overflow-hidden rounded-[18px] border border-[var(--color-border)] bg-[var(--color-surface)] shadow-sm">
         
         {/* --- TOP SECTION (Orange) --- */}
-        <div className="relative flex items-center gap-3 overflow-hidden bg-orange-500 px-3.5 py-3 dark:bg-[#c2410c]">
+        <div className="relative flex items-center gap-3 overflow-hidden bg-primary px-3.5 py-3">
           {/* Decorative highlight */}
           <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full blur-2xl -mr-10 -mt-10 pointer-events-none" />
 

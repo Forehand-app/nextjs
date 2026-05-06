@@ -9,18 +9,18 @@ interface MatchSplashProps {
 
 function BlurredLiveMock() {
   return (
-    <div className="pointer-events-none absolute inset-4 overflow-hidden rounded-[2px] border border-[#D9D9D9] bg-[#F2F2F2] dark:border-[#6A5B90] dark:bg-[#3B2A63]">
-      <div className="h-11 border-b border-[#E0E0E0] bg-[#F6F6F6] dark:border-[#5E4C86] dark:bg-[#4A3972]" />
+    <div className="pointer-events-none absolute inset-4 overflow-hidden rounded-[2px] border border-border bg-background">
+      <div className="h-11 border-b border-border bg-surface" />
       <div className="space-y-2.5 p-3">
-        <div className="h-[60px] rounded-xl border border-[#DFDFDF] bg-[#F8F8F8] dark:border-[#66578D] dark:bg-[#4F3D79]" />
-        <div className="h-32 rounded-xl border border-[#DFDFDF] bg-[#F8F8F8] dark:border-[#66578D] dark:bg-[#4F3D79]" />
+        <div className="h-[60px] rounded-xl border border-border bg-surface-elevated" />
+        <div className="h-32 rounded-xl border border-border bg-surface-elevated" />
         <div className="grid grid-cols-2 gap-3">
-          <div className="h-11 rounded-xl bg-[#FF7A1A]" />
-          <div className="h-11 rounded-xl bg-[#FF7A1A]" />
+          <div className="h-11 rounded-xl bg-primary" />
+          <div className="h-11 rounded-xl bg-primary" />
         </div>
         <div className="grid grid-cols-2 gap-3">
-          <div className="h-11 rounded-xl border border-[#DCDCDC] bg-[#F8F8F8] dark:border-[#66578D] dark:bg-[#4F3D79]" />
-          <div className="h-11 rounded-xl border border-[#DCDCDC] bg-[#F8F8F8] dark:border-[#66578D] dark:bg-[#4F3D79]" />
+          <div className="h-11 rounded-xl border border-border bg-surface-elevated" />
+          <div className="h-11 rounded-xl border border-border bg-surface-elevated" />
         </div>
       </div>
     </div>
@@ -53,7 +53,8 @@ export default function MatchSplash({ onComplete }: MatchSplashProps) {
       <div className="relative mx-auto h-full w-full max-w-[430px]">
         <BlurredLiveMock />
 
-        <div className="absolute inset-4 rounded-[2px] bg-white/62 backdrop-blur-[5px] dark:bg-[#3B2A63]/64" />
+        {/* Frosted glass overlay using the bg-background token */}
+        <div className="absolute inset-4 rounded-[2px] bg-background/60 backdrop-blur-[5px]" />
 
         <div className="absolute inset-0 flex items-center justify-center pb-10">
           <motion.span
@@ -61,7 +62,7 @@ export default function MatchSplash({ onComplete }: MatchSplashProps) {
             initial={{ scale: 0.7, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             exit={{ scale: 1.2, opacity: 0 }}
-            className="text-[84px] font-bold leading-none text-[#FF7A1A]"
+            className="text-[84px] font-bold leading-none text-primary"
           >
             {count}
           </motion.span>
@@ -70,4 +71,3 @@ export default function MatchSplash({ onComplete }: MatchSplashProps) {
     </motion.div>
   );
 }
-

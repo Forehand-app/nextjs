@@ -221,8 +221,8 @@ export default function UserHomePage() {
                 onClick={() => setActiveTab(tab.id)}
                 className={`snap-center shrink-0 px-6 py-2.5 rounded-full text-sm font-bold tracking-wide transition-all duration-200 ${
                   activeTab === tab.id
-                    ? "bg-white text-orange-600 shadow-md dark:bg-[var(--color-surface)] dark:text-[var(--color-text)] dark:shadow-sm dark:border dark:border-[var(--color-border)]"
-                    : "bg-white/20 text-white hover:bg-white/30 dark:bg-[var(--color-surface-elevated)] dark:text-[var(--color-text-secondary)] dark:border dark:border-[var(--color-border)] dark:hover:bg-[var(--color-surface)]"
+                    ? "bg-white text-orange-600 shadow-md"
+                    : "bg-white/20 text-white hover:bg-white/30"
                 }`}
               >
                 {tab.label}
@@ -312,7 +312,7 @@ export default function UserHomePage() {
                       className={`h-1.5 rounded-full transition-all duration-300 ${
                         activeUpcomingIndex === idx
                           ? "w-4 bg-orange-500"
-                          : "w-1.5 bg-neutral-300 dark:bg-neutral-600"
+                          : "w-1.5 bg-dot"
                       }`}
                     />
                   ))}
@@ -362,7 +362,7 @@ export default function UserHomePage() {
                       className={`h-1.5 rounded-full transition-all duration-300 ${
                         activeOngoingIndex === idx
                           ? "w-4 bg-orange-500"
-                          : "w-1.5 bg-neutral-300 dark:bg-neutral-600"
+                          : "w-1.5 bg-dot"
                       }`}
                     />
                   ))}

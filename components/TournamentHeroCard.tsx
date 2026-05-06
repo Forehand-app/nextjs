@@ -76,22 +76,22 @@ export default function TournamentHeroCard({
       </div>
 
       <div className="mt-5 grid grid-cols-2 gap-3">
-        <div className="rounded-[14px] bg-white px-3.5 py-3 shadow-[0_6px_14px_rgba(134,56,0,0.08)]">
+        <div className="rounded-[14px] bg-[var(--color-surface)] px-3.5 py-3 shadow-[var(--shadow-card)]">
           <div className="flex items-center gap-2.5">
-            <div className="grid h-8 w-8 place-content-center rounded-full border border-[#ffd8bb] bg-[#fff5eb] text-[#ff7a18]">
+            <div className="grid h-8 w-8 place-content-center rounded-full border border-primary/30 bg-primary/20 text-primary">
               <UsersIcon size={15} />
             </div>
             <div>
-              <p className="text-[28px] font-bold leading-none text-[#292524]">{registeredCount}</p>
-              <p className="mt-1 text-[12px] font-medium text-[#7c6f67]">Registered</p>
+              <p className="text-[28px] font-bold leading-none text-[var(--color-text)]">{registeredCount}</p>
+              <p className="mt-1 text-[12px] font-medium text-[var(--color-muted)]">Registered</p>
             </div>
           </div>
         </div>
 
-        <div className="rounded-[14px] bg-white px-3.5 py-3 shadow-[0_6px_14px_rgba(134,56,0,0.08)]">
-          <p className="text-[19px] font-bold leading-tight text-[#292524]">Registration</p>
+        <div className="rounded-[14px] bg-[var(--color-surface)] px-3.5 py-3 shadow-[var(--shadow-card)]">
+          <p className="text-[19px] font-bold leading-tight text-[var(--color-text)]">Registration</p>
           <div className="mt-2.5 flex justify-center">
-            <span className="inline-flex h-5 min-w-[52px] items-center justify-center rounded-full bg-[#fff1e4] px-2 text-[10px] font-semibold text-[#ff7a18]">
+            <span className="inline-flex h-5 min-w-[52px] items-center justify-center rounded-full bg-primary/20 px-2 text-[10px] font-semibold text-primary">
               {registrationStatus}
             </span>
           </div>

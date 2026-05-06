@@ -58,7 +58,7 @@ export default function QuickMatchSetupPage() {
     }
 
     return (
-        <div className="min-h-screen bg-[#ECECEC] dark:bg-[#3B2A63]">
+        <div className="min-h-screen bg-background">
             <CourtSlider
                 onBack={() => {
                     if (returnToHome) {

@@ -50,7 +50,7 @@ const upcomingMatches: UpcomingMatch[] = [
 
 function UpcomingCourtCard({ match }: { match: UpcomingMatch }) {
   return (
-    <div className="flex overflow-hidden border border-neutral-200 bg-white shadow-[0_2px_10px_rgba(15,23,42,0.03)] transition-transform duration-200 hover:-translate-y-0.5">
+    <div className="flex overflow-hidden border border-border bg-surface shadow-[var(--shadow-card)] transition-transform duration-200 hover:-translate-y-0.5">
       <div className={`flex min-w-[48px] shrink-0 flex-col items-center justify-center px-2 py-3 text-center text-black ${match.accentColor}`}>
         <span className="text-[11px] font-medium leading-none">
           {match.month}
@@ -72,19 +72,19 @@ function UpcomingCourtCard({ match }: { match: UpcomingMatch }) {
           <div className="pt-3 text-[10px] text-[var(--color-text-secondary)]">
             <div className="flex items-center gap-3">
               <span className="flex items-center gap-1">
-                <TimerIcon size={11} className="text-neutral-500" />
+                <TimerIcon size={11} className="text-muted" />
                 {match.time}
               </span>
-              <span className="text-neutral-300">{"\u2022"}</span>
+              <span className="text-border">{"\u2022"}</span>
               <span className="flex items-center gap-1">
-                <MapPinIcon size={11} className="text-neutral-500" />
+                <MapPinIcon size={11} className="text-muted" />
                 {match.venue}
               </span>
             </div>
           </div>
         </div>
 
-        <div className="pt-1 text-neutral-800">
+        <div className="pt-1 text-text">
           <ChevronRightIcon size={18} />
         </div>
       </div>
