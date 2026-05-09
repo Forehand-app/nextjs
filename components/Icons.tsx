@@ -24,6 +24,7 @@ function SvgIcon({
       strokeLinecap="round"
       strokeLinejoin="round"
       aria-hidden
+      focusable="false"
       className={className}
       style={{ pointerEvents: "none" }}
     >
@@ -425,4 +426,3 @@ export function TimerIcon(props: IconProps) {
     </SvgIcon>
   );
 }
-

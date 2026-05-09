@@ -6,45 +6,8 @@ import { useApp } from "@/components/AppProvider";
 import TournamentWizard from "@/components/Wizard/TournamentWizard";
 import { tournamentApi } from "@/lib/api/tournamentApi";
 import { storageApi } from "@/lib/api/storageApi";
-
-type TournamentFormData = {
-  name: string;
-  description: string;
-  startDate: string;
-  endDate: string;
-  logo: File | null;
-  venueName: string;
-  city: string;
-  state: string;
-  addressLine: string;
-  zipCode: string;
-  numCourts: number;
-  organizerName: string;
-  organizerPhone: string;
-  organizerEmail: string;
-  events: Array<{
-    name: string;
-    sport: string;
-    format: string;
-    regDueDate: string;
-    startDate: string;
-    gender: string;
-    partType: string;
-    sets: string;
-    points: string;
-    ageRestricted: string;
-    isFree: boolean;
-    paymentOption: string;
-    upiId: string;
-    fee: string;
-  }>;
-};
-
-type ApiResponse<T = unknown> = {
-  success?: boolean;
-  message?: string;
-  data?: T;
-};
+import type { TournamentFormData } from "@/lib/validators/tournamentSchema";
+import type { TournamentData, EventData, TournamentState } from "@/lib/models";
 
 function normalizePhone(value: string) {
   return value.replace(/\D/g, "");
@@ -80,7 +43,7 @@ function mapTeamTypeCode(value: string) {
   return value.toLowerCase();
 }
 
-function mapPaymentModeCode(value: string, isFree: boolean) {
+function mapPaymentModeCode(value: string | null | undefined, isFree: boolean) {
   if (isFree) return null;
   if (value === "Pay online (UPI)") return "pay-online";
   if (value === "Pay at venue") return "pay-at-venue";
@@ -98,19 +61,23 @@ export default function CreateOrgTournamentPage() {
   const activeOrgId = activeOrganization?.id ?? null;
   const [isPublishing, setIsPublishing] = useState(false);
 
-  const handleComplete = async (tournament: TournamentFormData) => {
-    const organizationId = activeOrgId;
+  const handleComplete = async (
+    tournament: TournamentFormData,
+    state: TournamentState,
+  ) => {
+    if (!activeOrgId) {
+      alert("No active organization selected.");
+      return;
+    }
 
     try {
       setIsPublishing(true);
-      const onlinePaymentEvent = tournament.events.find(
-        (event) => !event.isFree && event.paymentOption === "Pay online (UPI)",
-      );
 
-      const tournamentId = await tournamentApi.createTournament({
-        organizationId: organizationId!,
+      // 1. Create the tournament
+      const tournamentData: TournamentData = {
+        organizationId: activeOrgId,
         name: tournament.name,
-        description: tournament.description,
+        description: tournament.description || "",
         startDate: tournament.startDate,
         endDate: tournament.endDate || undefined,
         venueName: tournament.venueName,
@@ -118,70 +85,56 @@ export default function CreateOrgTournamentPage() {
         venueCity: tournament.city,
         venueState: tournament.state,
         venuePostalCode: tournament.zipCode,
-        venueCourts: Number(tournament.numCourts),
+        venueCourts: tournament.numCourts,
         contactName: tournament.organizerName,
         contactEmail: tournament.organizerEmail,
         contactPhone: normalizePhone(tournament.organizerPhone),
-        upiId: onlinePaymentEvent?.upiId || null,
-      });
-      if (tournament.logo) {
+        upiId: tournament.upiId || null,
+        tournamentState: state,
+      };
+
+      const tournamentId = await tournamentApi.createTournament(tournamentData);
+
+      // 2. Upload logo if provided
+      if (tournament.logo && tournament.logo instanceof File) {
         await storageApi.uploadTournamentLogo(tournament.logo, tournamentId);
       }
 
+      // 3. Create events
       if (tournament.events.length > 0) {
-        const eventsResponse = await fetch(
-          `${apiBaseUrl}/tournament/events/create`,
-          {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${session.access_token}`,
-            },
-            body: JSON.stringify(
-              tournament.events.map((event) => ({
-                tournamentId,
-                name: event.name.trim(),
-                sportsOptionCode: mapSportCode(event.sport),
-                eventFormatCode: mapFormatCode(event.format),
-                dueDate: event.regDueDate,
-                startDate: event.startDate,
-                gender: mapGender(event.gender),
-                teamTypeCode: mapTeamTypeCode(event.partType),
-                setsPerMatch: mapSetsPerMatch(event.sets),
-                pointsPerSet: Number(event.points || 0),
-                playerBornAfter: event.ageRestricted || null,
-                paymentModeCode: mapPaymentModeCode(
-                  event.paymentOption,
-                  event.isFree,
-                ),
-                amount: event.isFree ? 0 : Number(event.fee || 0),
-              })),
-            ),
-          },
-        );
+        const eventsData: EventData[] = tournament.events.map((event) => ({
+          tournamentId,
+          name: event.name.trim(),
+          sportsOptionCode: mapSportCode(event.sport),
+          eventFormatCode: mapFormatCode(event.format),
+          dueDate: event.regDueDate,
+          startDate: event.startDate,
+          gender: mapGender(event.gender),
+          teamTypeCode: mapTeamTypeCode(event.partType),
+          setsPerMatch: mapSetsPerMatch(event.sets),
+          pointsPerSet: Number(event.points || 0),
+          playerBornAfter: event.ageRestricted || null,
+          paymentModeCode: mapPaymentModeCode(
+            event.paymentOption,
+            event.isFree,
+          ),
+          amount: event.isFree ? 0 : Number(event.fee || 0),
+        }));
 
-        const eventsJson =
-          (await eventsResponse.json().catch(() => null)) as ApiResponse | null;
-
-        if (!eventsResponse.ok || eventsJson?.success === false) {
-          throw new Error(eventsJson?.message || "Tournament events creation failed.");
-        }
+        await tournamentApi.createEvents(eventsData);
       }
 
       router.push("/org/tournaments");
     } catch (error) {
-      console.error("Failed to publish tournament", error);
+      console.error("Failed to create tournament", error);
       alert(
-        error instanceof Error
-          ? error.message
-          : "Failed to publish tournament.",
+        error instanceof Error ? error.message : "Failed to create tournament.",
       );
       setIsPublishing(false);
     }
   };
 
   const handleClose = () => {
-    // Redirect back if the user clicks the "X" button
     router.push("/org/tournaments");
   };
 
