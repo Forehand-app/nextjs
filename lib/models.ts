@@ -69,7 +69,7 @@ export interface TournamentData {
 
     upiId?: string | null;
 
-    touenamentState?: TournamentState | null;
+    tournamentState?: TournamentState | null;
     events?: EventData[] | null;
 }
 

@@ -12,16 +12,25 @@ import QuickStatsSection from "@/components/Card/QuickStatsSection";
 import UserTournamentCard from "@/components/Card/UserTournamentCard";
 import ColorfulTournamentCard from "@/components/Card/ColorfulTournamentCard";
 import OngoingTournamentCard from "@/components/Card/OngoingTournamentCard";
-import NotificationsSlideOver, { NotificationItem } from "@/components/NotificationsSlideOver";
-
+import NotificationsSlideOver, {
+  NotificationItem,
+} from "@/components/NotificationsSlideOver";
 
 // --- TYPE DEFINITIONS ---
-
 
 // --- CUSTOM ICONS ---
 function BellIcon({ size = 24 }: { size?: number }) {
   return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={2}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
       <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
       <path d="M13.73 21a2 2 0 0 1-3.46 0" />
     </svg>
@@ -30,7 +39,16 @@ function BellIcon({ size = 24 }: { size?: number }) {
 
 function LightningIcon({ size = 18 }: { size?: number }) {
   return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" strokeWidth={1} strokeLinecap="round" strokeLinejoin="round">
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="currentColor"
+      stroke="currentColor"
+      strokeWidth={1}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
       <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
     </svg>
   );
@@ -61,7 +79,7 @@ const upcomingTournaments: Array<{
     colorVariant: "orange",
     logoText: "MP",
     entryFee: "₹500",
-    ctaText: "Register"
+    ctaText: "Register",
   },
   {
     id: "102",
@@ -74,8 +92,8 @@ const upcomingTournaments: Array<{
     colorVariant: "blue",
     logoText: "NT",
     entryFee: "₹1200",
-    ctaText: "Register"
-  }
+    ctaText: "Register",
+  },
 ];
 
 const ongoingTournaments = [
@@ -96,7 +114,7 @@ const ongoingTournaments = [
     category: "Women's",
     modes: "Knockout",
     logoText: "SS",
-  }
+  },
 ];
 
 const liveMatches = [
@@ -136,24 +154,20 @@ const mockNotifications: NotificationItem[] = [
     body: "Court 3",
     timeAgo: "3 hours ago",
     unread: true,
-  }
+  },
 ];
 
 export default function UserHomePage() {
-  const { user } = useApp();
+  const { userProfile } = useApp();
   const [activeTab, setActiveTab] = useState("explore");
   const [notificationsOpen, setNotificationsOpen] = useState(false);
-  
+
   // --- CAROUSEL PAGINATION STATES ---
   const [activeUpcomingIndex, setActiveUpcomingIndex] = useState(0);
   const [activeOngoingIndex, setActiveOngoingIndex] = useState(0);
 
   const unreadCount = mockNotifications.filter((n) => n.unread).length;
-  const userName =
-    user?.user_metadata?.full_name ||
-    user?.user_metadata?.name ||
-    user?.email?.split("@")[0] ||
-    "Player";
+  const userName = userProfile?.name || "Player";
   const displayName = userName.split(" ")[0] || userName;
   const userInitial = userName.trim().charAt(0).toUpperCase() || "P";
 
@@ -166,21 +180,22 @@ export default function UserHomePage() {
   // Scroll handlers to calculate which card is currently centered
   const handleUpcomingScroll = (e: UIEvent<HTMLDivElement>) => {
     const target = e.currentTarget;
-    const itemWidth = (target.firstChild as HTMLElement)?.offsetWidth || target.clientWidth;
+    const itemWidth =
+      (target.firstChild as HTMLElement)?.offsetWidth || target.clientWidth;
     const scrollPosition = target.scrollLeft;
     setActiveUpcomingIndex(Math.round(scrollPosition / itemWidth));
   };
 
   const handleOngoingScroll = (e: UIEvent<HTMLDivElement>) => {
     const target = e.currentTarget;
-    const itemWidth = (target.firstChild as HTMLElement)?.offsetWidth || target.clientWidth;
+    const itemWidth =
+      (target.firstChild as HTMLElement)?.offsetWidth || target.clientWidth;
     const scrollPosition = target.scrollLeft;
     setActiveOngoingIndex(Math.round(scrollPosition / itemWidth));
   };
 
   return (
     <div className="font-body flex min-h-screen flex-col bg-[var(--color-background)] text-[var(--color-text)]">
-      
       {/* ========================================= */}
       {/* UNIFIED ORANGE HERO CONTAINER             */}
       {/* ========================================= */}
@@ -188,19 +203,22 @@ export default function UserHomePage() {
         <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full blur-3xl -mr-20 -mt-20 pointer-events-none" />
 
         <div className="mx-auto w-full max-w-md relative z-10">
-          
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center gap-3">
               <div className="w-12 h-12 rounded-full bg-white/20 border-2 border-white/40 flex items-center justify-center text-white font-bold text-lg overflow-hidden shrink-0">
                 {userInitial}
               </div>
               <div>
-                <h1 className="text-white font-bold text-xl leading-tight tracking-tight">Hey {displayName}!</h1>
-                <p className="text-white/90 text-sm font-medium">Ready to dominate the court?</p>
+                <h1 className="text-white font-bold text-xl leading-tight tracking-tight">
+                  Hey {displayName}!
+                </h1>
+                <p className="text-white/90 text-sm font-medium">
+                  Ready to dominate the court?
+                </p>
               </div>
             </div>
-            
-            <button 
+
+            <button
               onClick={() => setNotificationsOpen(true)}
               className="relative w-10 h-10 rounded-full bg-black/10 flex items-center justify-center text-white hover:bg-black/20 active:scale-95 transition-all shrink-0 cursor-pointer"
               aria-label="Open notifications"
@@ -236,12 +254,14 @@ export default function UserHomePage() {
                 Browse & Join
               </h2>
               <h3 className="font-heading text-[28px] font-black uppercase leading-[1.1] text-white mb-2">
-                Upcoming Tournaments<br />Near You
+                Upcoming Tournaments
+                <br />
+                Near You
               </h3>
               <p className="text-sm text-white/90 font-medium mb-6">
                 Compete. Track. Rise.
               </p>
-              
+
               <div className="flex gap-3">
                 <Link
                   href="/user/tournaments"
@@ -264,42 +284,48 @@ export default function UserHomePage() {
 
       {/* MAIN CONTENT AREA */}
       <main className="mx-auto flex w-full max-w-md flex-1 flex-col gap-6 overflow-x-hidden overflow-y-auto px-4 pb-28 pt-8">
-        
         {/* ======================= */}
         {/* EXPLORE TAB             */}
         {/* ======================= */}
         {activeTab === "explore" && (
           <div className="space-y-8 animate-fade-in mt-2">
-            
             <QuickMatchCard href="/match/setup" />
 
             {/* UPCOMING TOURNAMENTS */}
             <section>
               <div className="flex items-end justify-between mb-3 px-1">
-                <h3 className="font-heading text-xl font-bold tracking-tight">Upcoming Tournaments</h3>
-                <Link href="/user/tournaments" className="text-xs font-bold uppercase tracking-wider text-orange-600 hover:underline pb-1">
+                <h3 className="font-heading text-xl font-bold tracking-tight">
+                  Upcoming Tournaments
+                </h3>
+                <Link
+                  href="/user/tournaments"
+                  className="text-xs font-bold uppercase tracking-wider text-orange-600 hover:underline pb-1"
+                >
                   View All
                 </Link>
               </div>
-              <div 
+              <div
                 className="flex overflow-x-auto gap-4 snap-x snap-mandatory [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden -mx-4 px-4 pb-2"
                 onScroll={handleUpcomingScroll}
               >
                 {upcomingTournaments.map((t) => (
-                  <div key={t.id} className="min-w-[74vw] sm:min-w-[280px] snap-center shrink-0">
+                  <div
+                    key={t.id}
+                    className="min-w-[74vw] sm:min-w-[280px] snap-center shrink-0"
+                  >
                     <ColorfulTournamentCard
-                    id={t.id}
-                    name={t.name}
-                    venue={t.venue}
-                    address={t.address}
-                    sport={t.sport}
-                    category={t.category}
-                    modes={t.modes}
-                    colorVariant={t.colorVariant}
-                    logoText={t.logoText}
-                    entryFee={t.entryFee}
-                    ctaText={t.ctaText}
-                      />
+                      id={t.id}
+                      name={t.name}
+                      venue={t.venue}
+                      address={t.address}
+                      sport={t.sport}
+                      category={t.category}
+                      modes={t.modes}
+                      colorVariant={t.colorVariant}
+                      logoText={t.logoText}
+                      entryFee={t.entryFee}
+                      ctaText={t.ctaText}
+                    />
                   </div>
                 ))}
               </div>
@@ -324,24 +350,32 @@ export default function UserHomePage() {
             <section>
               <div className="flex items-end justify-between mb-3 px-1">
                 <div className="flex items-center gap-2">
-                  <h3 className="font-heading text-xl font-bold tracking-tight">Ongoing Tournaments</h3>
+                  <h3 className="font-heading text-xl font-bold tracking-tight">
+                    Ongoing Tournaments
+                  </h3>
                   {/* ORANGE LIVE PING ANIMATION */}
                   <div className="relative flex h-3 w-3 items-center justify-center mb-0.5">
                     <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-orange-400 opacity-75"></span>
                     <span className="relative inline-flex rounded-full h-2 w-2 bg-orange-500"></span>
                   </div>
                 </div>
-                <Link href="/user/tournaments" className="text-xs font-bold uppercase tracking-wider text-orange-600 hover:underline pb-1">
+                <Link
+                  href="/user/tournaments"
+                  className="text-xs font-bold uppercase tracking-wider text-orange-600 hover:underline pb-1"
+                >
                   View All
                 </Link>
               </div>
-              <div 
+              <div
                 className="flex overflow-x-auto gap-4 snap-x snap-mandatory [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden -mx-4 px-4 pb-2"
                 onScroll={handleOngoingScroll}
               >
                 {ongoingTournaments.map((t) => (
-                  <div key={t.id} className="min-w-[74vw] sm:min-w-[280px] snap-center shrink-0">
-                    <OngoingTournamentCard 
+                  <div
+                    key={t.id}
+                    className="min-w-[74vw] sm:min-w-[280px] snap-center shrink-0"
+                  >
+                    <OngoingTournamentCard
                       id={t.id}
                       name={t.name}
                       sport={t.sport}
@@ -384,76 +418,74 @@ export default function UserHomePage() {
               </h3>
             </div>
             {liveMatches.map((match) => (
-            <LiveMatchCard
-              key={match.id}
-              tournamentName={match.tournamentName}
-              matchTitle={match.matchTitle}
-              teamA={match.teamA}
-              teamB={match.teamB}
-              score={match.score}
-              court={match.court}
-              isLive={match.isLive}
-              size="spacious"
-            />
-          ))}
+              <LiveMatchCard
+                key={match.id}
+                tournamentName={match.tournamentName}
+                matchTitle={match.matchTitle}
+                teamA={match.teamA}
+                teamB={match.teamB}
+                score={match.score}
+                court={match.court}
+                isLive={match.isLive}
+                size="spacious"
+              />
+            ))}
           </div>
         )}
 
         {/* ======================= */}
         {/* MY SPACE TAB            */}
         {/* ======================= */}
-{activeTab === "myspace" && (
-  <div className="space-y-8 animate-fade-in">
-    
-    {/* Quick Stats */}
-    <section>
-      <QuickStatsSection won={28} played={38} lost={12} />
-    </section>
+        {activeTab === "myspace" && (
+          <div className="space-y-8 animate-fade-in">
+            {/* Quick Stats */}
+            <section>
+              <QuickStatsSection won={28} played={38} lost={12} />
+            </section>
 
-    {/* Your Live Match */}
-    <section>
-      <h3 className="mb-3 font-heading text-lg font-semibold tracking-tight flex items-center gap-2 px-1">
-        <span className="h-2 w-2 rounded-full bg-[var(--color-error)] animate-pulse" />
-        Your Live Match
-      </h3>
+            {/* Your Live Match */}
+            <section>
+              <h3 className="mb-3 font-heading text-lg font-semibold tracking-tight flex items-center gap-2 px-1">
+                <span className="h-2 w-2 rounded-full bg-[var(--color-error)] animate-pulse" />
+                Your Live Match
+              </h3>
 
-      <LiveMatchCard
-        tournamentName="Badminton Championship"
-        matchTitle="Men's Doubles - Round 3"
-        teamA={{ players: ["S. Verma", "A. Mehta"] }}
-        teamB={{ players: ["J. Brown", "K. Patel"] }}
-        score={{ teamA: 11, teamB: 9, currentSet: 2 }}
-        court="Sports Arena, 24 block street, Raipur"
-        isLive={true}
-      />
-    </section>
+              <LiveMatchCard
+                tournamentName="Badminton Championship"
+                matchTitle="Men's Doubles - Round 3"
+                teamA={{ players: ["S. Verma", "A. Mehta"] }}
+                teamB={{ players: ["J. Brown", "K. Patel"] }}
+                score={{ teamA: 11, teamB: 9, currentSet: 2 }}
+                court="Sports Arena, 24 block street, Raipur"
+                isLive={true}
+              />
+            </section>
 
-    {/* Your Tournaments */}
-    <section>
-      <h3 className="mb-3 font-heading text-lg font-semibold tracking-tight px-1">
-        Your Tournaments
-      </h3>
+            {/* Your Tournaments */}
+            <section>
+              <h3 className="mb-3 font-heading text-lg font-semibold tracking-tight px-1">
+                Your Tournaments
+              </h3>
 
-      <div className="px-1">
-        <UserTournamentCard
-          href="/user/tournaments"
-          title="Raipur League 2025"
-          sport="Pickle ball"
-          category="Men's"
-          format="Doubles"
-          ctaLabel="View Tournament Events"
-        />
-      </div>
-    </section>
+              <div className="px-1">
+                <UserTournamentCard
+                  href="/user/tournaments"
+                  title="Raipur League 2025"
+                  sport="Pickle ball"
+                  category="Men's"
+                  format="Doubles"
+                  ctaLabel="View Tournament Events"
+                />
+              </div>
+            </section>
 
-    {/* Next On Court */}
-    <NextOnCourtSection />
+            {/* Next On Court */}
+            <NextOnCourtSection />
 
-    {/* Past Matches */}
-    <PastMatchesSection />
-
-  </div>
-)}
+            {/* Past Matches */}
+            <PastMatchesSection />
+          </div>
+        )}
       </main>
 
       {/* BOTTOM NAVIGATION BAR */}
@@ -473,4 +505,3 @@ export default function UserHomePage() {
     </div>
   );
 }
-

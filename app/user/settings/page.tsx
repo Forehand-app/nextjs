@@ -7,34 +7,55 @@ import { useRouter } from "next/navigation";
 import { useTheme } from "@/components/ThemeProvider";
 import { useApp } from "@/components/AppProvider";
 import BottomNav from "@/components/BottomNav";
-import { 
-  BellIcon, 
-  LockIcon, 
-  SettingsIcon, 
-  HelpCircleIcon, 
-  MailIcon, 
-  LogOutIcon, 
-  MoonIcon, 
+import {
+  BellIcon,
+  LockIcon,
+  SettingsIcon,
+  HelpCircleIcon,
+  MailIcon,
+  LogOutIcon,
+  MoonIcon,
   ChevronRightIcon,
   ChevronDownIcon,
-  CheckIcon
+  CheckIcon,
 } from "@/components/Icons";
+import { Bell, PhoneIcon, Settings2 } from "lucide-react";
 
 export default function UserSettingsPage() {
   const router = useRouter();
   const { theme, toggleTheme } = useTheme();
-  const { logout, user } = useApp();
+  const { logout, userProfile } = useApp();
   const [showSwitchModal, setShowSwitchModal] = useState(false);
   const [isSigningOut, setIsSigningOut] = useState(false);
 
   const settingsItems = [
-    { href: "/user/settings/notifications", icon: BellIcon, label: "Notifications", sub: "Manage preferences" },
-    { href: "/user/settings/privacy", icon: LockIcon, label: "Privacy & Policy", sub: "Control your settings" },
-    { href: "/user/settings", icon: SettingsIcon, label: "Settings", sub: "App preferences" },
-    { href: "/user/settings/help", icon: HelpCircleIcon, label: "Help & Support", sub: "Connect with support team" },
+    {
+      href: "/user/settings/notifications",
+      icon: Bell,
+      label: "Notifications",
+      sub: "Manage preferences",
+    },
+    {
+      href: "/user/settings/privacy",
+      icon: LockIcon,
+      label: "Privacy & Policy",
+      sub: "Control your settings",
+    },
+    {
+      href: "/user/settings",
+      icon: Settings2,
+      label: "Settings",
+      sub: "App preferences",
+    },
+    {
+      href: "/user/settings/help",
+      icon: HelpCircleIcon,
+      label: "Help & Support",
+      sub: "Connect with support team",
+    },
   ];
 
-  const initials = (user?.email ?? "F").trim().charAt(0).toUpperCase();
+  const initials = userProfile?.name.trim().charAt(0).toUpperCase();
 
   const handleSignOut = async () => {
     try {
@@ -49,7 +70,6 @@ export default function UserSettingsPage() {
 
   return (
     <div className="min-h-screen bg-[var(--color-background)] text-[var(--color-text)] flex flex-col">
-      
       <header className="sticky top-0 z-40 bg-[var(--color-surface)] border-b border-[var(--color-border)] shadow-sm">
         <div className="flex items-center h-14 px-5">
           <button
@@ -59,23 +79,32 @@ export default function UserSettingsPage() {
             aria-expanded={showSwitchModal}
           >
             Profile Switcher
-            <ChevronDownIcon size={18} className="text-[var(--color-text-muted)] mt-0.5 shrink-0" />
+            <ChevronDownIcon
+              size={18}
+              className="text-[var(--color-text-muted)] mt-0.5 shrink-0"
+            />
           </button>
         </div>
       </header>
 
       <main className="flex-1 pb-24 pb-safe px-4 pt-6 space-y-8 overflow-y-auto">
-        
         <div className="bg-[var(--color-surface)] rounded-2xl border border-[var(--color-border)] p-5 shadow-sm">
           <div className="flex items-center gap-4">
             <div className="w-16 h-16 rounded-full bg-primary flex flex-shrink-0 items-center justify-center text-white text-2xl font-bold">
               {initials}
             </div>
             <div className="flex-1 min-w-0">
-              <h2 className="text-lg font-bold truncate">{user?.user_metadata?.full_name ?? user?.email ?? "Forehand User"}</h2>
+              <h2 className="text-lg font-bold truncate">
+                {userProfile?.name ?? "Player"}
+              </h2>
               <div className="mt-1 space-y-1 text-sm text-[var(--color-text-muted)]">
                 <p className="flex items-center gap-2 truncate">
-                  <MailIcon size={14} className="shrink-0 text-[var(--color-text)]" /> {user?.email ?? "No email"}
+                  <PhoneIcon
+                    size={14}
+                    className="shrink-0 text-[var(--color-text)]"
+                  />
+                  {"  +91 "}
+                  {userProfile?.phone ?? "No Contact"}
                 </p>
               </div>
             </div>
@@ -93,7 +122,6 @@ export default function UserSettingsPage() {
             Preferences
           </h3>
           <div className="bg-[var(--color-surface)] rounded-2xl border border-[var(--color-border)] shadow-sm overflow-hidden flex flex-col">
-            
             <button
               onClick={toggleTheme}
               className="w-full flex items-center justify-between p-4 hover:bg-[var(--color-surface-elevated)] transition-colors text-left border-b border-[var(--color-border)]"
@@ -121,7 +149,9 @@ export default function UserSettingsPage() {
                   key={idx}
                   href={item.href}
                   className={`flex items-center justify-between p-4 hover:bg-[var(--color-surface-elevated)] transition-colors ${
-                    idx !== settingsItems.length - 1 ? "border-b border-[var(--color-border)]" : ""
+                    idx !== settingsItems.length - 1
+                      ? "border-b border-[var(--color-border)]"
+                      : ""
                   }`}
                 >
                   <div className="flex items-center gap-3.5">
@@ -135,7 +165,10 @@ export default function UserSettingsPage() {
                       </p>
                     </div>
                   </div>
-                  <ChevronRightIcon size={20} className="text-[var(--color-text-muted)] shrink-0" />
+                  <ChevronRightIcon
+                    size={20}
+                    className="text-[var(--color-text-muted)] shrink-0"
+                  />
                 </Link>
               );
             })}
@@ -149,15 +182,18 @@ export default function UserSettingsPage() {
             disabled={isSigningOut}
             className="w-full py-3.5 rounded-2xl border-2 border-red-500/20 bg-red-500/10 text-red-600 dark:text-red-400 font-bold text-[15px] flex items-center justify-center gap-2 hover:bg-red-500/20 transition-colors"
           >
-            <LogOutIcon size={18} className="shrink-0" /> {isSigningOut ? "Signing Out..." : "Log Out"}
+            <LogOutIcon size={18} className="shrink-0" />{" "}
+            {isSigningOut ? "Signing Out..." : "Log Out"}
           </button>
         </div>
-        
       </main>
 
       <BottomNav />
 
-      <SwitchAccountModal isOpen={showSwitchModal} onClose={() => setShowSwitchModal(false)} />
+      <SwitchAccountModal
+        isOpen={showSwitchModal}
+        onClose={() => setShowSwitchModal(false)}
+      />
     </div>
   );
 }

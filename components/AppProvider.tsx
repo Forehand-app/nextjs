@@ -18,9 +18,9 @@ import { OrganizationData, ProfileData } from "@/lib/models";
 import { organizationApi } from "@/lib/api/orgaizationApi";
 import { userApi } from "@/lib/api/userApi";
 
-
 type AppContextValue = {
-  isLoading: boolean;      // Supabase session restoring
+  session: Session | null;
+  isLoading: boolean; // Supabase session restoring
 
   isAuthenticated: boolean;
 
@@ -35,7 +35,6 @@ type AppContextValue = {
 };
 
 const AppContext = createContext<AppContextValue | null>(null);
-
 
 const ACTIVE_ORG_STORAGE_KEY = "forehand:active-org-id";
 const NATIVE_CALLBACK_URL = "forehand://auth/callback";
@@ -55,11 +54,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
 
   // --- Active organisation ---
-  const [activeOrganization, setActiveOrganization] = useState<OrganizationData | null>(null);
+  const [activeOrganization, setActiveOrganization] =
+    useState<OrganizationData | null>(null);
   const activeOrgIdRef = useRef<string | null>(null);
 
   /* ---- helpers --------------------------------------------------- */
-
 
   /* ---- refreshProfile (public) ----------------------------------- */
 
@@ -90,9 +89,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
       const code = parsed.searchParams.get("code");
       const accessToken =
-        parsed.searchParams.get("access_token") ?? hashParams.get("access_token");
+        parsed.searchParams.get("access_token") ??
+        hashParams.get("access_token");
       const refreshToken =
-        parsed.searchParams.get("refresh_token") ?? hashParams.get("refresh_token");
+        parsed.searchParams.get("refresh_token") ??
+        hashParams.get("refresh_token");
 
       if (code) {
         const { error } = await supabase.auth.exchangeCodeForSession(code);
@@ -290,6 +291,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       login,
       logout,
       register,
+      session,
       setOrganization,
       refreshProfile,
     }),
@@ -300,6 +302,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       login,
       logout,
       register,
+      session,
       setOrganization,
       refreshProfile,
     ],

@@ -7,7 +7,7 @@ import Link from "next/link";
 import { useApp } from "@/components/AppProvider";
 import { TrophyIcon, MapPinIcon, CalendarIcon, WalletIcon, FilterIcon, EditIcon, UsersIcon } from "@/components/Icons";
 import { toQuery } from "@/lib/utils";
-import { tournamenApi } from "@/lib/api/tournamentApi";
+import { tournamentApi } from "@/lib/api/tournamentApi";
 import { TournamentData } from "@/lib/models";
 
 
@@ -29,7 +29,7 @@ function formatDate(value?: string | null) {
 }
 
 function getTournamentStatus(tournament: TournamentData): "live" | "upcoming" | "past" | "drafts" {
-  if (tournament.touenamentState === "draft") return "drafts";
+  if (tournament.tournamentState === "draft") return "drafts";
 
   const today = new Date();
   today.setHours(0, 0, 0, 0);
@@ -88,7 +88,7 @@ export default function OrgTournamentsPage() {
         setErrorMessage("");
         setIsLoading(true);
 
-        const tournaments = await tournamenApi.getOrganizationTournaments(orgId!);
+        const tournaments = await tournamentApi.getOrganizationTournaments(orgId!);
 
         if (isActive) {
           setTournaments(Array.isArray(tournaments) ? tournaments : []);

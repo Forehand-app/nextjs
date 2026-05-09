@@ -4,6 +4,8 @@ import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useApp } from "@/components/AppProvider";
 import TournamentWizard from "@/components/Wizard/TournamentWizard";
+import { tournamentApi } from "@/lib/api/tournamentApi";
+import { storageApi } from "@/lib/api/storageApi";
 
 type TournamentFormData = {
   name: string;
@@ -92,28 +94,12 @@ function mapSetsPerMatch(value: string) {
 
 export default function CreateOrgTournamentPage() {
   const router = useRouter();
-  const { session, activeOrganization } = useApp();
+  const { activeOrganization } = useApp();
   const activeOrgId = activeOrganization?.id ?? null;
   const [isPublishing, setIsPublishing] = useState(false);
 
   const handleComplete = async (tournament: TournamentFormData) => {
-    const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
     const organizationId = activeOrgId;
-
-    if (!apiBaseUrl) {
-      alert("Tournament service is not configured.");
-      return;
-    }
-
-    if (!session?.access_token) {
-      alert("Please sign in again before publishing.");
-      return;
-    }
-
-    if (!organizationId) {
-      alert("No active organization selected.");
-      return;
-    }
 
     try {
       setIsPublishing(true);
@@ -121,62 +107,25 @@ export default function CreateOrgTournamentPage() {
         (event) => !event.isFree && event.paymentOption === "Pay online (UPI)",
       );
 
-      const tournamentResponse = await fetch(`${apiBaseUrl}/tournament/create`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${session.access_token}`,
-        },
-        body: JSON.stringify({
-          organizationId,
-          name: tournament.name.trim(),
-          description: tournament.description.trim(),
-          startDate: tournament.startDate,
-          endDate: tournament.endDate || undefined,
-          venueName: tournament.venueName.trim(),
-          venueAddress: tournament.addressLine.trim(),
-          venueCity: tournament.city.trim(),
-          venueState: tournament.state.trim(),
-          venuePostalCode: tournament.zipCode.trim(),
-          venueCourts: Number(tournament.numCourts),
-          contactName: tournament.organizerName.trim(),
-          contactEmail: tournament.organizerEmail.trim(),
-          contactPhone: normalizePhone(tournament.organizerPhone),
-          upiId: onlinePaymentEvent?.upiId?.trim() || null,
-        }),
+      const tournamentId = await tournamentApi.createTournament({
+        organizationId: organizationId!,
+        name: tournament.name,
+        description: tournament.description,
+        startDate: tournament.startDate,
+        endDate: tournament.endDate || undefined,
+        venueName: tournament.venueName,
+        venueAddress: tournament.addressLine,
+        venueCity: tournament.city,
+        venueState: tournament.state,
+        venuePostalCode: tournament.zipCode,
+        venueCourts: Number(tournament.numCourts),
+        contactName: tournament.organizerName,
+        contactEmail: tournament.organizerEmail,
+        contactPhone: normalizePhone(tournament.organizerPhone),
+        upiId: onlinePaymentEvent?.upiId || null,
       });
-
-      const tournamentJson =
-        (await tournamentResponse.json().catch(() => null)) as
-          | ApiResponse<string>
-          | null;
-
-      if (!tournamentResponse.ok || !tournamentJson?.success || !tournamentJson.data) {
-        throw new Error(tournamentJson?.message || "Tournament creation failed.");
-      }
-
-      const tournamentId = tournamentJson.data;
-
       if (tournament.logo) {
-        const logoForm = new FormData();
-        logoForm.append("image", tournament.logo);
-
-        const uploadResponse = await fetch(
-          `${apiBaseUrl}/storage/upload/tournament/${tournamentId}`,
-          {
-            method: "POST",
-            headers: {
-              Authorization: `Bearer ${session.access_token}`,
-            },
-            body: logoForm,
-          },
-        );
-        const uploadJson =
-          (await uploadResponse.json().catch(() => null)) as ApiResponse | null;
-
-        if (!uploadResponse.ok || uploadJson?.success === false) {
-          throw new Error(uploadJson?.message || "Tournament logo upload failed.");
-        }
+        await storageApi.uploadTournamentLogo(tournament.logo, tournamentId);
       }
 
       if (tournament.events.length > 0) {
@@ -238,10 +187,10 @@ export default function CreateOrgTournamentPage() {
 
   return (
     <div className="min-h-screen bg-[var(--color-background)]">
-      <TournamentWizard 
+      <TournamentWizard
         isPublishing={isPublishing}
-        onComplete={handleComplete} 
-        onClose={handleClose} 
+        onComplete={handleComplete}
+        onClose={handleClose}
       />
     </div>
   );

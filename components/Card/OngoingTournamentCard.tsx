@@ -10,7 +10,6 @@ interface OngoingTournamentCardProps {
   modes: string;
   venue: string;
   logoText: string;
-  href: string;
 }
 
 export default function OngoingTournamentCard({
@@ -23,9 +22,11 @@ export default function OngoingTournamentCard({
   logoText,
 }: OngoingTournamentCardProps) {
   return (
-    <Link href={`/tournaments/detail${toQuery({ id })}`} className="block w-full active:scale-[0.98] transition-transform group">
+    <Link
+      href={`/tournaments/detail${toQuery({ id })}`}
+      className="block w-full active:scale-[0.98] transition-transform group"
+    >
       <div className="flex flex-col overflow-hidden rounded-[18px] border border-[var(--color-border)] bg-[var(--color-surface)] shadow-sm">
-
         {/* --- TOP SECTION (Orange) --- */}
         <div className="relative flex items-center gap-3 overflow-hidden bg-primary px-3.5 py-3">
           {/* Decorative highlight */}
@@ -63,9 +64,7 @@ export default function OngoingTournamentCard({
             View More
           </button>
         </div>
-
       </div>
     </Link>
   );
 }
-

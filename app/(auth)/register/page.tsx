@@ -3,6 +3,11 @@
 import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useApp } from "@/components/AppProvider";
+import {
+  registrationSchema,
+  type RegistrationFormData,
+} from "@/lib/validators/registrationForm";
+import { userApi } from "@/lib/api/userApi";
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -10,14 +15,56 @@ export default function RegisterPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSigningOut, setIsSigningOut] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
-  const [formData, setFormData] = useState({
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+  const [formData, setFormData] = useState<RegistrationFormData>({
     name: "",
     contactNumber: "",
     gender: "",
     dob: "",
-    playingHand: "",
+    playingHand: undefined,
     primarySport: "",
   });
+
+  // Real-time contact uniqueness check (using Zod async validation)
+  useEffect(() => {
+    const contact = formData.contactNumber;
+    if (!contact || contact.length < 10) {
+      setFieldErrors((prev) => {
+        const { contactNumber, ...rest } = prev;
+        return rest;
+      });
+      return;
+    }
+
+    const timer = setTimeout(async () => {
+      // Run the async Zod validation
+      const result = await registrationSchema.safeParseAsync(formData);
+
+      if (!result.success) {
+        const contactError = result.error.issues.find(
+          (i) => i.path[0] === "contactNumber",
+        );
+        if (contactError) {
+          setFieldErrors((prev) => ({
+            ...prev,
+            contactNumber: contactError.message,
+          }));
+        } else {
+          setFieldErrors((prev) => {
+            const { contactNumber, ...rest } = prev;
+            return rest;
+          });
+        }
+      } else {
+        setFieldErrors((prev) => {
+          const { contactNumber, ...rest } = prev;
+          return rest;
+        });
+      }
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [formData.contactNumber, formData]);
 
   useEffect(() => {
     if (isLoading) return;
@@ -41,21 +88,39 @@ export default function RegisterPage() {
     e.preventDefault();
     setErrorMessage("");
 
+    // 1. Zod async validation (includes uniqueness check)
+    const result = await registrationSchema.safeParseAsync(formData);
+    if (!result.success) {
+      const errors: Record<string, string> = {};
+      result.error.issues.forEach((issue) => {
+        if (issue.path[0]) {
+          errors[issue.path[0].toString()] = issue.message;
+        }
+      });
+      setFieldErrors(errors);
+      return;
+    }
+
+    const validatedData = result.data;
+
     try {
       setIsSubmitting(true);
+
       await register({
-        name: formData.name.trim(),
-        phone: formData.contactNumber.trim() || null,
-        gender: formData.gender || null,
-        dob: formData.dob || null,
-        playingHand: formData.playingHand || null,
-        primarySport: formData.primarySport.trim() || null,
+        name: validatedData.name,
+        phone: validatedData.contactNumber,
+        gender: validatedData.gender,
+        dob: validatedData.dob,
+        playingHand: validatedData.playingHand,
+        primarySport: validatedData.primarySport,
       });
 
       router.replace("/home");
     } catch (err) {
       setErrorMessage(
-        err instanceof Error ? err.message : "Registration failed. Please try again."
+        err instanceof Error
+          ? err.message
+          : "Registration failed. Please try again.",
       );
       setIsSubmitting(false);
     }
@@ -79,6 +144,11 @@ export default function RegisterPage() {
     );
   }
 
+  const InputError = ({ message }: { message?: string }) => {
+    if (!message) return null;
+    return <p className="text-xs text-red-500 mt-1 ml-1">{message}</p>;
+  };
+
   return (
     <div className="min-h-screen bg-[var(--color-background)] p-6 pb-safe">
       <div className="max-w-md mx-auto">
@@ -88,7 +158,9 @@ export default function RegisterPage() {
           style={{ background: "var(--gradient-orange)" }}
         >
           <h1 className="text-2xl font-bold mb-1">Create your profile</h1>
-          <p className="text-sm opacity-90">Just a few details to get you started</p>
+          <p className="text-sm opacity-90">
+            Just a few details to get you started
+          </p>
           {session?.user?.email && (
             <p className="text-xs opacity-75 mt-2">{session.user.email}</p>
           )}
@@ -103,11 +175,17 @@ export default function RegisterPage() {
             <input
               type="text"
               value={formData.name}
-              required
-              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-              className="w-full px-4 py-3 rounded-[var(--radius-input)] bg-[var(--color-surface)] border border-[var(--color-border)] text-[var(--color-text)] placeholder:text-[var(--color-muted)] focus:border-primary focus:outline-none transition-colors"
+              onChange={(e) =>
+                setFormData({ ...formData, name: e.target.value })
+              }
+              className={`w-full px-4 py-3 rounded-[var(--radius-input)] bg-[var(--color-surface)] border ${
+                fieldErrors.name
+                  ? "border-red-500"
+                  : "border-[var(--color-border)]"
+              } text-[var(--color-text)] placeholder:text-[var(--color-muted)] focus:border-primary focus:outline-none transition-colors`}
               placeholder="Enter your full name"
             />
+            <InputError message={fieldErrors.name} />
           </div>
 
           {/* Contact Number */}
@@ -117,11 +195,18 @@ export default function RegisterPage() {
             </label>
             <input
               type="tel"
-              value={formData.contactNumber}
-              onChange={(e) => setFormData({ ...formData, contactNumber: e.target.value })}
-              className="w-full px-4 py-3 rounded-[var(--radius-input)] bg-[var(--color-surface)] border border-[var(--color-border)] text-[var(--color-text)] placeholder:text-[var(--color-muted)] focus:border-primary focus:outline-none transition-colors"
+              value={formData.contactNumber || ""}
+              onChange={(e) =>
+                setFormData({ ...formData, contactNumber: e.target.value })
+              }
+              className={`w-full px-4 py-3 rounded-[var(--radius-input)] bg-[var(--color-surface)] border ${
+                fieldErrors.contactNumber
+                  ? "border-red-500"
+                  : "border-[var(--color-border)]"
+              } text-[var(--color-text)] placeholder:text-[var(--color-muted)] focus:border-primary focus:outline-none transition-colors`}
               placeholder="Enter your contact number"
             />
+            <InputError message={fieldErrors.contactNumber} />
           </div>
 
           {/* Gender */}
@@ -130,14 +215,21 @@ export default function RegisterPage() {
               Gender
             </label>
             <select
-              value={formData.gender}
-              onChange={(e) => setFormData({ ...formData, gender: e.target.value })}
-              className="w-full px-4 py-3 rounded-[var(--radius-input)] bg-[var(--color-surface)] border border-[var(--color-border)] text-[var(--color-text)] focus:border-primary focus:outline-none transition-colors"
+              value={formData.gender || ""}
+              onChange={(e) =>
+                setFormData({ ...formData, gender: e.target.value as any })
+              }
+              className={`w-full px-4 py-3 rounded-[var(--radius-input)] bg-[var(--color-surface)] border ${
+                fieldErrors.gender
+                  ? "border-red-500"
+                  : "border-[var(--color-border)]"
+              } text-[var(--color-text)] focus:border-primary focus:outline-none transition-colors`}
             >
               <option value="">Select gender</option>
               <option value="male">Male</option>
               <option value="female">Female</option>
             </select>
+            <InputError message={fieldErrors.gender} />
           </div>
 
           {/* Date of Birth */}
@@ -147,10 +239,17 @@ export default function RegisterPage() {
             </label>
             <input
               type="date"
-              value={formData.dob}
-              onChange={(e) => setFormData({ ...formData, dob: e.target.value })}
-              className="w-full px-4 py-3 rounded-[var(--radius-input)] bg-[var(--color-surface)] border border-[var(--color-border)] text-[var(--color-text)] focus:border-primary focus:outline-none transition-colors"
+              value={formData.dob || ""}
+              onChange={(e) =>
+                setFormData({ ...formData, dob: e.target.value })
+              }
+              className={`w-full px-4 py-3 rounded-[var(--radius-input)] bg-[var(--color-surface)] border ${
+                fieldErrors.dob
+                  ? "border-red-500"
+                  : "border-[var(--color-border)]"
+              } text-[var(--color-text)] focus:border-primary focus:outline-none transition-colors`}
             />
+            <InputError message={fieldErrors.dob} />
           </div>
 
           {/* Playing Hand */}
@@ -159,14 +258,24 @@ export default function RegisterPage() {
               Playing Hand
             </label>
             <select
-              value={formData.playingHand}
-              onChange={(e) => setFormData({ ...formData, playingHand: e.target.value })}
-              className="w-full px-4 py-3 rounded-[var(--radius-input)] bg-[var(--color-surface)] border border-[var(--color-border)] text-[var(--color-text)] focus:border-primary focus:outline-none transition-colors"
+              value={formData.playingHand || ""}
+              onChange={(e) =>
+                setFormData({
+                  ...formData,
+                  playingHand: e.target.value as any,
+                })
+              }
+              className={`w-full px-4 py-3 rounded-[var(--radius-input)] bg-[var(--color-surface)] border ${
+                fieldErrors.playingHand
+                  ? "border-red-500"
+                  : "border-[var(--color-border)]"
+              } text-[var(--color-text)] focus:border-primary focus:outline-none transition-colors`}
             >
               <option value="">Select playing hand</option>
               <option value="right">Right</option>
               <option value="left">Left</option>
             </select>
+            <InputError message={fieldErrors.playingHand} />
           </div>
 
           {/* Primary Sport */}
@@ -176,11 +285,18 @@ export default function RegisterPage() {
             </label>
             <input
               type="text"
-              value={formData.primarySport}
-              onChange={(e) => setFormData({ ...formData, primarySport: e.target.value })}
-              className="w-full px-4 py-3 rounded-[var(--radius-input)] bg-[var(--color-surface)] border border-[var(--color-border)] text-[var(--color-text)] placeholder:text-[var(--color-muted)] focus:border-primary focus:outline-none transition-colors"
+              value={formData.primarySport || ""}
+              onChange={(e) =>
+                setFormData({ ...formData, primarySport: e.target.value })
+              }
+              className={`w-full px-4 py-3 rounded-[var(--radius-input)] bg-[var(--color-surface)] border ${
+                fieldErrors.primarySport
+                  ? "border-red-500"
+                  : "border-[var(--color-border)]"
+              } text-[var(--color-text)] placeholder:text-[var(--color-muted)] focus:border-primary focus:outline-none transition-colors`}
               placeholder="e.g. Badminton"
             />
+            <InputError message={fieldErrors.primarySport} />
           </div>
 
           {errorMessage && (
