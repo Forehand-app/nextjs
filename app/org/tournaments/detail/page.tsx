@@ -17,6 +17,8 @@ import {
   ChevronRightIcon,
   TrashIcon,
   PlusIcon,
+  CalendarIcon,
+  XIcon,
 } from "@/components/Icons";
 import { toQuery } from "@/lib/utils";
 import { tournamentApi } from "@/lib/api/tournamentApi";
@@ -200,12 +202,8 @@ const AboutTab = ({ tournament }: { tournament: TournamentData | null }) => {
         </h2>
         <div className="space-y-3">
           <div className="flex gap-3 items-center">
-            <div className="w-10 h-10 rounded-full bg-[var(--color-surface-elevated)] flex items-center justify-center overflow-hidden shrink-0 border border-[var(--color-border)]">
-              <img
-                src={`https://api.dicebear.com/7.x/initials/svg?seed=PM&backgroundColor=f97316&textColor=ffffff`}
-                alt="Piyush Mantri"
-                className="w-full h-full object-cover"
-              />
+            <div className="w-10 h-10 rounded-full bg-[var(--color-surface-elevated)] flex items-center justify-center overflow-hidden shrink-0 border border-[var(--color-border)] text-sm font-semibold text-[var(--color-text-secondary)]">
+              {(tournament?.contactName || "C")[0].toUpperCase()}
             </div>
             <p className="font-medium text-[var(--color-text)]">
               {tournament?.contactName || "Contact person"}
@@ -294,6 +292,165 @@ const StepRow = ({
   );
 };
 
+const getQuickAction = (state: string): string => {
+  switch (state) {
+    case "created": return "Open registration to start accepting participants.";
+    case "registration_closed": return "Finalize your participant list to proceed.";
+    case "participants_finalized": return "Set up fixtures to define the bracket.";
+    case "scheduled": return "Matches are scheduled. Start when ready.";
+    case "in_progress": return "Now, you can manage your matches.";
+    case "round_over": return "A round is complete. Begin the next round.";
+    case "completed": return "Event is complete. View the champion.";
+    case "cancelled": return "This event has been cancelled.";
+    default: return "Manage your event progress below.";
+  }
+};
+
+const getWorkflowSteps = (event: EventData, tournamentId: string) => {
+  const eventId = event.id || "";
+  const participantCount = Array.isArray(event.teams) ? event.teams.length : 0;
+  const state = event.eventState || "created";
+
+  const participantsHref = `/org/tournaments/event/participants${toQuery({ tournamentId, eventId })}`;
+  const fixtureHref = `/org/tournaments/event/fixture${toQuery({ tournamentId, eventId })}`;
+  const matchesHref = `/org/tournaments/event/matches${toQuery({ tournamentId, eventId })}`;
+  const championHref = `/org/tournaments/event/champion${toQuery({ tournamentId, eventId })}`;
+
+  const steps = [
+    {
+      title: "Participants",
+      state: "inactive",
+      subtext: participantCount > 0 ? `${participantCount} Participants Playing` : undefined,
+      actionLabel: "View Participants",
+      href: participantsHref,
+      isLast: false,
+    },
+    {
+      title: "Fixtures",
+      state: "inactive",
+      subtext: undefined as string | undefined,
+      actionLabel: "Assign Players",
+      href: fixtureHref,
+      isLast: false,
+    },
+    {
+      title: "Matches",
+      state: "inactive",
+      subtext: undefined as string | undefined,
+      actionLabel: "Manage Matches",
+      href: matchesHref,
+      isLast: false,
+    },
+    {
+      title: "Results",
+      state: "inactive",
+      subtext: undefined as string | undefined,
+      actionLabel: "View Champion",
+      href: championHref,
+      isLast: true,
+    },
+  ];
+
+  if (state === "cancelled") return steps;
+
+  // Participants step
+  if (state === "created" || state === "registration_closed") {
+    steps[0].state = "active";
+    steps[0].actionLabel = state === "registration_closed" ? "Finalize" : "Manage Participants";
+  } else {
+    steps[0].state = "completed";
+    steps[0].actionLabel = "View Participants";
+  }
+
+  // Fixtures step
+  if (state === "participants_finalized") {
+    steps[1].state = "active";
+    steps[1].actionLabel = "Assign Players";
+    steps[1].subtext = "Best of 3, Round of 64";
+  } else if (["scheduled", "in_progress", "round_over", "completed"].includes(state)) {
+    steps[1].state = "completed";
+    steps[1].actionLabel = "View Fixtures";
+    steps[1].subtext = "Best of 3, Round of 64";
+  }
+
+  // Matches step
+  if (state === "scheduled") {
+    steps[2].state = "active";
+    steps[2].actionLabel = "Start Matches";
+  } else if (state === "in_progress" || state === "round_over") {
+    steps[2].state = "active";
+    steps[2].actionLabel = state === "round_over" ? "Next Round" : "Manage Matches";
+  } else if (state === "completed") {
+    steps[2].state = "completed";
+    steps[2].actionLabel = "View Matches";
+  }
+
+  // Results step
+  if (state === "completed") {
+    steps[3].state = "completed";
+    steps[3].actionLabel = "View Champion";
+  }
+
+  return steps;
+};
+
+// ─── Extend Due Date Modal ──────────────────────────────────────────────────
+const ExtendDueDateModal = ({
+  open,
+  onClose,
+  onSave,
+}: {
+  open: boolean;
+  onClose: () => void;
+  onSave: (date: string) => void;
+}) => {
+  const [selected, setSelected] = React.useState("");
+  if (!open) return null;
+  return (
+    <>
+      <div
+        className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50"
+        onClick={onClose}
+      />
+      <div className="fixed bottom-0 left-0 right-0 z-50 bg-[var(--color-surface)] rounded-t-3xl p-6 shadow-2xl border-t border-[var(--color-border)] animate-in slide-in-from-bottom-4 duration-300">
+        <div className="flex items-center justify-between mb-5">
+          <h3 className="font-bold text-base text-[var(--color-text)]">Extend Due Date</h3>
+          <button
+            onClick={onClose}
+            className="w-8 h-8 rounded-full bg-[var(--color-surface-elevated)] flex items-center justify-center text-[var(--color-muted)] hover:text-[var(--color-text)] transition-colors"
+          >
+            <XIcon size={16} />
+          </button>
+        </div>
+        <p className="text-sm text-[var(--color-muted)] mb-4">
+          Select a new registration due date for this event.
+        </p>
+        <label className="block mb-5">
+          <span className="text-xs font-semibold text-[var(--color-muted)] uppercase tracking-wider block mb-2">New Due Date</span>
+          <div className="relative">
+            <CalendarIcon size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--color-muted)] pointer-events-none" />
+            <input
+              type="date"
+              value={selected}
+              onChange={(e) => setSelected(e.target.value)}
+              min={new Date().toISOString().split("T")[0]}
+              className="w-full pl-9 pr-4 py-3 rounded-xl bg-[var(--color-surface-elevated)] border border-[var(--color-border)] text-[var(--color-text)] text-sm outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 transition-all"
+            />
+          </div>
+        </label>
+        <button
+          onClick={() => { if (selected) { onSave(selected); onClose(); } }}
+          disabled={!selected}
+          className="w-full py-3.5 rounded-xl font-bold text-white disabled:opacity-50 disabled:cursor-not-allowed transition-all active:scale-[0.98]"
+          style={{ background: selected ? "var(--gradient-orange)" : undefined, backgroundColor: !selected ? "#ccc" : undefined }}
+        >
+          Confirm New Date
+        </button>
+      </div>
+    </>
+  );
+};
+
 const EventsTab = ({
   tournamentId,
   events,
@@ -303,9 +460,15 @@ const EventsTab = ({
 }) => {
   const [activeFilter, setActiveFilter] = useState("All");
   const filters = ["All", "Upcoming", "Past", "Ongoing"];
+  const [extendModalEventId, setExtendModalEventId] = useState<string | null>(null);
 
   return (
     <div className="space-y-4">
+      <ExtendDueDateModal
+        open={extendModalEventId !== null}
+        onClose={() => setExtendModalEventId(null)}
+        onSave={(_date) => setExtendModalEventId(null)}
+      />
       <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide -mx-4 px-4 sm:mx-0 sm:px-0">
         {filters.map((filter) => (
           <button
@@ -324,18 +487,28 @@ const EventsTab = ({
       ) : (
         events.map((event, index) => {
           const eventId = event.id || String(index + 1);
-          const participantCount = Array.isArray(event.teams)
-            ? event.teams.length
-            : 0;
+          const state = event.eventState || "created";
+          const isCancelled = state === "cancelled";
+          const steps = getWorkflowSteps(event, tournamentId);
+          const quickAction = getQuickAction(state);
+
+          const badgeClass = isCancelled
+            ? "bg-red-100 text-red-700"
+            : state === "completed"
+            ? "bg-green-100 text-green-700"
+            : state === "in_progress" || state === "round_over"
+            ? "bg-orange-100 text-orange-700"
+            : "bg-[var(--color-surface-elevated)] text-[var(--color-text-secondary)]";
 
           return (
             <div
               key={eventId}
               className="bg-[var(--color-surface)] rounded-xl p-4 shadow-sm border border-[var(--color-border)]"
             >
-              <div className="flex justify-between items-start mb-3">
-                <div>
-                  <h3 className="font-semibold text-[var(--color-text)]">
+              {/* Header */}
+              <div className="flex justify-between items-start mb-1">
+                <div className="flex-1 min-w-0 pr-2">
+                  <h3 className="font-semibold text-[var(--color-text)] leading-tight">
                     {event.name || `Event ${index + 1}`}
                   </h3>
                   <p className="text-sm text-[var(--color-muted)] mt-0.5">
@@ -348,51 +521,52 @@ const EventsTab = ({
                       .join(" | ")}
                   </p>
                 </div>
-                <button className="text-[var(--color-muted)]">
+                <button className="text-[var(--color-muted)] shrink-0">
                   <EllipsisIcon size={20} />
                 </button>
               </div>
-              <div className="flex justify-between items-center mb-4">
-                <button className="border border-[var(--color-border)] px-3 py-1.5 rounded-lg text-sm font-medium text-[var(--color-text)] hover:bg-[var(--color-surface-elevated)] transition-colors">
+
+              {/* Actions row */}
+              <div className="flex justify-between items-center mt-3 mb-4">
+                <button
+                  onClick={() => setExtendModalEventId(eventId)}
+                  className="border border-[var(--color-border)] px-3 py-1.5 rounded-lg text-sm font-medium text-[var(--color-text)] hover:bg-[var(--color-surface-elevated)] transition-colors flex items-center gap-1.5"
+                >
+                  <CalendarIcon size={14} />
                   Extend Due Date
                 </button>
-                <span className="px-3 py-1 rounded-full text-xs font-semibold tracking-wide bg-green-100 text-green-700">
-                  Active
+                <span className={`px-3 py-1 rounded-full text-xs font-semibold tracking-wide capitalize ${badgeClass}`}>
+                  {state.replace(/_/g, " ")}
                 </span>
               </div>
 
-              <div className="mt-2">
-                <p className="text-xs font-semibold text-[var(--color-muted)] uppercase tracking-wider mb-4">
-                  Workflow Progress
-                </p>
+              {/* Quick Action Banner */}
+              {!isCancelled && (
+                <div className="mb-4 border border-orange-200 dark:border-orange-500/30 bg-orange-50 dark:bg-orange-500/10 rounded-xl p-3 flex gap-2 items-start">
+                  <CalendarIcon size={16} className="text-orange-500 shrink-0 mt-0.5" />
+                  <div>
+                    <p className="text-xs font-semibold text-orange-700 dark:text-orange-400 mb-0.5">Quick Action:</p>
+                    <p className="text-sm text-orange-700 dark:text-orange-300">{quickAction}</p>
+                  </div>
+                </div>
+              )}
 
-                {/* Linked exactly to your file routes */}
-                <StepRow
-                  title="Participants"
-                  state="active"
-                  subtext={`${participantCount} Teams Registered`}
-                  actionLabel="Manage"
-                  href={`/org/tournaments/event/fixture${toQuery({ tournamentId, eventId })}`}
-                />
-                <StepRow
-                  title="Fixtures"
-                  state="inactive"
-                  actionLabel="Create"
-                  href={`/org/tournaments/event/fixture${toQuery({ tournamentId, eventId })}`}
-                />
-                <StepRow
-                  title="Matches"
-                  state="inactive"
-                  actionLabel="Manage"
-                  href={`/org/tournaments/event/fixture${toQuery({ tournamentId, eventId })}`}
-                />
-                <StepRow
-                  title="Results"
-                  state="inactive"
-                  actionLabel="View Champion"
-                  isLast={true}
-                  href={`/org/tournaments/event/fixture${toQuery({ tournamentId, eventId })}`}
-                />
+              {/* Steps */}
+              <div>
+                <p className="text-xs font-semibold text-[var(--color-muted)] uppercase tracking-wider mb-3">
+                  Steps
+                </p>
+                {steps.map((step, idx) => (
+                  <StepRow
+                    key={idx}
+                    title={step.title}
+                    state={step.state}
+                    subtext={step.subtext}
+                    actionLabel={step.actionLabel}
+                    href={step.href}
+                    isLast={step.isLast}
+                  />
+                ))}
               </div>
             </div>
           );
@@ -403,7 +577,6 @@ const EventsTab = ({
 };
 
 const SummaryTab = ({ events }: { events: EventData[] }) => {
-  const [isExpanded, setIsExpanded] = useState(false);
   return (
     <div className="space-y-4">
       <div className="flex justify-between items-center px-1">
@@ -420,10 +593,6 @@ const SummaryTab = ({ events }: { events: EventData[] }) => {
             {events[0]?.name || "No events yet"}
           </h3>
           <div className="flex gap-2 flex-wrap">
-            <span className="px-2.5 py-1 text-[11px] font-semibold tracking-wide rounded-full border bg-red-100 text-red-700 border-red-200">
-              {" "}
-              Round 2 Live
-            </span>
             <span className="px-2.5 py-1 text-[11px] font-semibold tracking-wide rounded-full border bg-green-100 text-green-700 border-green-200">
               {" "}
               ₹
@@ -433,10 +602,6 @@ const SummaryTab = ({ events }: { events: EventData[] }) => {
               )}{" "}
               Listed Fees
             </span>
-          </div>
-          <div className="grid grid-cols-2 gap-3 text-sm text-[var(--color-text-secondary)] bg-[var(--color-surface-elevated)] p-3 rounded-lg border border-[var(--color-border)]">
-            <div>3 Matches left in round 1</div>
-            <div className="text-right">2 Bye Players</div>
           </div>
           <div className="grid grid-cols-2 mt-3 pt-2">
             <div>
@@ -457,39 +622,6 @@ const SummaryTab = ({ events }: { events: EventData[] }) => {
             </div>
           </div>
         </div>
-        <div className="border-t border-[var(--color-border)] bg-[var(--color-surface-elevated)]">
-          <button
-            onClick={() => setIsExpanded(!isExpanded)}
-            className="w-full py-3 flex items-center justify-center gap-1 text-xs font-medium text-[var(--color-muted)] hover:text-[var(--color-text)] transition-colors"
-          >
-            {isExpanded ? "View Less Details" : "View More Details"}
-            <ChevronDownIcon
-              size={14}
-              className={`transition-transform duration-200 ${isExpanded ? "rotate-180" : ""}`}
-            />
-          </button>
-          {isExpanded && (
-            <div className="px-4 pb-4 space-y-2">
-              <div className="flex justify-between items-start py-2 group cursor-pointer">
-                <div className="flex gap-3">
-                  <div className="w-2 h-2 rounded-full mt-1.5 shrink-0 bg-red-500" />
-                  <div>
-                    <p className="font-medium text-sm text-[var(--color-text)]">
-                      Fixtures Setup Remaining
-                    </p>
-                    <p className="text-xs text-[var(--color-muted)] mt-0.5">
-                      Round 2 pending generation
-                    </p>
-                  </div>
-                </div>
-                <ChevronRightIcon
-                  size={16}
-                  className="text-[var(--color-muted)] transition-transform group-hover:translate-x-1"
-                />
-              </div>
-            </div>
-          )}
-        </div>
       </div>
     </div>
   );
@@ -497,22 +629,7 @@ const SummaryTab = ({ events }: { events: EventData[] }) => {
 
 const EventCrewTab = () => {
   const [activeRole, setActiveRole] = useState<"admin" | "scorer">("admin");
-  const crewList = [
-    {
-      id: "1",
-      name: "Alex Costa",
-      role: "admin",
-      inviteStatus: "accepted",
-      initials: "AC",
-    },
-    {
-      id: "2",
-      name: "Mike Ross",
-      role: "scorer",
-      inviteStatus: "rejected",
-      initials: "MR",
-    },
-  ];
+  const crewList: any[] = [];
   const displayedCrew = crewList.filter((m) => m.role === activeRole);
 
   return (
@@ -609,7 +726,67 @@ export default function TournamentEventDetailsPage() {
       try {
         setErrorMessage("");
         setIsLoading(true);
-        const tournamentData = await tournamentApi.getInfo(tournamentId);
+        let tournamentData: TournamentData | null = null;
+        
+        if (tournamentId === "dummy-system-1") {
+          tournamentData = {
+              id: "dummy-system-1",
+              organizationId: "org-1",
+              name: "System Dummy Tournament",
+              description: "A dummy tournament showing various event states",
+              startDate: new Date().toISOString(),
+              venueName: "Dummy Arena",
+              venueAddress: "123 Fake St",
+              venueCity: "Mumbai",
+              venueState: "MH",
+              venuePostalCode: "400001",
+              venueCourts: 4,
+              contactName: "Admin",
+              contactEmail: "admin@dummy.com",
+              contactPhone: "9999999999",
+              tournamentState: "live",
+              events: [
+                {
+                  id: "dummy-1",
+                  tournamentId: "dummy-system-1",
+                  name: "Men's Singles (Just Created)",
+                  startDate: new Date().toISOString(),
+                  dueDate: new Date().toISOString(),
+                  pointsPerSet: 21,
+                  setsPerMatch: 3,
+                  amount: 500,
+                  eventState: "created",
+                  teams: []
+                },
+                {
+                  id: "dummy-2",
+                  tournamentId: "dummy-system-1",
+                  name: "Women's Doubles (In Progress)",
+                  startDate: new Date().toISOString(),
+                  dueDate: new Date().toISOString(),
+                  pointsPerSet: 21,
+                  setsPerMatch: 3,
+                  amount: 1000,
+                  eventState: "in_progress",
+                  teams: [{}, {}, {}, {}] as any
+                },
+                {
+                  id: "dummy-3",
+                  tournamentId: "dummy-system-1",
+                  name: "Mixed Doubles (Completed)",
+                  startDate: new Date().toISOString(),
+                  dueDate: new Date().toISOString(),
+                  pointsPerSet: 21,
+                  setsPerMatch: 3,
+                  amount: 800,
+                  eventState: "completed",
+                  teams: [{}, {}, {}, {}, {}, {}, {}, {}] as any
+                }
+              ]
+          };
+        } else {
+          tournamentData = await tournamentApi.getInfo(tournamentId);
+        }
 
         if (isActive) {
           setTournament(tournamentData ?? null);

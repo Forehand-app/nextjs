@@ -80,17 +80,17 @@ function CheckLine({
     <button
       type="button"
       onClick={() => onChange(!checked)}
-      className="surface-row flex h-10 w-full items-center justify-between px-3 text-[12px]"
+      className="flex h-10 w-full items-center justify-between px-3 text-[12px] bg-white border border-border rounded-input hover:bg-gray-50 transition-colors"
     >
-      <span>{text}</span>
+      <span className="font-medium text-gray-900">{text}</span>
       <span
-        className={`flex h-3.5 w-3.5 items-center justify-center rounded-[2px] border ${
+        className={`flex h-4 w-4 items-center justify-center rounded-[4px] border-2 transition-colors ${
           checked
-            ? "border-primary bg-primary text-primary-contrast"
-            : "border-border"
+            ? "border-primary bg-primary text-white"
+            : "border-border bg-transparent"
         }`}
       >
-        {checked && <Check size={10} />}
+        {checked && <Check size={11} />}
       </span>
     </button>
   );
@@ -122,19 +122,23 @@ export default function CourtSlider({ onBack, onStart }: CourtSliderProps) {
 
   const trackRef = useRef<HTMLDivElement>(null);
   const x = useMotionValue(0);
-  const [maxDrag, setMaxDrag] = useState(180);
+  const [maxDrag, setMaxDrag] = useState(200);
+
+  // THUMB constants (must match the style below exactly)
+  const THUMB_W = 70;  // px — width of the white pill
+  const SIDE_PAD = 12; // px — inset from each side inside the capsule
 
   useEffect(() => {
     const update = () => {
-      const trackWidth = trackRef.current?.offsetWidth ?? 240;
-      const handleWidth = handleRef.current?.offsetWidth ?? 36;
-      setMaxDrag(Math.max(0, trackWidth - handleWidth - 6));
+      const track = trackRef.current;
+      if (!track) return;
+      setMaxDrag(Math.max(0, track.clientWidth - THUMB_W - SIDE_PAD - SIDE_PAD));
     };
 
     update();
     window.addEventListener("resize", update);
     return () => window.removeEventListener("resize", update);
-  }, []);
+  }, [THUMB_W, SIDE_PAD]);
 
   const visibleSlots = form.doubles
     ? SLOT_ORDER
@@ -152,9 +156,11 @@ export default function CourtSlider({ onBack, onStart }: CourtSliderProps) {
 
   const handleSwipeEnd = () => {
     const current = x.get();
-    if (current >= maxDrag - 6 && canStart) {
-      animate(x, maxDrag, { duration: 0.15 });
-      setShowConfirmStart(true);
+    if (current >= maxDrag * 0.8 && canStart) {
+      animate(x, maxDrag, { type: "spring", stiffness: 500, damping: 30 });
+      window.setTimeout(() => {
+        setShowConfirmStart(true);
+      }, 200);
       return;
     }
     animate(x, 0, { type: "spring", stiffness: 360, damping: 24 });
@@ -400,26 +406,49 @@ export default function CourtSlider({ onBack, onStart }: CourtSliderProps) {
         </section>
 
         {/* Swipe to Start */}
-        <div
-          ref={trackRef}
-          className="relative flex h-14 w-full items-center overflow-hidden rounded-full bg-primary px-2 text-primary-contrast shadow-[0_10px_22px_rgba(255,122,26,0.28)]"
-        >
-          <motion.span
-            ref={handleRef}
-            drag="x"
-            dragConstraints={{ left: 0, right: maxDrag }}
-            dragElastic={0}
-            dragMomentum={false}
-            style={{ x }}
-            onDragEnd={handleSwipeEnd}
-            className="z-10 flex h-10 w-10 cursor-grab items-center justify-center rounded-full bg-white shadow-[0_4px_12px_rgba(120,49,0,0.22)] active:cursor-grabbing"
+        <div className="flex justify-center mt-6">
+          <div
+            ref={trackRef}
+            className={`relative flex h-14 w-full max-w-[340px] select-none items-center overflow-hidden rounded-full shadow-xl transition-opacity ${
+              canStart ? "opacity-100" : "opacity-60"
+            }`}
+            style={{
+              background: "linear-gradient(135deg,#ff8c00,#f97316)",
+              boxShadow: "0 8px 32px rgba(249,115,22,0.45)",
+            }}
           >
-            <ArrowRight className="text-primary" size={18} />
-          </motion.span>
+            {/* Centered label — sits behind thumb via z-index */}
+            <span className="pointer-events-none absolute inset-0 z-0 flex items-center justify-center text-[14px] font-bold tracking-wide text-white">
+              {canStart ? "Swipe to start match" : "Enter players to start"}
+            </span>
 
-          <span className="pointer-events-none absolute inset-0 flex items-center justify-center px-14 text-center text-[15px] font-bold">
-            {canStart ? "Swipe to start match" : "Enter players to start"}
-          </span>
+            {/* White pill thumb — fixed size, positioned with SIDE_PAD inset */}
+            <motion.button
+              drag={canStart ? "x" : false}
+              dragConstraints={{ left: 0, right: maxDrag }}
+              dragElastic={0}
+              dragMomentum={false}
+              style={{
+                x,
+                position: "absolute",
+                left: `${SIDE_PAD}px`,
+                height: "40px",
+                width: `${THUMB_W}px`,
+                minWidth: `${THUMB_W}px`,
+                flexShrink: 0,
+              }}
+              onDragEnd={handleSwipeEnd}
+              type="button"
+              aria-label="Swipe to start match"
+              className="z-10 touch-none cursor-grab flex items-center justify-center rounded-full bg-white shadow-md active:cursor-grabbing disabled:cursor-not-allowed"
+            >
+              {/* Orange arrow icon */}
+              <svg width={22} height={22} viewBox="0 0 24 24" fill="none" stroke="#f97316" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round">
+                <path d="M5 12h14" />
+                <path d="M12 5l7 7-7 7" />
+              </svg>
+            </motion.button>
+          </div>
         </div>
       </div>
 

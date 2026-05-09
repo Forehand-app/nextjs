@@ -31,6 +31,7 @@ export default function LiveMatchPage() {
   const [showSwitchServe, setShowSwitchServe] = useState(false);
   const [matchWinner, setMatchWinner] = useState<0 | 1 | null>(null);
   const [showExitConfirm, setShowExitConfirm] = useState(false);
+  const [showSwitchSides, setShowSwitchSides] = useState(false);
   const playerAName = searchParams.get("p1") || "Kunal Verma";
   const playerBName = searchParams.get("p2") || "Anil Kumar";
 
@@ -63,6 +64,25 @@ export default function LiveMatchPage() {
     [config, emit]
   );
 
+  const lastSetRef = React.useRef(state.currentSet);
+  const lastServerRef = React.useRef(state.serverSide);
+
+  React.useEffect(() => {
+    // Set changed -> Switch Sides
+    if (state.currentSet > lastSetRef.current) {
+      setShowSwitchSides(true);
+      lastSetRef.current = state.currentSet;
+    }
+    // Server changed -> Switch Serve
+    const currentScore = state.setScores[state.currentSet] || [0, 0];
+    const isFirstServe = currentScore[0] === 0 && currentScore[1] === 0 && state.currentSet === 0;
+
+    if (state.serverSide !== lastServerRef.current && !isFirstServe) {
+      setShowSwitchServe(true);
+    }
+    lastServerRef.current = state.serverSide;
+  }, [state.currentSet, state.serverSide, state.setScores]);
+
   const applyFaultAction = useCallback(
     (faultSide: 0 | 1) => {
       emit("fault", { side: faultSide });
@@ -73,7 +93,6 @@ export default function LiveMatchPage() {
         setMatchWinner(advanced.matchWinner);
         return advanced.state;
       });
-      setShowSwitchServe(true);
     },
     [config, emit]
   );
@@ -113,6 +132,7 @@ export default function LiveMatchPage() {
       sideALabel={playerAName}
       sideBLabel={playerBName}
       showSwitchServe={showSwitchServe}
+      showSwitchSides={showSwitchSides}
       showWinnerConfirm={matchWinner != null}
       showExitConfirm={showExitConfirm}
       onBack={() => setShowExitConfirm(true)}
@@ -121,9 +141,11 @@ export default function LiveMatchPage() {
       onUndo={undo}
       onSideARally={() => applyRallyAction(0)}
       onSideBRally={() => applyRallyAction(1)}
-      onSideAFault={() => applyFaultAction(0)}
       onSideBFault={() => applyFaultAction(1)}
-      onCloseSwitch={() => setShowSwitchServe(false)}
+      onCloseSwitch={() => {
+        setShowSwitchServe(false);
+        setShowSwitchSides(false);
+      }}
       onRestoreWinner={() => {
         undo();
         setMatchWinner(null);

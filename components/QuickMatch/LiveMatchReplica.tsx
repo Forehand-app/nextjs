@@ -34,6 +34,7 @@ interface LiveMatchReplicaProps {
   onConfirmWinner: () => void;
   winnerName?: string;
   winnerScore?: string;
+  showSwitchSides?: boolean;
 }
 
 function SetScoreText({ value }: { value: SetScore }) {
@@ -73,6 +74,7 @@ export default function LiveMatchReplica({
   onConfirmWinner,
   winnerName = "Kunal Verma",
   winnerScore = "",
+  showSwitchSides = false,
 }: LiveMatchReplicaProps) {
   const visibleSetScores: SetScore[] = Array.from({ length: bestOf }).map((_, index) => {
     const score = setScores[index];
@@ -93,29 +95,33 @@ export default function LiveMatchReplica({
         </header>
 
         {/* Match Overview */}
-        <section className="mb-3 rounded-card border border-border bg-surface p-3">
-          <div className="mb-2 flex items-center justify-between">
-            <h2 className="text-[14px] font-semibold">Match Overview</h2>
-            <button type="button" onClick={onUndo} className="inline-flex items-center gap-1 text-[11px] text-primary">
-              <RotateCcw size={12} /> Undo
+        <section className="mb-4 rounded-[24px] border border-border bg-white dark:bg-surface p-5 shadow-sm">
+          <div className="mb-4 flex items-center justify-between">
+            <h2 className="text-[15px] font-bold">Match Overview</h2>
+            <button
+              type="button"
+              onClick={onUndo}
+              className="inline-flex items-center gap-1.5 text-xs font-bold text-primary active:scale-95 transition-transform"
+            >
+              <RotateCcw size={14} strokeWidth={2.5} /> Undo
             </button>
           </div>
 
-          <div className="grid grid-cols-2 gap-2">
-            <div className="rounded-[8px] border border-border bg-surface-elevated p-1.5 text-center">
-              <div className="mb-1.5 flex h-6 items-center justify-between rounded-[6px] border border-border bg-background px-2 text-[10px] text-muted">
-                Match Admin
-                <ChevronDown size={12} />
+          <div className="grid grid-cols-2 gap-4">
+            <div className="rounded-2xl border border-border bg-gray-50 dark:bg-white/5 p-1.5">
+              <div className="flex items-center justify-between px-2 py-1 mb-1 border-b border-border">
+                <span className="text-[10px] text-muted font-bold uppercase tracking-wider">Change Scorer</span>
+                <ChevronDown size={12} className="text-muted" />
               </div>
-              <p className="text-[12px] font-semibold">Alex Costa</p>
+              <p className="py-1 text-sm font-bold text-center">Alex Costa</p>
             </div>
 
-            <div className="rounded-[8px] border border-border bg-surface-elevated p-1.5 text-center">
-              <div className="mb-1.5 flex h-6 items-center justify-between rounded-[6px] border border-border bg-background px-2 text-[10px] text-muted">
-                Match Timer
-                <span className="text-[11px]">?</span>
+            <div className="rounded-2xl border border-border bg-gray-50 dark:bg-white/5 p-1.5">
+              <div className="flex items-center justify-between px-2 py-1 mb-1 border-b border-border">
+                <span className="text-[10px] text-muted font-bold uppercase tracking-wider">Match Timer</span>
+                <TimerReset size={12} className="text-muted" />
               </div>
-              <p className="text-[12px] font-semibold">00:23:45</p>
+              <p className="py-1 text-sm font-bold text-center tabular-nums">00:23:45</p>
             </div>
           </div>
         </section>
@@ -198,19 +204,43 @@ export default function LiveMatchReplica({
 
       {/* Switch Serve Dialog */}
       {showSwitchServe && (
-        <div className="fixed inset-0 z-[280] bg-black/50 backdrop-blur-[3px] flex items-center justify-center">
-          <div className="surface-popup w-[90%] max-w-[360px] p-4 text-center">
-            <div className="mx-auto mb-2 flex h-8 w-8 items-center justify-center text-primary">
-              <TimerReset size={20} />
+        <div className="fixed inset-0 z-[280] bg-black/40 backdrop-blur-[4px] flex items-center justify-center p-6" onClick={onCloseSwitch}>
+          <div className="bg-white dark:bg-surface w-full max-w-[340px] rounded-[28px] p-8 text-center shadow-2xl animate-in zoom-in-95 duration-200" onClick={e => e.stopPropagation()}>
+            <div className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-full bg-orange-100 dark:bg-orange-500/10">
+              <TimerReset size={28} className="text-primary" strokeWidth={2.5} />
             </div>
-            <h3 className="text-[28px] font-semibold leading-none">Switch Serve Now</h3>
-            <p className="mx-auto mt-1 max-w-[250px] text-[13px] text-muted">
+            <h3 className="text-2xl font-bold leading-tight tracking-tight">Switch Serve Now</h3>
+            <p className="mx-auto mt-2 mb-8 text-sm text-muted leading-relaxed px-4">
               It&apos;s time for the players to switch serve on the court.
             </p>
             <button
               type="button"
               onClick={onCloseSwitch}
-              className="mt-3 h-10 w-full rounded-xl bg-primary text-[16px] font-semibold text-primary-contrast"
+              className="h-14 w-full rounded-[20px] font-bold text-white text-base transition-all active:scale-[0.98] shadow-lg shadow-orange-500/25"
+              style={{ background: "linear-gradient(135deg,#ff8c00,#f97316)" }}
+            >
+              Switch Sides
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Switch Sides Dialog (Set End) */}
+      {showSwitchSides && (
+        <div className="fixed inset-0 z-[282] bg-black/40 backdrop-blur-[4px] flex items-center justify-center p-6" onClick={onCloseSwitch}>
+          <div className="bg-white dark:bg-surface w-full max-w-[340px] rounded-[28px] p-8 text-center shadow-2xl animate-in zoom-in-95 duration-200" onClick={e => e.stopPropagation()}>
+            <div className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-full bg-orange-100 dark:bg-orange-500/10">
+              <TimerReset size={28} className="text-primary" strokeWidth={2.5} />
+            </div>
+            <h3 className="text-2xl font-bold leading-tight tracking-tight">Switch Sides Now</h3>
+            <p className="mx-auto mt-2 mb-8 text-sm text-muted leading-relaxed px-4">
+              The set has ended. Players must switch sides of the court.
+            </p>
+            <button
+              type="button"
+              onClick={onCloseSwitch}
+              className="h-14 w-full rounded-[20px] font-bold text-white text-base transition-all active:scale-[0.98] shadow-lg shadow-orange-500/25"
+              style={{ background: "linear-gradient(135deg,#ff8c00,#f97316)" }}
             >
               Switch Sides
             </button>
@@ -220,27 +250,27 @@ export default function LiveMatchReplica({
 
       {/* Exit Confirm Dialog */}
       {showExitConfirm && (
-        <div className="fixed inset-0 z-[285] bg-black/50 backdrop-blur-[3px] flex items-center justify-center">
-          <div className="surface-popup w-[90%] max-w-[360px] p-4 text-center">
-            <div className="mx-auto mb-2 flex h-8 w-8 items-center justify-center text-primary">
-              <TimerReset size={20} />
+        <div className="fixed inset-0 z-[285] bg-black/40 backdrop-blur-[4px] flex items-center justify-center p-6" onClick={onCloseExitConfirm}>
+          <div className="bg-white dark:bg-surface w-full max-w-[340px] rounded-[28px] p-8 text-center shadow-2xl animate-in zoom-in-95 duration-200" onClick={e => e.stopPropagation()}>
+            <h3 className="text-2xl font-bold leading-tight tracking-tight">Leave Match?</h3>
+            <div className="mt-2 mb-8 flex items-start gap-2 text-left bg-orange-50 dark:bg-orange-500/5 p-4 rounded-2xl">
+              <TimerReset size={18} className="shrink-0 text-primary mt-0.5" />
+              <p className="text-sm text-muted leading-relaxed">
+                Are you sure? The match will not be saved and you will return to match setup.
+              </p>
             </div>
-            <h3 className="text-[24px] font-semibold leading-none">Leave Match?</h3>
-            <p className="mx-auto mt-1 max-w-[250px] text-[13px] text-muted">
-              Are you sure? The match will not be saved and you will return to match setup.
-            </p>
-            <div className="mt-3 grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-2 gap-3">
               <button
                 type="button"
                 onClick={onCloseExitConfirm}
-                className="surface-row h-10 rounded-xl text-[14px] font-semibold"
+                className="h-12 rounded-[16px] bg-gray-100 dark:bg-white/10 text-sm font-bold"
               >
                 Continue
               </button>
               <button
                 type="button"
                 onClick={onConfirmExit}
-                className="h-10 rounded-xl bg-primary text-[14px] font-semibold text-primary-contrast"
+                className="h-12 rounded-[16px] bg-red-500 text-white text-sm font-bold shadow-lg shadow-red-500/20"
               >
                 Yes, Leave
               </button>

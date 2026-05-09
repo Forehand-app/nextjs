@@ -9,6 +9,7 @@ import { TrophyIcon, MapPinIcon, CalendarIcon, WalletIcon, FilterIcon, EditIcon,
 import { toQuery } from "@/lib/utils";
 import { tournamentApi } from "@/lib/api/tournamentApi";
 import { TournamentData } from "@/lib/models";
+import OrgTournamentCard from "@/components/OrgTournamentCard";
 
 
 const tabs: TabItem[] = [
@@ -88,10 +89,70 @@ export default function OrgTournamentsPage() {
         setErrorMessage("");
         setIsLoading(true);
 
-        const tournaments = await tournamentApi.getOrganizationTournaments(orgId!);
+        const loadedTournaments = await tournamentApi.getOrganizationTournaments(orgId!);
 
         if (isActive) {
-          setTournaments(Array.isArray(tournaments) ? tournaments : []);
+          const tList = Array.isArray(loadedTournaments) ? [...loadedTournaments] : [];
+          
+          if (!tList.find(t => t.id === "dummy-system-1")) {
+            tList.unshift({
+              id: "dummy-system-1",
+              organizationId: orgId || "org-1",
+              name: "System Dummy Tournament",
+              description: "A dummy tournament showing various event states",
+              startDate: new Date().toISOString(),
+              venueName: "Dummy Arena",
+              venueAddress: "123 Fake St",
+              venueCity: "Mumbai",
+              venueState: "MH",
+              venuePostalCode: "400001",
+              venueCourts: 4,
+              contactName: "Admin",
+              contactEmail: "admin@dummy.com",
+              contactPhone: "9999999999",
+              tournamentState: "live",
+              events: [
+                {
+                  id: "dummy-1",
+                  tournamentId: "dummy-system-1",
+                  name: "Men's Singles (Just Created)",
+                  startDate: new Date().toISOString(),
+                  dueDate: new Date().toISOString(),
+                  pointsPerSet: 21,
+                  setsPerMatch: 3,
+                  amount: 500,
+                  eventState: "created",
+                  teams: []
+                },
+                {
+                  id: "dummy-2",
+                  tournamentId: "dummy-system-1",
+                  name: "Women's Doubles (In Progress)",
+                  startDate: new Date().toISOString(),
+                  dueDate: new Date().toISOString(),
+                  pointsPerSet: 21,
+                  setsPerMatch: 3,
+                  amount: 1000,
+                  eventState: "in_progress",
+                  teams: [{}, {}, {}, {}] as any
+                },
+                {
+                  id: "dummy-3",
+                  tournamentId: "dummy-system-1",
+                  name: "Mixed Doubles (Completed)",
+                  startDate: new Date().toISOString(),
+                  dueDate: new Date().toISOString(),
+                  pointsPerSet: 21,
+                  setsPerMatch: 3,
+                  amount: 800,
+                  eventState: "completed",
+                  teams: [{}, {}, {}, {}, {}, {}, {}, {}] as any
+                }
+              ]
+            } as TournamentData);
+          }
+
+          setTournaments(tList);
         }
       } catch (error) {
         if (!isActive) return;
@@ -143,15 +204,6 @@ export default function OrgTournamentsPage() {
           </Link>
         </div>
 
-        {/* Filter Button */}
-        <button
-          onClick={() => setShowFilters(!showFilters)}
-          className="flex items-center gap-2 text-sm"
-        >
-          <FilterIcon size={16} className="text-[var(--color-muted)]" />
-          <span className="text-[var(--color-muted)]">Filters</span>
-        </button>
-
         {/* Tabs */}
         <Tabs
           tabs={tabs}
@@ -184,48 +236,18 @@ export default function OrgTournamentsPage() {
                 </p>
               </div>
             ) : visibleTournaments.map((t) => (
-              <Link
+              <OrgTournamentCard
                 key={t.id}
+                id={t.id || ""}
+                name={t.name || "Untitled Tournament"}
+                subtitle={t.description || getPrimarySport(t)}
+                badgeLabel={getGenderLabel(t)}
+                location={[t.venueCity, t.venueState].filter(Boolean).join(", ") || t.venueName || "Venue TBA"}
+                eventsCount={t.events?.length ?? 0}
+                date={formatDate(t.startDate)}
+                entryFee={getEntryFee(t)}
                 href={`/org/tournaments/detail${toQuery({ t: t.id })}`}
-                className="relative flex flex-col p-5 bg-[var(--color-surface)] border border-[var(--color-border)] rounded-[var(--radius-card)] hover:shadow-[var(--shadow-card-hover)] transition-all overflow-hidden"
-              >
-                <div className="flex items-start justify-between mb-5">
-                  <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-                      <TrophyIcon size={24} className="text-primary" />
-                    </div>
-                    <div>
-                      <h4 className="text-xl font-bold text-[var(--color-text)] leading-tight">{t.name || "Untitled Tournament"}</h4>
-                      <p className="text-sm text-[var(--color-muted)] mt-1">
-                        {t.description || getPrimarySport(t)}
-                      </p>
-                    </div>
-                  </div>
-                  <span
-                    className="shrink-0 px-3 py-1 rounded-full text-xs font-semibold bg-[var(--badge-success-bg)] text-[var(--badge-success-text)]"
-                  >
-                    {getGenderLabel(t)}
-                  </span>
-                </div>
-                <div className="grid grid-cols-2 gap-y-4 gap-x-4">
-                  <div className="flex items-center gap-2 text-sm text-[var(--color-muted)]">
-                    <MapPinIcon size={16} className="shrink-0" />
-                    <span className="truncate">{[t.venueCity, t.venueState].filter(Boolean).join(", ") || t.venueName || "Venue TBA"}</span>
-                  </div>
-                  <div className="flex items-center gap-2 text-sm text-[var(--color-muted)]">
-                    <UsersIcon size={16} className="shrink-0" />
-                    <span>{t.events?.length ?? 0} Events</span>
-                  </div>
-                  <div className="flex items-center gap-2 text-sm text-[var(--color-muted)]">
-                    <CalendarIcon size={16} className="shrink-0" />
-                    <span>{formatDate(t.startDate)}</span>
-                  </div>
-                  <div className="flex items-center gap-2 text-sm text-[var(--color-muted)]">
-                    <WalletIcon size={16} className="shrink-0" />
-                    <span>{getEntryFee(t)}</span>
-                  </div>
-                </div>
-              </Link>
+              />
             ))}
           </div>
         )}
@@ -248,43 +270,18 @@ export default function OrgTournamentsPage() {
                 </p>
               </div>
             ) : visibleTournaments.map((t) => (
-              <Link
+              <OrgTournamentCard
                 key={t.id}
+                id={t.id || ""}
+                name={t.name || "Untitled Tournament"}
+                subtitle={getPrimarySport(t)}
+                badgeLabel="Completed"
+                location={[t.venueCity, t.venueState].filter(Boolean).join(", ") || t.venueName || "Venue TBA"}
+                eventsCount={t.events?.length ?? 0}
+                date={formatDate(t.startDate)}
+                entryFee={getEntryFee(t)}
                 href={`/org/tournaments/detail${toQuery({ t: t.id })}`}
-                className="relative block p-5 bg-[var(--color-surface)] border border-[var(--color-border)] rounded-[var(--radius-card)] hover:shadow-[var(--shadow-card-hover)] transition-all"
-              >
-                <div className="flex items-start justify-between mb-6">
-                  <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-                      <TrophyIcon size={24} className="text-primary" />
-                    </div>
-                    <div>
-                      <h4 className="text-lg font-bold text-[var(--color-text)] leading-tight">{t.name || "Untitled Tournament"}</h4>
-                      <p className="text-sm text-[var(--color-muted)] mt-1">{getPrimarySport(t)}</p>
-                    </div>
-                  </div>
-                  <div className="text-[var(--color-muted)] flex-shrink-0 mt-1">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m9 18 6-6-6-6" /></svg>
-                  </div>
-                </div>
-
-                <div className="flex justify-between items-end">
-                  <div className="flex flex-col gap-3">
-                    <div className="flex items-center gap-2 text-sm text-[var(--color-muted)]">
-                      <MapPinIcon size={16} className="shrink-0" />
-                      <span className="truncate">{[t.venueCity, t.venueState].filter(Boolean).join(", ") || t.venueName || "Venue TBA"}</span>
-                    </div>
-                    <div className="flex items-center gap-2 text-sm text-[var(--color-muted)]">
-                      <CalendarIcon size={16} className="shrink-0" />
-                      <span>{formatDate(t.startDate)}</span>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2 text-sm text-[var(--color-muted)]">
-                    <UsersIcon size={16} className="shrink-0" />
-                    <span>{t.events?.length ?? 0} Events</span>
-                  </div>
-                </div>
-              </Link>
+              />
             ))}
           </div>
         )}
@@ -344,89 +341,6 @@ export default function OrgTournamentsPage() {
           </div>
         )}
 
-        {/* Filters Modal */}
-        {showFilters && (
-          <>
-            <div
-              className="fixed inset-0 z-50 bg-black/40"
-              onClick={() => setShowFilters(false)}
-            />
-            <div className="fixed bottom-0 left-0 right-0 z-50 bg-[var(--color-surface)] rounded-t-2xl p-4 space-y-4">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="font-semibold">Refine Results</h3>
-                <button className="text-primary text-sm">Reset All</button>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium mb-2">
-                  Select Sport
-                </label>
-                <div className="flex flex-wrap gap-2">
-                  {["All", "Table Tennis", "Badminton", "Padel", "Pickleball", "Squash"].map(
-                    (sport) => (
-                      <button
-                        key={sport}
-                        className={`px-3 py-1.5 rounded-full text-sm ${sport === "All"
-                          ? "bg-primary text-white"
-                          : "bg-[var(--color-surface-elevated)] hover:border-primary"
-                          }`}
-                      >
-                        {sport}
-                      </button>
-                    )
-                  )}
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium mb-2">
-                  Search location
-                </label>
-                <input
-                  type="text"
-                  placeholder="Type city or venue..."
-                  className="w-full px-4 py-3 rounded-lg bg-[var(--color-surface-elevated)] border border-[var(--color-border)] text-[var(--color-text)] focus:border-primary focus:outline-none"
-                />
-                <div className="flex flex-wrap gap-2 mt-2">
-                  {["Raipur", "Indore", "Goa", "Delhi", "Mumbai"].map((city) => (
-                    <span
-                      key={city}
-                      className="px-3 py-1 rounded-full text-xs bg-[var(--color-surface-elevated)]"
-                    >
-                      {city}
-                    </span>
-                  ))}
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium mb-2">
-                  Schedule Window
-                </label>
-                <div className="grid grid-cols-2 gap-3">
-                  <input
-                    type="text"
-                    placeholder="DD-MM-YYYY"
-                    className="px-4 py-3 rounded-lg bg-[var(--color-surface-elevated)] border border-[var(--color-border)] text-[var(--color-text)] text-sm"
-                  />
-                  <input
-                    type="text"
-                    placeholder="DD-MM-YYYY"
-                    className="px-4 py-3 rounded-lg bg-[var(--color-surface-elevated)] border border-[var(--color-border)] text-[var(--color-text)] text-sm"
-                  />
-                </div>
-              </div>
-
-              <button
-                onClick={() => setShowFilters(false)}
-                className="w-full py-3 rounded-xl font-semibold text-white"
-                style={{ background: "var(--gradient-orange)" }}
-              >
-                Apply Changes
-              </button>
-            </div>
-          </>
-        )}
       </div>
     </Layout>
   );

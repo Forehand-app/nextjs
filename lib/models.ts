@@ -73,7 +73,16 @@ export interface TournamentData {
     events?: EventData[] | null;
 }
 
-export type EventState = 'created'; // Add more states as needed
+export type EventState =
+  | "created"
+  | "registration_closed"
+  | "participants_finalized"
+  | "scheduled"
+  | "in_progress"
+  | "round_over"
+  | "completed"
+  | "cancelled";
+
 
 export interface EventData {
     id?: string | null;

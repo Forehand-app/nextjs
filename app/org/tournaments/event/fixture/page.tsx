@@ -14,7 +14,7 @@ import {
   TrophyIcon,
   TrashIcon
 } from "@/components/Icons";
-import { useClientSearchParams } from "@/lib/useClientSearchParams";
+import { useSearchParams } from "next/navigation";
 
 // --- INITIAL MOCK STATE ---
 const initialUnassigned = [
@@ -41,7 +41,7 @@ const initialMatches = {
 };
 
 export default function FixtureSetupPage() {
-  const searchParams = useClientSearchParams();
+  const searchParams = useSearchParams();
   const router = useRouter();
   const tournamentId = searchParams.get("tournamentId") || "1";
   const eventId = searchParams.get("eventId") || "1";
