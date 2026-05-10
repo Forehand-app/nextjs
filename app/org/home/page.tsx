@@ -202,6 +202,7 @@ export default function OrgHomePage() {
   const matchContainerRef = useRef<HTMLDivElement>(null);
   const { activeOrganization: organization } = useApp();
   const [tournaments, setTournaments] = useState<TournamentData[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     let active = true;
@@ -209,6 +210,7 @@ export default function OrgHomePage() {
 
     if (!orgId) {
       setTournaments([]);
+      setIsLoading(false);
       return;
     }
 
@@ -221,6 +223,8 @@ export default function OrgHomePage() {
         if (!active) return;
         console.error("Failed to load org tournaments", error);
         setTournaments([]);
+      } finally {
+        if (active) setIsLoading(false);
       }
     };
 
@@ -287,8 +291,31 @@ export default function OrgHomePage() {
             </Link>
           </div>
 
-          {liveTournaments.length === 0 ? (
-            <div className="card p-4 text-sm text-[var(--color-muted)]">No live tournaments right now.</div>
+          {isLoading ? (
+            <div className="no-scrollbar -mx-4 flex gap-4 overflow-x-auto px-4 pb-4">
+              {[1, 2].map((i) => (
+                <div key={i} className="card min-w-[85%] p-4 animate-pulse">
+                  <div className="mb-3 flex items-center justify-between">
+                    <div className="h-3 w-12 rounded-full bg-[var(--color-surface-elevated)]" />
+                    <div className="h-3 w-16 rounded-full bg-[var(--color-surface-elevated)]" />
+                  </div>
+                  <div className="h-5 w-3/4 rounded-md bg-[var(--color-surface-elevated)] mb-2" />
+                  <div className="h-3 w-1/2 rounded-md bg-[var(--color-surface-elevated)]" />
+                  <div className="mt-4 border-t border-[var(--color-border)] pt-3 flex justify-between">
+                    <div className="h-3 w-16 rounded-md bg-[var(--color-surface-elevated)]" />
+                    <div className="h-3 w-12 rounded-md bg-[var(--color-surface-elevated)]" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : liveTournaments.length === 0 ? (
+            <div className="card flex flex-col items-center justify-center p-8 text-center bg-[var(--color-surface)] border-dashed border-2">
+              <div className="w-12 h-12 rounded-full bg-[var(--color-surface-elevated)] flex items-center justify-center mb-3">
+                <TimerIcon size={24} className="text-[var(--color-muted)] opacity-50" />
+              </div>
+              <p className="text-sm font-semibold text-[var(--color-text-secondary)]">No live tournaments</p>
+              <p className="text-xs text-[var(--color-muted)] mt-1">When you start a tournament, it will appear here.</p>
+            </div>
           ) : (
             <>
               <motion.div

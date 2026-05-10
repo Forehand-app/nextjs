@@ -1,3 +1,4 @@
+import Script from "next/script";
 import type { Metadata, Viewport } from "next";
 import { DM_Sans } from "next/font/google";
 import "./globals.css";
@@ -36,13 +37,15 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en" suppressHydrationWarning>
       <head>
         <link rel="stylesheet" href="https://fonts.cdnfonts.com/css/zalando-sans" />
-        <script
+      </head>
+      <body className={`${dmSans.variable} subpixel-antialiased`}>
+        <Script
+          id="theme-init"
+          strategy="beforeInteractive"
           dangerouslySetInnerHTML={{
             __html: `(function(){var s=localStorage.getItem('forehand:theme');var d=document.documentElement;if(s==='dark')d.classList.add('dark');else if(s==='light')d.classList.remove('dark');else if(window.matchMedia('(prefers-color-scheme: dark)').matches)d.classList.add('dark');else d.classList.remove('dark');})();`,
           }}
         />
-      </head>
-      <body className={`${dmSans.variable} subpixel-antialiased`}>
         <AppProvider>
           <ThemeProvider>
             <ClientInit />

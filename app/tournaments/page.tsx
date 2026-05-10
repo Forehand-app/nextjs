@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import {
   FilterIcon,
   SearchIcon,
@@ -13,6 +14,24 @@ import { notificationApi } from "@/lib/api/notificationApi";
 import PageHeader from "@/components/PageHeader";
 import TournamentFilterDrawer from "@/components/TournamentFilterDrawer";
 import { SlidersIcon } from "@/components/Icons";
+
+function BellIcon({ size = 20 }: { size?: number }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={2}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
+      <path d="M13.73 21a2 2 0 0 1-3.46 0" />
+    </svg>
+  );
+}
 
 type TopTab = "browse" | "joined" | "history";
 type FormatTab = "all" | "singles" | "doubles";
@@ -179,42 +198,93 @@ export default function TournamentsPage() {
   return (
     <>
       <div className="min-h-screen bg-[var(--color-background)] text-[var(--color-text)]">
-        <PageHeader
-          title="Tournaments"
-          subtitle="Browse and join tournaments"
-          hideTopRow={false}
+        <div className="bg-primary rounded-b-[32px] px-5 pt-10 pb-6 shadow-lg relative z-10 overflow-hidden">
+          {/* Header Row */}
+          <div className="flex items-center gap-4 mb-6">
+            <Link href="/user/settings" className="shrink-0">
+              <div className="w-14 h-14 rounded-full border-2 border-white/30 bg-white/20 overflow-hidden flex items-center justify-center shadow-md transition-transform active:scale-95">
+                {userProfile?.profilePicUrl ? (
+                  <img
+                    src={userProfile.profilePicUrl}
+                    alt="Profile"
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <span className="text-xl font-bold text-white">
+                    {userInitial}
+                  </span>
+                )}
+              </div>
+            </Link>
+
+            <div className="flex flex-col min-w-0">
+              <h1 className="text-[24px] font-bold leading-tight tracking-tight truncate text-white">
+                Tournaments
+              </h1>
+              <p className="text-[14px] text-white/80 font-medium tracking-wide truncate">
+                Browse and join tournaments
+              </p>
+            </div>
+
+            <div className="ml-auto">
+              <button
+                onClick={() => setNotificationsOpen(true)}
+                className="relative w-12 h-12 rounded-full bg-white/20 border border-white/30 flex items-center justify-center hover:bg-white/30 transition-all active:scale-95 shadow-sm text-white"
+                aria-label="Notifications"
+              >
+                <BellIcon size={24} />
+                {unreadCount > 0 && (
+                  <span className="absolute -top-1 -right-1 w-5 h-5 bg-white text-primary text-[10px] font-bold rounded-full flex items-center justify-center border-2 border-primary">
+                    {unreadCount}
+                  </span>
+                )}
+              </button>
+            </div>
+          </div>
+
+          {/* Search Bar */}
+          <div className="mb-6">
+            <label className="flex h-14 items-center gap-3 rounded-[20px] bg-white px-4 text-gray-400 shadow-md focus-within:ring-2 focus-within:ring-white/20 transition-all">
+              <SearchIcon size={22} className="opacity-60 text-gray-500" />
+              <input
+                type="text"
+                placeholder="Search tournaments, cities..."
+                className="w-full bg-transparent text-[16px] text-gray-800 outline-none placeholder:text-gray-400 font-medium"
+              />
+            </label>
+          </div>
+
+          {/* Centered Tabs */}
+          <div className="flex items-center justify-center gap-10">
+            {(["browse", "joined", "history"] as TopTab[]).map((tab) => (
+              <button
+                key={tab}
+                onClick={() => setActiveTab(tab)}
+                className={`relative py-2 text-[16px] font-bold capitalize transition-all ${
+                  activeTab === tab
+                    ? "text-white"
+                    : "text-white/60 hover:text-white/80"
+                }`}
+              >
+                {tab}
+                {activeTab === tab && (
+                  <div className="absolute -bottom-1 left-0 right-0 h-[3px] bg-white rounded-t-full shadow-[0_-2px_10px_rgba(255,255,255,0.4)]" />
+                )}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <NotificationsSlideOver
+          open={notificationsOpen}
+          onClose={() => setNotificationsOpen(false)}
+          items={notifications}
+          unreadCount={unreadCount}
+          onMarkAllRead={() =>
+            setReadIds(new Set(notifications.map((n) => n.id)))
+          }
+          onClearAll={() => setNotifications([])}
         />
-
-
-        <div className="px-5 py-3">
-          <label className="flex h-14 items-center gap-3 rounded-[18px] border border-[var(--color-border)] bg-[var(--color-surface-elevated)] px-4 text-[var(--color-muted)] shadow-sm focus-within:border-primary/50 transition-all">
-            <SearchIcon size={22} className="opacity-70" />
-            <input
-              type="text"
-              placeholder="Search tournaments, cities..."
-              className="w-full bg-transparent text-[16px] text-[var(--color-text)] outline-none placeholder:text-[var(--color-muted)]"
-            />
-          </label>
-        </div>
-
-        <div className="flex items-center justify-center gap-10 px-5 border-b border-[var(--color-border)]">
-          {(["browse", "joined", "history"] as TopTab[]).map((tab) => (
-            <button
-              key={tab}
-              onClick={() => setActiveTab(tab)}
-              className={`relative py-4 text-[16px] font-bold capitalize transition-all ${
-                activeTab === tab
-                  ? "text-[var(--color-text)]"
-                  : "text-[var(--color-text-secondary)] opacity-50 hover:opacity-80"
-              }`}
-            >
-              {tab}
-              {activeTab === tab && (
-                <div className="absolute bottom-0 left-0 right-0 h-[3px] bg-primary rounded-t-full shadow-[0_-2px_10px_rgba(255,122,26,0.4)]" />
-              )}
-            </button>
-          ))}
-        </div>
 
         <div className="px-5 py-5 flex items-center gap-4">
           <button

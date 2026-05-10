@@ -136,14 +136,21 @@ export default function PageHeader({
             </div>
           </div>
         ) : (
-          <div className="flex flex-col gap-1.5">
-            <h1 className="text-[32px] font-extrabold leading-tight tracking-tight">
-              {title}
-            </h1>
-            {subtitle && (
-              <p className="text-[15px] text-white/70 font-medium tracking-wide">
-                {subtitle}
-              </p>
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex flex-col gap-1.5 min-w-0">
+              <h1 className="text-[32px] font-extrabold leading-tight tracking-tight text-[var(--color-text)]">
+                {title}
+              </h1>
+              {subtitle && (
+                <p className="text-[15px] text-[var(--color-text-secondary)] font-medium tracking-wide opacity-80">
+                  {subtitle}
+                </p>
+              )}
+            </div>
+            {action && (
+              <div className="shrink-0">
+                {action}
+              </div>
             )}
           </div>
         )}

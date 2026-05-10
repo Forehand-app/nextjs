@@ -114,64 +114,6 @@ export default function OrgTournamentsPage() {
             ? [...loadedTournaments]
             : [];
 
-          if (!tList.find((t) => t.id === "dummy-system-1")) {
-            tList.unshift({
-              id: "dummy-system-1",
-              organizationId: orgId || "org-1",
-              name: "System Dummy Tournament",
-              description: "A dummy tournament showing various event states",
-              startDate: new Date().toISOString(),
-              venueName: "Dummy Arena",
-              venueAddress: "123 Fake St",
-              venueCity: "Mumbai",
-              venueState: "MH",
-              venuePostalCode: "400001",
-              venueCourts: 4,
-              contactName: "Admin",
-              contactEmail: "admin@dummy.com",
-              contactPhone: "9999999999",
-              tournamentState: "in_progress",
-              events: [
-                {
-                  id: "dummy-1",
-                  tournamentId: "dummy-system-1",
-                  name: "Men's Singles (Just Created)",
-                  startDate: new Date().toISOString(),
-                  dueDate: new Date().toISOString(),
-                  pointsPerSet: 21,
-                  setsPerMatch: 3,
-                  amount: 500,
-                  eventState: "created",
-                  teams: [],
-                },
-                {
-                  id: "dummy-2",
-                  tournamentId: "dummy-system-1",
-                  name: "Women's Doubles (In Progress)",
-                  startDate: new Date().toISOString(),
-                  dueDate: new Date().toISOString(),
-                  pointsPerSet: 21,
-                  setsPerMatch: 3,
-                  amount: 1000,
-                  eventState: "in_progress",
-                  teams: [{}, {}, {}, {}] as any,
-                },
-                {
-                  id: "dummy-3",
-                  tournamentId: "dummy-system-1",
-                  name: "Mixed Doubles (Completed)",
-                  startDate: new Date().toISOString(),
-                  dueDate: new Date().toISOString(),
-                  pointsPerSet: 21,
-                  setsPerMatch: 3,
-                  amount: 800,
-                  eventState: "completed",
-                  teams: [{}, {}, {}, {}, {}, {}, {}, {}] as any,
-                },
-              ],
-            } as TournamentData);
-          }
-
           setTournaments(tList);
         }
       } catch (error) {
@@ -252,9 +194,25 @@ export default function OrgTournamentsPage() {
         {activeTab !== "drafts" && activeTab !== "past" && (
           <div className="space-y-4">
             {isLoading ? (
-              <p className="text-center text-sm text-[var(--color-muted)] py-8">
-                Loading tournaments...
-              </p>
+              <div className="space-y-4">
+                {[1, 2, 3].map((i) => (
+                  <div key={i} className="bg-[var(--color-surface)] rounded-[var(--radius-card)] p-5 border border-[var(--color-border)] animate-pulse">
+                    <div className="flex items-start justify-between mb-4">
+                      <div className="flex gap-3 w-full">
+                        <div className="w-12 h-12 rounded-full bg-[var(--color-surface-elevated)]" />
+                        <div className="flex-1 space-y-2">
+                          <div className="h-5 w-3/4 bg-[var(--color-surface-elevated)] rounded" />
+                          <div className="h-3 w-1/2 bg-[var(--color-surface-elevated)] rounded" />
+                        </div>
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="h-3 w-full bg-[var(--color-surface-elevated)] rounded" />
+                      <div className="h-3 w-full bg-[var(--color-surface-elevated)] rounded" />
+                    </div>
+                  </div>
+                ))}
+              </div>
             ) : errorMessage ? (
               <p className="rounded-xl border border-[var(--color-border)] bg-red-500/10 px-4 py-3 text-sm font-medium text-[var(--color-error)]">
                 {errorMessage}
@@ -340,9 +298,14 @@ export default function OrgTournamentsPage() {
         {activeTab === "drafts" && (
           <div className="space-y-4">
             {isLoading ? (
-              <p className="text-center text-sm text-[var(--color-muted)] py-8">
-                Loading drafts...
-              </p>
+              <div className="space-y-4">
+                {[1, 2].map((i) => (
+                  <div key={i} className="bg-[var(--color-surface)] rounded-[var(--radius-card)] p-6 border-2 border-dashed border-[var(--color-border)] animate-pulse">
+                    <div className="h-6 w-1/2 bg-[var(--color-surface-elevated)] rounded mb-4" />
+                    <div className="h-4 w-full bg-[var(--color-surface-elevated)] rounded" />
+                  </div>
+                ))}
+              </div>
             ) : visibleTournaments.length === 0 ? (
               <div className="text-center py-12">
                 <div className="w-20 h-20 mx-auto bg-[var(--color-surface-elevated)] rounded-full flex items-center justify-center mb-4">

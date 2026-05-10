@@ -32,50 +32,33 @@ export default function CreateProfileModal({
         onClick={onClose}
         aria-label="Close modal"
       />
-      <div className="relative z-10 w-full rounded-t-[28px] bg-[#3a2a57] px-5 pb-[max(env(safe-area-inset-bottom),24px)] pt-3 shadow-[0_-10px_30px_rgba(0,0,0,0.3)]">
-        <div className="mx-auto h-1.5 w-12 rounded-full bg-white/20" />
+      <div className="relative z-10 w-full rounded-t-[28px] bg-[var(--color-surface)] px-5 pb-[max(env(safe-area-inset-bottom),24px)] pt-3 shadow-[0_-10px_30px_rgba(0,0,0,0.2)] border-t border-[var(--color-border)]">
+        <div className="mx-auto h-1.5 w-12 rounded-full bg-[var(--color-muted)] opacity-30" />
 
         <div className="mt-6">
-          <h2 className="text-[24px] font-bold text-white">Create Profile</h2>
-          <p className="mt-2 text-[15px] text-[#b2abc8]">
-            Choose the type of profile you want to set up today.
+          <h2 className="text-[24px] font-bold text-[var(--color-text)]">Create Profile</h2>
+          <p className="mt-2 text-[15px] text-[var(--color-text-secondary)]">
+            Set up an organization profile to start managing tournaments and events.
           </p>
         </div>
 
-        <div className="mt-8 space-y-4">
+        <div className="mt-8">
           <Link
             href="/org/create"
-            className="flex items-center gap-4 rounded-[22px] border border-white/10 bg-white/5 p-4 transition-colors hover:bg-white/10"
+            className="flex items-center gap-4 rounded-[22px] border border-[var(--color-border)] bg-[var(--color-surface-elevated)] p-4 transition-all hover:bg-[var(--color-surface)] shadow-sm active:scale-[0.98]"
             onClick={onClose}
           >
-            <div className="grid h-14 w-14 shrink-0 place-content-center rounded-full border border-white/10 bg-white/5">
-              <BuildingIcon size={24} className="text-[#ff7a1a]" />
+            <div className="grid h-14 w-14 shrink-0 place-content-center rounded-full border border-[var(--color-border)] bg-[var(--color-background)]">
+              <BuildingIcon size={24} className="text-primary" />
             </div>
             <div className="min-w-0 flex-1">
-              <p className="text-[17px] font-bold text-white">Organization Profile</p>
-              <p className="mt-1 text-[13px] text-[#b2abc8] leading-tight">
+              <p className="text-[17px] font-bold text-[var(--color-text)]">Organization Profile</p>
+              <p className="mt-1 text-[13px] text-[var(--color-text-secondary)] leading-tight">
                 Perfect for clubs, teams, or event managers.
               </p>
             </div>
-            <ChevronRightIcon size={20} className="text-[#b2abc8]" />
+            <ChevronRightIcon size={20} className="text-[var(--color-text-secondary)] opacity-60" />
           </Link>
-
-          <button
-            type="button"
-            className="flex items-center gap-4 w-full text-left rounded-[22px] border border-white/10 bg-white/5 p-4 transition-colors hover:bg-white/10"
-            onClick={onClose}
-          >
-            <div className="grid h-14 w-14 shrink-0 place-content-center rounded-full border border-white/10 bg-white/5">
-              <UserIcon size={24} className="text-[#ff7a1a]" />
-            </div>
-            <div className="min-w-0 flex-1">
-              <p className="text-[17px] font-bold text-white">Individual Profile</p>
-              <p className="mt-1 text-[13px] text-[#b2abc8] leading-tight">
-                Set up personal account to track your progress.
-              </p>
-            </div>
-            <ChevronRightIcon size={20} className="text-[#b2abc8]" />
-          </button>
         </div>
       </div>
     </div>
