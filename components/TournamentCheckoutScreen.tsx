@@ -1,43 +1,96 @@
 "use client";
 
-import React, { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { ArrowLeftIcon, CheckCircleIcon, ChevronRightIcon, TrashIcon } from "@/components/Icons";
-
-const rows = [
-  { id: "r1", tag: "PAY ONLINE", title: "Men’s Singles", fee: 1400 },
-  { id: "r2", tag: "PAY AT VENUE", title: "Men’s Singles", fee: 1400 },
-  { id: "r3", tag: "PAY ONLINE", title: "Men’s Singles", fee: 1400 },
-];
+import { useRouter, useSearchParams } from "next/navigation";
+import { 
+  ArrowLeftIcon, 
+  CheckCircleIcon, 
+  ChevronRightIcon, 
+  TrashIcon,
+  PhoneIcon,
+  MailIcon
+} from "@/components/Icons";
+import { tournamentApi } from "@/lib/api/tournamentApi";
+import { TournamentData, EventData } from "@/lib/models";
 
 export default function TournamentCheckoutScreen() {
   const [completed, setCompleted] = useState(false);
   const router = useRouter();
+  const searchParams = useSearchParams();
   const INR = "\u20B9";
+
+  const tournamentId = searchParams.get("id");
+  const selectedEventIds = useMemo(() => 
+    searchParams.get("selected")?.split(",").filter(Boolean) || [],
+    [searchParams]
+  );
+
+  const [tournament, setTournament] = useState<TournamentData | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    if (!tournamentId) return;
+    
+    const loadData = async () => {
+      try {
+        setIsLoading(true);
+        const data = await tournamentApi.getInfo(tournamentId);
+        setTournament(data);
+      } catch (err) {
+        console.error("Failed to load checkout data", err);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    void loadData();
+  }, [tournamentId]);
+
+  const selectedEvents = useMemo(() => {
+    if (!tournament?.events) return [];
+    return tournament.events.filter(ev => ev.id && selectedEventIds.includes(ev.id));
+  }, [tournament, selectedEventIds]);
+
+  const totalAmount = useMemo(() => 
+    selectedEvents.reduce((sum, ev) => sum + (ev.amount || 0), 0),
+    [selectedEvents]
+  );
+
+  if (isLoading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-[#3a2a57]">
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-[#ff7a1a] border-t-transparent"></div>
+      </div>
+    );
+  }
 
   if (completed) {
     return (
-      <div className="min-h-screen bg-[var(--color-background)] text-[var(--color-text)]">
+      <div className="min-h-screen bg-[#3a2a57] text-white">
         <div className="mx-auto flex min-h-screen max-w-md flex-col justify-center px-6 text-center">
-          <div className="mx-auto grid h-24 w-24 place-content-center rounded-full border-4 border-[#22c55e] text-[#22c55e]">
-            <CheckCircleIcon size={48} />
+          <div className="mx-auto flex h-24 w-24 items-center justify-center rounded-full bg-[#22c55e]/20 text-[#22c55e] shadow-lg shadow-green-500/20">
+            <CheckCircleIcon size={64} />
           </div>
-          <h1 className="mt-6 text-3xl font-medium">Registration Completed</h1>
-          <p className="mt-4 text-base text-[var(--color-text-secondary)]">
+          <h1 className="mt-8 text-3xl font-bold">Registration Completed</h1>
+          <p className="mt-4 text-[16px] text-white/60 leading-relaxed">
             You are on the waiting list now.
             <br />
             For further info Contact your tournament Organizer.
-            <br />
-            +91 92345 44673
           </p>
+          
+          <div className="mt-8 space-y-3">
+             <a href={`tel:${tournament?.contactPhone}`} className="flex items-center justify-center gap-2 text-[#ff7a1a] font-bold text-[18px]">
+               <PhoneIcon size={20} />
+               {tournament?.contactPhone}
+             </a>
+          </div>
 
           <Link
-            href="/tournaments"
-            className="mt-12 inline-flex h-12 items-center justify-center rounded-full bg-primary px-6 text-xl font-medium text-white"
+            href="/home"
+            className="mt-12 flex h-14 items-center justify-center rounded-full bg-[#ff7a1a] px-8 text-[18px] font-bold text-white shadow-lg active:scale-95 transition-transform"
           >
-            View Registered Tournaments
-            <ChevronRightIcon size={16} className="ml-2" />
+            Go Home
+            <ChevronRightIcon size={18} className="ml-2" />
           </Link>
         </div>
       </div>
@@ -45,87 +98,102 @@ export default function TournamentCheckoutScreen() {
   }
 
   return (
-    <div className="min-h-screen bg-[var(--color-background)] pb-24 text-[var(--color-text)] font-body">
-      <div className="mx-auto max-w-md px-4 pt-[max(env(safe-area-inset-top),14px)]">
-        <div className="flex items-center gap-3">
-          <button onClick={() => router.back()} className="grid h-9 w-9 place-content-center rounded-full border border-[var(--color-border)] bg-[var(--color-surface-elevated)]">
-            <ArrowLeftIcon size={16} />
+    <div className="min-h-screen bg-[#3a2a57] pb-32 text-white">
+      <div className="mx-auto max-w-md px-4 pt-[max(env(safe-area-inset-top),16px)]">
+        {/* Header */}
+        <div className="flex items-center gap-4">
+          <button 
+            onClick={() => router.back()} 
+            className="grid h-10 w-10 place-content-center rounded-full border border-white/10 bg-white/5 hover:bg-white/10 transition-colors"
+          >
+            <ArrowLeftIcon size={20} />
           </button>
-          <h1 className="text-2xl font-semibold">Confirm Your Spot</h1>
+          <h1 className="text-2xl font-bold">Confirm Your Spot</h1>
         </div>
 
-        <div className="mt-5 flex items-start gap-3">
-          <div className="mt-1 h-12 w-12 rounded-full border border-[#c8c8c8] bg-[var(--color-surface-elevated)] text-[10px] font-bold text-[#555] grid place-content-center">
-            SOFT
+        {/* Tournament Info */}
+        <div className="mt-8 flex items-center gap-4">
+          <div className="h-14 w-14 shrink-0 overflow-hidden rounded-full border border-white/10 bg-white">
+            {tournament?.logoUrl ? (
+              <img src={tournament.logoUrl} alt="Logo" className="h-full w-full object-cover" />
+            ) : (
+              <div className="flex h-full w-full items-center justify-center text-[10px] font-bold text-gray-400">SOFT</div>
+            )}
           </div>
           <div>
-            <h2 className="text-2xl font-medium">Mumbai Men’s 2025</h2>
-            <p className="text-sm text-[var(--color-text-secondary)]">Andheri West Organization</p>
+            <h2 className="text-[20px] font-bold leading-tight">{tournament?.name}</h2>
+            <p className="text-[14px] text-white/50">{tournament?.organization?.name}</p>
           </div>
         </div>
 
-        <section className="mt-5">
-          <h3 className="text-2xl font-medium">Your Registrations</h3>
-          <div className="mt-3 space-y-2.5">
-            {rows.map((row) => (
-              <div key={row.id} className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface-elevated)] p-2.5">
-                <div className="flex items-center justify-between">
-                  <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold text-white ${row.tag === "PAY ONLINE" ? "bg-[#22c55e]" : "bg-[#f97316]"}`}>
-                    {row.tag}
+        {/* Selected Events */}
+        <section className="mt-8">
+          <h3 className="text-[18px] font-bold text-white/60 uppercase tracking-widest">Your Registrations</h3>
+          <div className="mt-4 space-y-4">
+            {selectedEvents.map((ev) => (
+              <div key={ev.id} className="rounded-2xl border border-white/10 bg-white/5 p-4 relative group">
+                <div className="flex items-center justify-between mb-2">
+                  <span className={`rounded-full px-3 py-1 text-[10px] font-bold text-white ${ev.paymentModeCode === "online" ? "bg-[#22c55e]" : "bg-[#f97316]"}`}>
+                    {ev.paymentMode?.label || "PAY ONLINE"}
                   </span>
-                  <button className="text-[#ef4444]">
-                    <TrashIcon size={12} />
+                  <button className="text-white/20 hover:text-red-500 transition-colors">
+                    <TrashIcon size={16} />
                   </button>
                 </div>
-                <div className="mt-1 flex items-end justify-between">
-                  <p className="text-[20px] leading-6 font-medium">{row.title}</p>
-                  <p className="text-2xl font-semibold text-primary"><span className="currency-inr">{INR}</span>{row.fee}</p>
+                <div className="flex items-end justify-between">
+                  <p className="text-[18px] font-bold">{ev.name}</p>
+                  <p className="text-[22px] font-extrabold text-[#ff7a1a]">
+                    <span className="currency-inr mr-0.5">{INR}</span>{ev.amount}
+                  </p>
                 </div>
               </div>
             ))}
           </div>
         </section>
 
-        <section className="mt-4 border-t border-[var(--color-border)] pt-4 text-[16px]">
-          <div className="flex items-center justify-between py-0.5">
-            <span className="text-[var(--color-muted)]">Total Fees</span>
-            <span className="font-semibold"><span className="currency-inr">{INR}</span>2800</span>
+        {/* Payment Summary */}
+        <section className="mt-8 space-y-3 border-t border-white/10 pt-6">
+          <div className="flex items-center justify-between text-white/50">
+            <span className="text-[16px] font-medium">Total Fees</span>
+            <span className="text-[18px] font-bold text-white"><span className="currency-inr mr-1">{INR}</span>{totalAmount}</span>
           </div>
-          <div className="flex items-center justify-between py-0.5">
-            <span className="text-[var(--color-muted)]">Pay at Venue</span>
-            <span className="font-semibold text-[#ef4444]">-<span className="currency-inr">{INR}</span>1400</span>
-          </div>
-          <div className="mt-1 flex items-center justify-between">
-            <span className="text-2xl font-medium">To Pay Now</span>
-            <span className="text-3xl font-semibold"><span className="currency-inr">{INR}</span>1400</span>
+          <div className="flex items-center justify-between pt-2">
+            <span className="text-[22px] font-bold">To Pay Now</span>
+            <span className="text-[28px] font-black text-[#ff7a1a]"><span className="currency-inr mr-1">{INR}</span>{totalAmount}</span>
           </div>
         </section>
 
-        <section className="mt-4 rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface-elevated)] p-4">
-          <div className="mx-auto h-32 w-32 rounded-xl bg-white p-2 shadow">
-            <div className="grid h-full w-full grid-cols-6 gap-[2px] rounded bg-white p-1">
-              {Array.from({ length: 36 }).map((_, idx) => (
-                <span key={idx} className={idx % 3 === 0 ? "bg-black" : idx % 5 === 0 ? "bg-black" : "bg-white"} />
-              ))}
-            </div>
+        {/* UPI Section */}
+        <section className="mt-8 rounded-3xl border border-white/10 bg-white/5 p-6 text-center">
+          <div className="mx-auto h-40 w-40 rounded-2xl bg-white p-3 shadow-xl">
+             {/* Simplified QR Mockup */}
+             <div className="h-full w-full bg-gray-50 flex items-center justify-center border-2 border-dashed border-gray-200">
+               <div className="text-[10px] text-gray-300 font-bold">SCAN TO PAY</div>
+             </div>
           </div>
-          <p className="mt-2 text-center text-sm">Scan to pay <span className="font-semibold text-primary"><span className="currency-inr">{INR}</span>1400</span></p>
-          <p className="text-center text-xs text-[var(--color-muted)]">UPI ID: forehandexample@oksbi</p>
+          <p className="mt-4 text-[16px] font-bold">
+            Scan to pay <span className="text-[#ff7a1a]"><span className="currency-inr">{INR}</span>{totalAmount}</span>
+          </p>
+          <p className="mt-1 text-[12px] text-white/40 font-medium">UPI ID: {tournament?.upiId || "forehandexample@oksbi"}</p>
         </section>
 
-        <section className="mt-4 rounded-xl bg-[var(--color-chip)] p-3 text-[var(--color-text-secondary)]">
-          <p className="text-base font-semibold text-[var(--color-text)]">Venue Payment Required</p>
-          <p className="mt-1 text-xs"><span className="currency-inr">{INR}</span>1400 needs to be paid at the registration desk upon arrival. Contact organizer for details.</p>
+        {/* Notice */}
+        <section className="mt-6 rounded-2xl bg-[#ff7a1a]/10 p-4 border border-[#ff7a1a]/20">
+          <p className="text-[15px] font-bold text-[#ff7a1a]">Payment Verification</p>
+          <p className="mt-1 text-[12px] text-white/60 leading-relaxed">
+            Please share the transaction receipt with the organizer after successful payment to confirm your spot.
+          </p>
         </section>
       </div>
 
-      <div className="fixed bottom-0 left-0 right-0 z-30 border-t border-[var(--color-border)] bg-[var(--color-background)] p-3 pb-[max(env(safe-area-inset-bottom),12px)]">
+      {/* Bottom Bar */}
+      <div className="fixed bottom-0 left-0 right-0 z-40 border-t border-white/10 bg-[#3a2a57] p-5 pb-[max(env(safe-area-inset-bottom),20px)]">
         <button
           onClick={() => setCompleted(true)}
-          className="mx-auto flex h-11 w-full max-w-md items-center justify-center rounded-full bg-primary text-xl font-semibold text-white"
+          className="flex h-16 w-full items-center justify-center rounded-full bg-[#ff811f] text-[20px] font-bold text-white shadow-lg active:scale-[0.98] transition-transform"
         >
           Confirm Registration
-          <ChevronRightIcon size={16} className="ml-2" />
+          <ChevronRightIcon size={20} className="ml-2" />
         </button>
       </div>
     </div>

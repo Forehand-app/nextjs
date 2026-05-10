@@ -1,8 +1,8 @@
 "use client";
 
 import React from "react";
-import { ArrowLeftIcon, ShareIcon, UsersIcon } from "@/components/Icons";
-
+import { ArrowLeftIcon, ShareIcon } from "@/components/Icons";
+import { Users } from "lucide-react";
 type TournamentHeroCardProps = {
   title: string;
   subtitle: string;
@@ -99,70 +99,72 @@ export default function TournamentHeroCard({
   logoUrl,
 }: TournamentHeroCardProps) {
   return (
-    <section className="overflow-hidden bg-[linear-gradient(180deg,#ff8a24_0%,#ff7418_100%)] px-4 pb-4 pt-[calc(max(env(safe-area-inset-top),12px)+4px)]">
+    <section className="bg-[var(--color-background)] px-4 pb-6 pt-[calc(max(env(safe-area-inset-top),12px)+4px)]">
+      {/* Top Bar */}
       <div className="flex items-center justify-between">
         <button
           onClick={onBack}
-          className="grid h-7 w-7 place-content-center rounded-full bg-white/28 text-white backdrop-blur-[2px]"
+          className="grid h-10 w-10 place-content-center rounded-full border border-white/20 bg-white/10 text-white backdrop-blur-md"
           aria-label="Back"
         >
-          <ArrowLeftIcon size={15} />
+          <ArrowLeftIcon size={20} />
         </button>
         <button
           onClick={onShare}
-          className="grid h-7 w-7 place-content-center rounded-full bg-white/28 text-white backdrop-blur-[2px]"
+          className="grid h-10 w-10 place-content-center rounded-full border border-white/20 bg-white/10 text-white backdrop-blur-md"
           aria-label="Share"
         >
-          <ShareIcon size={13} />
+          <ShareIcon size={18} />
         </button>
       </div>
 
-      <div className="mt-5 grid grid-cols-[42px_minmax(0,1fr)] items-center gap-x-3">
-        <div className="self-center">
+      {/* Info Section */}
+      <div className="mt-8 flex items-center gap-4">
+        <div className="h-16 w-16 shrink-0 overflow-hidden rounded-full border-2 border-white/20 bg-white shadow-lg">
           {logoUrl ? (
             <img
               src={logoUrl}
               alt="Logo"
-              className="h-[42px] w-[42px] rounded-full object-cover border border-white/40 shadow-sm"
+              className="h-full w-full object-cover"
             />
           ) : (
-            <SoftballLogo />
+            <div className="flex h-full w-full items-center justify-center bg-gray-100">
+              <SoftballLogo />
+            </div>
           )}
         </div>
-
         <div className="min-w-0">
-          <h1 className="truncate text-[28px] font-extrabold leading-tight tracking-[-0.02em] text-white">
+          <h1 className="text-[28px] font-bold leading-tight text-white">
             {title}
           </h1>
-          <p className="mt-1 truncate text-[12px] font-medium text-white/92">
+          <p className="mt-1 text-[16px] font-medium text-white/70">
             {subtitle}
           </p>
         </div>
       </div>
 
-      <div className="mt-5 grid grid-cols-2 gap-3">
-        <div className="rounded-[14px] bg-[var(--color-surface)] px-3.5 py-3 shadow-[var(--shadow-card)]">
-          <div className="flex items-center gap-2.5">
-            <div className="grid h-8 w-8 place-content-center rounded-full border border-primary/30 bg-primary/20 text-primary">
-              <UsersIcon size={15} />
-            </div>
-            <div>
-              <p className="text-[28px] font-bold leading-none text-[var(--color-text)]">
-                {registeredCount}
-              </p>
-              <p className="mt-1 text-[12px] font-medium text-[var(--color-muted)]">
-                Registered
-              </p>
-            </div>
+      {/* Stats/Action Cards */}
+      <div className="mt-8 grid grid-cols-2 gap-4">
+        {/* Registered Card */}
+        <div className="flex h-[110px] items-center gap-4 rounded-[28px] border border-white/10 bg-white/[0.04] p-4 shadow-sm">
+          <div className="grid h-12 w-12 place-content-center rounded-full bg-white/10 text-[#ff7a1a]">
+            <Users size={24} />
+          </div>
+          <div>
+            <p className="text-[28px] font-bold leading-none text-white">
+              {registeredCount}
+            </p>
+            <p className="mt-1.5 text-[14px] font-medium text-white/50">
+              Registered
+            </p>
           </div>
         </div>
 
-        <div className="rounded-[14px] bg-[var(--color-surface)] px-3.5 py-3 shadow-[var(--shadow-card)]">
-          <p className="text-[19px] font-bold leading-tight text-[var(--color-text)]">
-            Registration
-          </p>
-          <div className="mt-2.5 flex justify-center">
-            <span className="inline-flex h-5 min-w-[52px] items-center justify-center rounded-full bg-primary/20 px-2 text-[10px] font-semibold text-primary">
+        {/* Registration Card */}
+        <div className="flex h-[110px] flex-col items-center justify-center rounded-[28px] border border-white/10 bg-white/[0.04] p-4 text-center shadow-sm">
+          <p className="text-[17px] font-bold text-white">Registration</p>
+          <div className="mt-3">
+            <span className="inline-flex h-9 min-w-[100px] items-center justify-center rounded-full bg-[#ff7a1a] px-5 text-[15px] font-bold text-white shadow-[0_6px_20px_rgba(255,122,26,0.3)]">
               {registrationStatus}
             </span>
           </div>

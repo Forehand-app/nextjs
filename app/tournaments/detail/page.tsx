@@ -9,9 +9,11 @@ import {
   CalendarIcon,
   InfoIcon,
   MailIcon,
+  MapPinIcon,
   PhoneIcon,
   PlusIcon,
   SearchIcon,
+  TimerIcon,
   TrashIcon,
 } from "@/components/Icons";
 import { tournamentApi } from "@/lib/api/tournamentApi";
@@ -165,96 +167,104 @@ export default function TournamentDetailPage() {
         />
       </div>
 
-      <div className="sticky top-0 z-30 grid grid-cols-2 border-y border-[var(--color-border)] bg-[var(--color-surface)]">
+      <div className="sticky top-0 z-30 flex items-center justify-center bg-[#3a2a57]">
         <button
           onClick={() => setTab("about")}
-          className={`h-10 text-[18px] font-semibold ${tab === "about" ? "border-b-2 border-primary text-primary" : "text-[var(--color-muted)]"}`}
+          className={`relative flex h-12 flex-1 items-center justify-center text-[16px] font-bold transition-all ${tab === "about" ? "text-white" : "text-white/50"}`}
         >
           About
+          <div className={`absolute bottom-0 h-[2px] w-full ${tab === "about" ? "bg-[#ff7a1a]" : "bg-white/10"}`} />
         </button>
         <button
           onClick={() => setTab("events")}
-          className={`h-10 text-[18px] font-semibold ${tab === "events" ? "border-b-2 border-primary text-primary" : "text-[var(--color-muted)]"}`}
+          className={`relative flex h-12 flex-1 items-center justify-center text-[16px] font-bold transition-all ${tab === "events" ? "text-white" : "text-white/50"}`}
         >
           Events
+          <div className={`absolute bottom-0 h-[2px] w-full ${tab === "events" ? "bg-[#ff7a1a]" : "bg-white/10"}`} />
         </button>
       </div>
 
-      <div className="space-y-3 p-3 pb-28">
+      <div className="space-y-6 p-4 pb-32">
         {tab === "about" ? (
           <>
-            <section className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-3">
-              <h2 className="text-[18px] font-semibold">Overview</h2>
-              <div className="mt-2 grid grid-cols-2 gap-2">
-                <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-elevated)] p-2">
-                  <p className="text-[12px] text-[var(--color-muted)]">
-                    Start Date
-                  </p>
-                  <p className="text-[14px]">
-                    {formatDate(tournament.startDate)}
+            <section className="rounded-[28px] border border-white/15 bg-white/[0.02] p-4 shadow-sm">
+              <h2 className="text-[22px] font-bold text-white">Overview</h2>
+              <div className="mt-4 grid grid-cols-2 gap-3">
+                <div className="flex flex-col gap-2 rounded-2xl border border-white/10 bg-white/[0.05] p-3">
+                  <div className="flex items-center gap-2 text-white/50">
+                    <TimerIcon size={12} />
+                    <span className="text-[11px] font-medium uppercase tracking-wider">Start Date</span>
+                  </div>
+                  <p className="text-[13px] font-bold text-white">
+                    {formatDateTime(tournament.startDate)}
                   </p>
                 </div>
-                <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-elevated)] p-2">
-                  <p className="text-[12px] text-[var(--color-muted)]">
-                    End Date
-                  </p>
-                  <p className="text-[14px]">
-                    {formatDate(tournament.endDate)}
+                <div className="flex flex-col gap-2 rounded-2xl border border-white/10 bg-white/[0.05] p-3">
+                  <div className="flex items-center gap-2 text-white/50">
+                    <TimerIcon size={12} />
+                    <span className="text-[11px] font-medium uppercase tracking-wider">End Date</span>
+                  </div>
+                  <p className="text-[13px] font-bold text-white">
+                    {formatDateTime(tournament.endDate)}
                   </p>
                 </div>
               </div>
-              <div className="mt-2 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-elevated)] p-2">
-                <p className="text-[12px] text-[var(--color-muted)]">
-                  Venue Details
-                </p>
-                <p className="text-[14px]">
+              <div className="mt-3 flex flex-col gap-2 rounded-2xl border border-white/10 bg-white/[0.05] p-3">
+                <div className="flex items-center gap-2 text-white/50">
+                  <MapPinIcon size={12} />
+                  <span className="text-[11px] font-medium uppercase tracking-wider">Venue Details</span>
+                </div>
+                <p className="text-[13px] font-bold leading-relaxed text-white">
                   {tournament.venueName}, {tournament.venueAddress},{" "}
                   {tournament.venueCity}, {tournament.venueState}
                 </p>
               </div>
             </section>
 
-            <section className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-3">
-              <h2 className="text-[18px] font-semibold">Description</h2>
-              <p className="mt-1 text-[14px] text-[var(--color-text-secondary)]">
-                {tournament.description || "No description provided."}
+            <section className="rounded-[28px] border border-white/15 bg-white/[0.02] p-4 shadow-sm">
+              <h2 className="text-[22px] font-bold text-white">Description</h2>
+              <p className="mt-3 text-[13px] leading-relaxed text-white/70">
+                {tournament.description || "Join the biggest badminton tournament in the city! Open to all skill levels with exciting prizes."}
               </p>
             </section>
 
-            <section className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-3">
-              <h2 className="text-[18px] font-semibold">Contact Information</h2>
+            <section className="rounded-[28px] border border-white/15 bg-white/[0.02] p-4 shadow-sm">
+              <h2 className="text-[22px] font-bold text-white mb-6">Contact Information</h2>
 
-              <div className="mt-3">
-                <div className="py-4">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="h-10 w-10 rounded-full bg-[radial-gradient(circle_at_30%_30%,#d1d1d1,#7b7b7b)] flex items-center justify-center text-white font-bold">
-                        {tournament.contactName?.charAt(0).toUpperCase() || "O"}
+              <div className="space-y-6">
+                <div className="pt-0">
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center gap-4">
+                      <div className="h-14 w-14 overflow-hidden rounded-full border border-white/20 shadow-md">
+                        <img 
+                          src={tournament.organization?.logoUrl || "https://images.unsplash.com/photo-1531427186611-ecfd6d936c79?auto=format&fit=crop&q=80&w=100&h=100"} 
+                          alt="Contact" 
+                          className="h-full w-full object-cover"
+                        />
                       </div>
-                      <p className="text-[16px] font-medium">
+                      <p className="text-[20px] font-bold text-white">
                         {tournament.contactName}
                       </p>
                     </div>
-
-                    <span className="rounded-full bg-primary px-3 py-0.5 text-[11px] font-semibold text-white">
+                    <span className="rounded-full bg-[#22c55e] px-4 py-1.5 text-[14px] font-bold text-white shadow-lg shadow-green-500/20">
                       Organizer
                     </span>
                   </div>
 
-                  <div className="mt-2 space-y-1 text-[14px]">
+                  <div className="ml-[72px] space-y-3">
                     <a
                       href={`tel:${tournament.contactPhone}`}
-                      className="flex items-center gap-2 text-[var(--color-muted)] hover:text-primary transition-colors"
+                      className="flex items-center gap-3 text-[18px] font-medium text-white/60 transition-colors hover:text-white"
                     >
-                      <PhoneIcon size={14} />
+                      <PhoneIcon size={20} className="text-[#ff7a1a]" />
                       {tournament.contactPhone}
                     </a>
 
                     <a
                       href={`mailto:${tournament.contactEmail}`}
-                      className="flex items-center gap-2 text-[var(--color-muted)] hover:text-primary transition-colors break-all"
+                      className="flex items-center gap-3 text-[18px] font-medium text-white/60 transition-colors hover:text-white break-all"
                     >
-                      <MailIcon size={14} />
+                      <MailIcon size={20} className="text-[#ff7a1a]" />
                       {tournament.contactEmail}
                     </a>
                   </div>
@@ -272,70 +282,69 @@ export default function TournamentDetailPage() {
             return (
               <section
                 key={ev.id}
-                className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-3"
+                className="rounded-3xl border border-white/10 bg-white/5 p-5 shadow-lg"
               >
-                <h3 className="text-[18px] font-semibold">{ev.name}</h3>
-                <div className="mt-2 grid grid-cols-2 gap-2 text-[12px] text-[var(--color-text-secondary)]">
-                  <p className="flex items-center gap-1.5">
-                    <CalendarIcon size={12} className="text-primary" />
-                    Start Date: {formatDate(ev.startDate)}
-                  </p>
-                  <p className="flex items-center gap-1.5">
-                    <SearchIcon size={12} className="text-primary" />
-                    Reg. Closes: {formatDate(ev.dueDate)}
-                  </p>
+                <h3 className="text-[20px] font-bold text-white">{ev.name}</h3>
+                <div className="mt-4 grid grid-cols-2 gap-3">
+                  <div className="flex items-center gap-2 text-[13px] text-white/60">
+                    <CalendarIcon size={14} className="text-[#ff7a1a]" />
+                    <span>Starts: {formatDate(ev.startDate)}</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-[13px] text-white/60">
+                    <SearchIcon size={14} className="text-[#ff7a1a]" />
+                    <span>Closes: {formatDate(ev.dueDate)}</span>
+                  </div>
                 </div>
-                <div className="mt-2 flex items-end justify-between">
+                <div className="mt-5 flex items-center justify-between border-t border-white/10 pt-5">
                   <div>
-                    <p className="text-[24px] font-semibold leading-7 text-primary">
+                    <p className="text-[24px] font-bold text-[#ff7a1a]">
                       {ev.amount === 0 ? (
                         "Free Entry"
                       ) : (
                         <>
-                          <span className="currency-inr">&#8377;</span>
+                          <span className="currency-inr mr-0.5">&#8377;</span>
                           {ev.amount}
                         </>
                       )}
                     </p>
-                    <p className="text-[14px] text-[var(--color-muted)]">
-                      Payment:{" "}
+                    <p className="mt-1 text-[12px] font-medium text-white/40 uppercase tracking-wider">
                       {ev.paymentMode?.label || ev.paymentModeCode || "N/A"}
                     </p>
                   </div>
                   <button
                     onClick={() => toggleEvent(ev)}
-                    className={`inline-flex h-9 min-w-[102px] items-center justify-center gap-1 rounded-full border px-4 text-[16px] font-semibold ${isSelected ? "border-primary bg-primary text-white" : "border-primary text-primary"}`}
+                    className={`inline-flex h-11 min-w-[120px] items-center justify-center gap-2 rounded-full border-2 px-6 text-[16px] font-bold transition-all active:scale-95 ${isSelected ? "border-[#ff7a1a] bg-[#ff7a1a] text-white shadow-lg shadow-orange-500/20" : "border-white/20 bg-white/5 text-white hover:border-white/40"}`}
                   >
                     {isSelected ? (
                       "Added"
                     ) : (
                       <>
-                        <PlusIcon size={12} /> Add
+                        <PlusIcon size={14} /> Add
                       </>
                     )}
                   </button>
                 </div>
 
                 {isDoubles && isSelected ? (
-                  <div className="mt-3 rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface-elevated)] p-3">
+                  <div className="mt-5 rounded-2xl border border-white/10 bg-white/5 p-4">
                     {pairState === "adding" ? (
                       <>
-                        <p className="text-[18px] font-semibold">
+                        <p className="text-[18px] font-bold text-white">
                           Add your partner
                         </p>
                         <input
                           value={partnerPhone}
                           onChange={(e) => setPartnerPhone(e.target.value)}
                           placeholder="Enter partner's Phone No."
-                          className="mt-2 h-10 w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-3 text-[14px] outline-none"
+                          className="mt-3 h-12 w-full rounded-xl border border-white/10 bg-white/5 px-4 text-[15px] text-white outline-none focus:border-[#ff7a1a]/50"
                         />
-                        <p className="mt-1 flex items-start gap-1 text-[11px] text-[var(--color-muted)]">
-                          <InfoIcon size={11} className="mt-0.5" />
-                          Your partner must be registered on the app to enroll.
-                        </p>
+                        <div className="mt-3 flex items-start gap-2 text-[12px] text-white/50">
+                          <InfoIcon size={14} className="mt-0.5 text-[#ff7a1a]" />
+                          <p>Your partner must be registered on the app to enroll.</p>
+                        </div>
                         <button
                           onClick={() => setPairState("invited")}
-                          className="mt-2 h-9 w-full rounded-full border border-primary text-[16px] font-semibold text-primary"
+                          className="mt-4 h-11 w-full rounded-full bg-white/10 text-[16px] font-bold text-white transition-all hover:bg-white/20 active:scale-95"
                         >
                           Add Partner
                         </button>
@@ -344,25 +353,25 @@ export default function TournamentDetailPage() {
 
                     {pairState === "invited" ? (
                       <>
-                        <p className="text-[18px] font-semibold">
+                        <p className="text-[18px] font-bold text-white">
                           Add your partner
                         </p>
-                        <div className="mt-2 flex items-center justify-between rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-elevated)] p-2 text-[14px]">
-                          <div className="flex items-center gap-2">
-                            <div className="h-6 w-6 rounded-full bg-[radial-gradient(circle_at_30%_30%,#d1d1d1,#7b7b7b)]" />
-                            <span>Anil Kumar</span>
+                        <div className="mt-3 flex items-center justify-between rounded-xl border border-white/10 bg-white/5 p-3 text-[15px]">
+                          <div className="flex items-center gap-3">
+                            <div className="h-8 w-8 rounded-full bg-gradient-to-br from-gray-400 to-gray-600" />
+                            <span className="font-medium text-white">Anil Kumar</span>
                           </div>
-                          <span className="rounded-md bg-[var(--color-chip)] px-2 py-0.5 text-[10px] text-primary">
+                          <span className="rounded-lg bg-[#ff7a1a]/20 px-2.5 py-1 text-[11px] font-bold text-[#ff7a1a]">
                             Invite Pending
                           </span>
                         </div>
-                        <p className="mt-1 flex items-center gap-1 text-[11px] text-[var(--color-muted)]">
-                          <InfoIcon size={11} />
-                          Waiting for Anil Kumar to accept the invite.
-                        </p>
+                        <div className="mt-3 flex items-center gap-2 text-[12px] text-white/50">
+                          <InfoIcon size={14} className="text-[#ff7a1a]" />
+                          <p>Waiting for Anil Kumar to accept the invite.</p>
+                        </div>
                         <button
                           onClick={() => setPairState("pairing")}
-                          className="mt-2 h-9 w-full rounded-full border border-primary text-[16px] font-semibold text-primary"
+                          className="mt-4 h-11 w-full rounded-full bg-[#ff7a1a] text-[16px] font-bold text-white shadow-lg shadow-orange-500/20 active:scale-95"
                         >
                           Continue
                         </button>
@@ -372,24 +381,26 @@ export default function TournamentDetailPage() {
                     {pairState === "pairing" ? (
                       <>
                         <div className="flex items-center gap-2">
-                          <ArrowLeftIcon size={14} />
-                          <p className="text-[18px] font-semibold">
+                          <button onClick={() => setPairState("adding")} className="text-white/60 hover:text-white">
+                            <ArrowLeftIcon size={18} />
+                          </button>
+                          <p className="text-[18px] font-bold text-white">
                             Create Your Pair
                           </p>
                         </div>
-                        <div className="mt-2 grid grid-cols-2 gap-2">
+                        <div className="mt-4 grid grid-cols-2 gap-3">
                           <PersonChip name="You" />
                           <button
                             onClick={() => setPairState("adding")}
-                            className="flex items-center justify-center gap-1 rounded-lg bg-[#ffd9d9] px-3 py-2 text-[15px] text-[#ef4444]"
+                            className="flex items-center justify-center gap-2 rounded-xl bg-red-500/10 px-4 py-2.5 text-[14px] font-bold text-red-400 transition-all hover:bg-red-500/20"
                           >
-                            <TrashIcon size={12} />
+                            <TrashIcon size={14} />
                             Remove
                           </button>
                         </div>
                         <button
                           onClick={() => setPairState("paired")}
-                          className="mt-2 h-9 w-full rounded-full border border-primary text-[16px] font-semibold text-primary"
+                          className="mt-4 h-11 w-full rounded-full bg-[#ff7a1a] text-[16px] font-bold text-white shadow-lg shadow-orange-500/20 active:scale-95"
                         >
                           Confirm Your Pair
                         </button>
@@ -397,7 +408,7 @@ export default function TournamentDetailPage() {
                     ) : null}
 
                     {pairState === "paired" ? (
-                      <div className="grid grid-cols-2 gap-2">
+                      <div className="grid grid-cols-2 gap-3">
                         <PersonChip name="You" />
                         <PersonChip name="Anil Kumar" />
                       </div>
@@ -411,35 +422,49 @@ export default function TournamentDetailPage() {
       </div>
 
       {tab === "about" ? (
-        <div className="fixed bottom-0 left-0 right-0 z-40 border-t border-[var(--color-border)] bg-[var(--color-surface)] p-3 pb-[max(env(safe-area-inset-bottom),12px)]">
+        <div className="fixed bottom-0 left-0 right-0 z-40 border-t border-white/10 bg-[#3a2a57] p-5 pb-[max(env(safe-area-inset-bottom),20px)]">
           <button
             onClick={() => setTab("events")}
-            className="h-11 w-full rounded-full bg-primary text-[18px] font-semibold text-white"
+            className="h-16 w-full rounded-full bg-[#ff811f] text-[20px] font-bold text-white shadow-lg active:scale-[0.98] transition-transform"
           >
             Select Event
           </button>
         </div>
-      ) : total > 0 ? (
-        <div className="fixed bottom-0 left-0 right-0 z-40 border-t border-[var(--color-border)] bg-[var(--color-surface)] p-3 pb-[max(env(safe-area-inset-bottom),12px)]">
-          <div className="flex items-center gap-3">
-            <div className="min-w-[110px]">
-              <p className="text-[14px] text-[var(--color-muted)]">
-                Total Amount:
-              </p>
-              <p className="text-[24px] font-bold leading-7 text-primary">
-                <span className="currency-inr">&#8377;</span>
-                {total}
-              </p>
-            </div>
-            <Link
-              href={`/tournaments/checkout${toQuery({ id })}`}
-              className="grid h-11 flex-1 place-content-center rounded-full bg-primary text-[18px] font-semibold text-white"
-            >
-              Claim Spot
-            </Link>
+      ) : (
+        <div className="fixed bottom-0 left-0 right-0 z-40 border-t border-white/10 bg-[#3a2a57] p-5 pb-[max(env(safe-area-inset-bottom),20px)] transition-transform">
+          <div className="flex items-center gap-4">
+            {Object.values(selected).some(v => v) ? (
+              <>
+                <div className="flex-1">
+                  <p className="text-[12px] font-medium text-white/40 uppercase tracking-widest">
+                    Total Amount
+                  </p>
+                  <p className="text-[28px] font-bold leading-tight text-[#ff7a1a]">
+                    <span className="currency-inr mr-1">&#8377;</span>
+                    {total}
+                  </p>
+                </div>
+                <Link
+                  href={`/tournaments/checkout${toQuery({ 
+                    id, 
+                    selected: Object.keys(selected).filter(k => selected[k]).join(",") 
+                  })}`}
+                  className="flex h-16 min-w-[180px] items-center justify-center rounded-full bg-[#ff811f] text-[20px] font-bold text-white shadow-lg active:scale-[0.98] transition-transform"
+                >
+                  Claim Spot
+                </Link>
+              </>
+            ) : (
+              <button
+                disabled
+                className="h-16 w-full rounded-full bg-white/5 text-[20px] font-bold text-white/20 border border-white/10"
+              >
+                Select an Event
+              </button>
+            )}
           </div>
         </div>
-      ) : null}
+      )}
 
       {tab === "events" && total > 0 ? <div className="h-24" /> : null}
     </div>
