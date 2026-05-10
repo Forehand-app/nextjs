@@ -184,8 +184,22 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         return;
       }
 
-      const org = await organizationApi.getInfo(orgId);
-      setActiveOrganization(org);
+      try {
+        const orgs = await organizationApi.getUserOrganizations();
+        const matched = orgs.find((org) => org.id === orgId) || null;
+        if (!matched) {
+          if (typeof window !== "undefined") {
+            localStorage.removeItem(ACTIVE_ORG_STORAGE_KEY);
+          }
+          activeOrgIdRef.current = null;
+          setActiveOrganization(null);
+          return;
+        }
+        setActiveOrganization(matched);
+      } catch (error) {
+        console.error("Failed to set organization:", error);
+        setActiveOrganization(null);
+      }
     },
     [session],
   );
@@ -257,15 +271,29 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         const profile = await userApi.getInfo();
         setUserProfile(profile);
 
-        // Restore active org from localStorage
+        // Restore active org from localStorage, but only if user is actually a member.
         if (typeof window !== "undefined") {
           const storedOrgId = localStorage.getItem(ACTIVE_ORG_STORAGE_KEY);
-          activeOrgIdRef.current = storedOrgId;
+          const orgs = await organizationApi.getUserOrganizations();
+          const fallbackOrg = orgs[0] || null;
 
-          if (storedOrgId) {
-            const org = await organizationApi.getInfo(storedOrgId);
-            setActiveOrganization(org);
+          if (!storedOrgId) {
+            activeOrgIdRef.current = fallbackOrg?.id || null;
+            setActiveOrganization(fallbackOrg);
+            return;
           }
+
+          const matchedStoredOrg = orgs.find((org) => org.id === storedOrgId) || null;
+          if (matchedStoredOrg) {
+            activeOrgIdRef.current = matchedStoredOrg.id || null;
+            setActiveOrganization(matchedStoredOrg);
+            return;
+          }
+
+          // Stale cache key from another account or removed membership
+          localStorage.removeItem(ACTIVE_ORG_STORAGE_KEY);
+          activeOrgIdRef.current = fallbackOrg?.id || null;
+          setActiveOrganization(fallbackOrg);
         }
       } catch (err) {
         console.error("Failed to resolve app session:", err);

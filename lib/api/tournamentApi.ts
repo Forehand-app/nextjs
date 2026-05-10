@@ -47,4 +47,11 @@ export const tournamentApi = {
 
     return data as TournamentData[];
   },
+
+  getUserTournaments: async (): Promise<TournamentData[]> => {
+    const { data, error } = await fetchApi(getApiUrl({ path: "/tournament/list/user" }));
+    if (error) throw error;
+
+    return data as TournamentData[];
+  },
 };

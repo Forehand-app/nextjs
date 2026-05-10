@@ -11,6 +11,7 @@ export default function Layout({
   showBack = false,
   onBack,
   right,
+  hideTopNav = false,
 }: {
   children: React.ReactNode;
   showBottomNav?: boolean;
@@ -18,10 +19,13 @@ export default function Layout({
   showBack?: boolean;
   onBack?: () => void;
   right?: React.ReactNode;
+  hideTopNav?: boolean;
 }) {
   return (
     <div className="min-h-screen bg-[var(--color-background)] text-[var(--color-text)] flex flex-col">
-      <TopNav title={title} showBack={showBack} onBack={onBack} right={right} />
+      {!hideTopNav && (
+        <TopNav title={title} showBack={showBack} onBack={onBack} right={right} />
+      )}
       <main className="flex-1 pb-20 pb-safe">{children}</main>
       {showBottomNav && <BottomNav />}
     </div>

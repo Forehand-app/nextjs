@@ -10,7 +10,9 @@ import NotificationsSlideOver, { type NotificationItem } from "@/components/Noti
 import TournamentListCard, { type TournamentListItem } from "@/components/TournamentListCard";
 import { useApp } from "@/components/AppProvider";
 import { notificationApi } from "@/lib/api/notificationApi";
-import { Bell } from "lucide-react";
+import PageHeader from "@/components/PageHeader";
+import TournamentFilterDrawer from "@/components/TournamentFilterDrawer";
+import { SlidersIcon } from "@/components/Icons";
 
 type TopTab = "browse" | "joined" | "history";
 type FormatTab = "all" | "singles" | "doubles";
@@ -20,35 +22,35 @@ const baseSubtitle = "Pickle ball | Men's | Multiple Modes";
 const browseItems: TournamentListItem[] = [
   {
     id: "1",
-    name: "Monsoon Pickleball Op..",
-    subtitle: baseSubtitle,
+    name: "Monsoon Singles Open",
+    subtitle: "Pickle ball | Men's | Singles",
     start: "15/01/2024",
     end: "15/01/2024",
     entry: "500 Entry",
     location: "Raipur | Chattisgarh",
-    players: "50+ More",
+    format: "singles",
     cta: "Register",
   },
   {
     id: "2",
-    name: "Monsoon Pickleball Op..",
-    subtitle: baseSubtitle,
-    start: "15/01/2024",
-    end: "15/01/2024",
-    entry: "500 Entry",
+    name: "Winter Doubles Cup",
+    subtitle: "Pickle ball | Mixed | Doubles",
+    start: "20/01/2024",
+    end: "22/01/2024",
+    entry: "800 Entry",
     location: "Raipur | Chattisgarh",
-    players: "50+ More",
+    format: "doubles",
     cta: "Register",
   },
   {
     id: "3",
-    name: "Monsoon Pickleball Op..",
-    subtitle: baseSubtitle,
-    start: "15/01/2024",
-    end: "15/01/2024",
-    entry: "500 Entry",
-    location: "Raipur | Chattisgarh",
-    players: "50+ More",
+    name: "Bhilai Singles Classic",
+    subtitle: "Pickle ball | Women's | Singles",
+    start: "05/02/2024",
+    end: "05/02/2024",
+    entry: "400 Entry",
+    location: "Bhilai | Chattisgarh",
+    format: "singles",
     cta: "Register",
   },
 ];
@@ -56,35 +58,35 @@ const browseItems: TournamentListItem[] = [
 const joinedItems: TournamentListItem[] = [
   {
     id: "4",
-    name: "Monsoon Pickleball Op..",
-    subtitle: baseSubtitle,
+    name: "City Pickleball League",
+    subtitle: "Pickle ball | Men's | Singles",
     start: "15/01/2024",
     end: "15/01/2024",
     entry: "500 Entry",
     location: "Raipur | Chattisgarh",
-    players: "50+ More",
+    format: "singles",
     cta: "View",
   },
   {
     id: "5",
-    name: "Monsoon Pickleball Op..",
-    subtitle: baseSubtitle,
+    name: "Weekend Doubles Blast",
+    subtitle: "Pickle ball | Men's | Doubles",
     start: "15/01/2024",
     end: "15/01/2024",
     entry: "500 Entry",
     location: "Raipur | Chattisgarh",
-    players: "50+ More",
+    format: "doubles",
     cta: "View",
   },
   {
     id: "6",
-    name: "Monsoon Pickleball Op..",
-    subtitle: baseSubtitle,
+    name: "Monsoon Pro Series",
+    subtitle: "Pickle ball | Men's | Singles",
     start: "15/01/2024",
     end: "15/01/2024",
     entry: "500 Entry",
     location: "Raipur | Chattisgarh",
-    players: "50+ More",
+    format: "singles",
     cta: "View",
   },
 ];
@@ -97,7 +99,6 @@ const historyItems: TournamentListItem[] = [
     start: "15/01/2024",
     end: "15/01/2024",
     location: "Raipur | Chattisgarh",
-    players: "",
     cta: "Chevron",
     joinedStatus: "Eliminated - Round 4",
   },
@@ -108,29 +109,6 @@ const historyItems: TournamentListItem[] = [
     start: "15/01/2024",
     end: "15/01/2024",
     location: "Raipur | Chattisgarh",
-    players: "",
-    cta: "Chevron",
-    joinedStatus: "Eliminated - Round 4",
-  },
-  {
-    id: "9",
-    name: "Champions league",
-    subtitle: baseSubtitle,
-    start: "15/01/2024",
-    end: "15/01/2024",
-    location: "Raipur | Chattisgarh",
-    players: "",
-    cta: "Chevron",
-    joinedStatus: "Eliminated - Round 4",
-  },
-  {
-    id: "10",
-    name: "Champions league",
-    subtitle: baseSubtitle,
-    start: "15/01/2024",
-    end: "15/01/2024",
-    location: "Raipur | Chattisgarh",
-    players: "",
     cta: "Chevron",
     joinedStatus: "Eliminated - Round 4",
   },
@@ -141,6 +119,7 @@ export default function TournamentsPage() {
   const [activeTab, setActiveTab] = useState<TopTab>("browse");
   const [format, setFormat] = useState<FormatTab>("all");
   const [notificationsOpen, setNotificationsOpen] = useState(false);
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [readIds, setReadIds] = useState<Set<string>>(new Set());
 
@@ -151,16 +130,16 @@ export default function TournamentsPage() {
       onAccept:
         item.type === "invite"
           ? async () => {
-              await notificationApi.respondToInvite(item.id, "accept");
-              setNotifications((prev) => prev.filter((n) => n.id !== item.id));
-            }
+            await notificationApi.respondToInvite(item.id, "accept");
+            setNotifications((prev) => prev.filter((n) => n.id !== item.id));
+          }
           : undefined,
       onReject:
         item.type === "invite"
           ? async () => {
-              await notificationApi.respondToInvite(item.id, "reject");
-              setNotifications((prev) => prev.filter((n) => n.id !== item.id));
-            }
+            await notificationApi.respondToInvite(item.id, "reject");
+            setNotifications((prev) => prev.filter((n) => n.id !== item.id));
+          }
           : undefined,
     }));
 
@@ -184,10 +163,14 @@ export default function TournamentsPage() {
   }, [readIds]);
 
   const list = useMemo(() => {
-    if (activeTab === "joined") return joinedItems;
-    if (activeTab === "history") return historyItems;
-    return browseItems;
-  }, [activeTab]);
+    let items: TournamentListItem[] = [];
+    if (activeTab === "joined") items = joinedItems;
+    else if (activeTab === "history") items = historyItems;
+    else items = browseItems;
+
+    if (format === "all") return items;
+    return items.filter((item) => item.format === format);
+  }, [activeTab, format]);
 
   const unreadCount = notifications.filter((item) => item.unread).length;
   const userInitial = userProfile?.name?.trim().charAt(0).toUpperCase() || "P";
@@ -196,74 +179,51 @@ export default function TournamentsPage() {
   return (
     <>
       <div className="min-h-screen bg-[var(--color-background)] text-[var(--color-text)]">
-        <section className="bg-[linear-gradient(180deg,#ff8a24_0%,#ff7418_100%)] px-4 pb-0 pt-[calc(max(env(safe-area-inset-top),12px)+6px)]">
-          <div className="flex items-start justify-between gap-3">
-            <div className="flex min-w-0 items-center gap-3">
-              <div className="grid h-11 w-11 shrink-0 place-content-center overflow-hidden rounded-full border-2 border-white/65 bg-[radial-gradient(circle_at_30%_30%,#f7d8b5,#8f5f42)] shadow-[0_4px_10px_rgba(119,46,0,0.18)]">
-                {profilePicUrl ? (
-                  <img
-                    src={profilePicUrl}
-                    alt="Profile"
-                    className="h-full w-full object-cover"
-                  />
-                ) : (
-                  <span className="text-[13px] font-semibold text-white">{userInitial}</span>
-                )}
-              </div>
-              <div className="min-w-0 pt-0.5">
-                <h1 className="truncate text-[32px] font-extrabold leading-none tracking-[-0.02em] text-white">Tournaments</h1>
-                <p className="mt-1 text-[14px] font-medium text-white/92">Browse and join tournaments</p>
-              </div>
-            </div>
+        <PageHeader
+          title="Tournaments"
+          subtitle="Browse and join tournaments"
+          hideTopRow={false}
+        />
 
-            <button
-              type="button"
-              onClick={() => setNotificationsOpen(true)}
-              className="relative mt-0.5 grid h-11 w-11 shrink-0 place-content-center rounded-full bg-white text-[#2a2a31] shadow-[0_8px_18px_rgba(130,55,0,0.18)]"
-              aria-label="Notifications"
-            >
-              <Bell size={19} />
-              {unreadCount > 0 ? (
-                <span className="absolute right-0.5 top-0.5 grid h-5 min-w-[20px] place-content-center rounded-full bg-[#ff6b00] px-1 text-[10px] font-bold text-white ring-2 ring-[#fff3ea]">
-                  {unreadCount}
-                </span>
-              ) : null}
-            </button>
-          </div>
 
-          <label className="mt-5 flex h-10 items-center gap-2 rounded-[14px] bg-white px-3.5 text-[#8e8e95] shadow-[0_8px_18px_rgba(130,55,0,0.14)]">
-            <SearchIcon size={16} />
+        <div className="px-5 py-3">
+          <label className="flex h-14 items-center gap-3 rounded-[18px] border border-[var(--color-border)] bg-[var(--color-surface-elevated)] px-4 text-[var(--color-muted)] shadow-sm focus-within:border-primary/50 transition-all">
+            <SearchIcon size={22} className="opacity-70" />
             <input
               type="text"
               placeholder="Search tournaments, cities..."
-              className="w-full bg-transparent text-[14px] text-[var(--color-text)] outline-none placeholder:text-[#a0a0a7]"
+              className="w-full bg-transparent text-[16px] text-[var(--color-text)] outline-none placeholder:text-[var(--color-muted)]"
             />
           </label>
+        </div>
 
-          <div className="mt-5 grid grid-cols-3 text-center text-[16px] text-white/82">
-            {(["browse", "joined", "history"] as TopTab[]).map((tab) => {
-              const active = activeTab === tab;
-              return (
-                <button
-                  key={tab}
-                  onClick={() => setActiveTab(tab)}
-                  className={`h-11 capitalize border-b-2 transition-colors ${active
-                      ? "border-white font-semibold text-white"
-                      : "border-transparent"
-                    }`}
-                >
-                  {tab}
-                </button>
-              );
-            })}
-          </div>
-        </section>
-
-        <div className="border-b border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3">
-          <div className="hide-scrollbar flex items-center gap-2 overflow-x-auto">
-            <button className="grid h-9 w-9 shrink-0 place-content-center rounded-full border border-[var(--color-border)] bg-[var(--color-surface-elevated)] text-primary">
-              <FilterIcon size={14} />
+        <div className="flex items-center justify-center gap-10 px-5 border-b border-[var(--color-border)]">
+          {(["browse", "joined", "history"] as TopTab[]).map((tab) => (
+            <button
+              key={tab}
+              onClick={() => setActiveTab(tab)}
+              className={`relative py-4 text-[16px] font-bold capitalize transition-all ${
+                activeTab === tab
+                  ? "text-[var(--color-text)]"
+                  : "text-[var(--color-text-secondary)] opacity-50 hover:opacity-80"
+              }`}
+            >
+              {tab}
+              {activeTab === tab && (
+                <div className="absolute bottom-0 left-0 right-0 h-[3px] bg-primary rounded-t-full shadow-[0_-2px_10px_rgba(255,122,26,0.4)]" />
+              )}
             </button>
+          ))}
+        </div>
+
+        <div className="px-5 py-5 flex items-center gap-4">
+          <button
+            onClick={() => setIsFilterOpen(true)}
+            className="shrink-0 w-11 h-11 flex items-center justify-center rounded-full border border-[var(--color-border)] bg-[var(--color-surface-elevated)] text-primary shadow-sm active:scale-95 transition-transform"
+          >
+            <FilterIcon size={20} />
+          </button>
+          <div className="hide-scrollbar flex items-center gap-3 overflow-x-auto">
             {([
               { id: "all", label: "All Formats" },
               { id: "singles", label: "Singles" },
@@ -274,10 +234,11 @@ export default function TournamentsPage() {
                 <button
                   key={tab.id}
                   onClick={() => setFormat(tab.id)}
-                  className={`h-9 shrink-0 rounded-xl border px-6 text-[14px] font-medium transition-colors ${active
-                      ? "border-primary bg-primary text-white"
-                      : "border-[var(--color-border)] bg-[var(--color-surface-elevated)] text-[var(--color-text-muted)]"
-                    }`}
+                  className={`h-11 shrink-0 rounded-[18px] border px-6 text-[15px] font-bold transition-all ${
+                    active
+                      ? "border-primary bg-primary text-white shadow-lg shadow-primary/20"
+                      : "border-[var(--color-border)] bg-[var(--color-surface-elevated)] text-[var(--color-text-secondary)] opacity-70 hover:opacity-100"
+                  }`}
                 >
                   {tab.label}
                 </button>
@@ -293,10 +254,6 @@ export default function TournamentsPage() {
               {list.map((item) => (
                 <TournamentListCard key={item.id} item={item} />
               ))}
-              <h2 className="pt-2 text-[18px] font-semibold text-[var(--color-text)]">Tournaments Near You</h2>
-              {browseItems.map((item) => (
-                <TournamentListCard key={`near-${item.id}`} item={item} />
-              ))}
             </>
           ) : (
             list.map((item) => <TournamentListCard key={item.id} item={item} />)
@@ -306,15 +263,11 @@ export default function TournamentsPage() {
         <BottomNav />
       </div>
 
-      <NotificationsSlideOver
-        open={notificationsOpen}
-        onClose={() => setNotificationsOpen(false)}
-        items={notifications}
-        unreadCount={unreadCount}
-        onMarkAllRead={() =>
-          setReadIds(new Set(notifications.map((notification) => notification.id)))
-        }
-        onClearAll={() => setNotifications([])}
+      <TournamentFilterDrawer
+        isOpen={isFilterOpen}
+        onClose={() => setIsFilterOpen(false)}
+        onApply={(filters) => console.log("Applying filters:", filters)}
+        onReset={() => console.log("Filters reset")}
       />
     </>
   );

@@ -13,7 +13,7 @@ export type TournamentListItem = {
   end: string;
   entry?: string;
   location: string;
-  players: string;
+  format?: "singles" | "doubles";
   cta: "Register" | "View" | "Chevron";
   joinedStatus?: string;
 };
@@ -104,52 +104,41 @@ export default function TournamentListCard({ item }: { item: TournamentListItem 
   return (
     <Link
       href={`/tournaments/detail${toQuery({ id: item.id })}`}
-      className="block rounded-[18px] border border-border bg-surface px-4 py-3.5 shadow-[var(--shadow-card)] transition hover:border-primary"
+      className="block rounded-[22px] border border-[var(--color-border)] bg-[var(--color-surface)] px-5 py-4 shadow-[0_8px_24px_rgba(0,0,0,0.12)] transition hover:border-primary active:scale-[0.99]"
     >
-      <div className="grid grid-cols-[42px_minmax(0,1fr)] gap-x-3 gap-y-3">
-        <div className="self-start pt-0.5">
+      <div className="grid grid-cols-[48px_minmax(0,1fr)] gap-x-4 gap-y-5">
+        <div className="self-start">
           <SoftballLogo />
         </div>
 
-        <div className="min-w-0">
-          <h3 className="truncate text-[16px] font-semibold leading-5 text-[var(--color-text)]">{item.name}</h3>
-          <p className="mt-[2px] truncate text-[12px] text-[var(--color-text-muted)]">{item.subtitle}</p>
+        <div className="min-w-0 flex flex-col justify-center">
+          <h3 className="truncate text-[18px] font-bold leading-tight text-[var(--color-text)]">{item.name}</h3>
+          <p className="mt-1 truncate text-[13px] font-medium text-[var(--color-text-muted)] opacity-90">{item.subtitle}</p>
         </div>
 
-        <div className="col-span-2 grid grid-cols-2 gap-x-6 gap-y-2 text-[12px] text-[var(--color-text-secondary)]">
-          <div className="flex min-w-0 items-center gap-1.5">
-            <CalendarIcon size={13} className="shrink-0 text-[#5a5a63]" />
+        <div className="col-span-2 grid grid-cols-2 gap-x-8 gap-y-3.5 text-[13px] font-medium text-[var(--color-text-secondary)]">
+          <div className="flex min-w-0 items-center gap-2">
+            <CalendarIcon size={14} className="shrink-0 text-primary/70" />
             <span className="truncate">Start: {item.start}</span>
           </div>
-          <div className="flex min-w-0 items-center gap-1.5 justify-self-end text-right">
-            <CalendarIcon size={13} className="shrink-0 text-[#5a5a63]" />
+          <div className="flex min-w-0 items-center gap-2 justify-self-end text-right">
+            <CalendarIcon size={14} className="shrink-0 text-primary/70" />
             <span className="truncate">End: {item.end}</span>
           </div>
-          <div className="flex min-w-0 items-center gap-1.5">
-            <WalletIcon size={13} className="shrink-0 text-[#5a5a63]" />
+          <div className="flex min-w-0 items-center gap-2">
+            <WalletIcon size={14} className="shrink-0 text-primary/70" />
             <span className="truncate">{item.entry}</span>
           </div>
-          <div className="flex min-w-0 items-center gap-1.5 justify-self-end text-right">
-            <MapPinIcon size={13} className="shrink-0 text-[#5a5a63]" />
+          <div className="flex min-w-0 items-center gap-2 justify-self-end text-right">
+            <MapPinIcon size={14} className="shrink-0 text-primary/70" />
             <span className="truncate">{item.location}</span>
           </div>
         </div>
 
-        <div className="col-span-2 grid grid-cols-2 items-end gap-x-6 pt-1">
-          <div className="flex items-center gap-2 text-[11px] text-[var(--color-text)]">
-            <div className="-mt-1 flex -space-x-1.5">
-              <div className="h-6 w-6 rounded-full bg-[#dbb27a] ring-2 ring-surface" />
-              <div className="h-6 w-6 rounded-full bg-[#3ea3bf] ring-2 ring-surface" />
-              <div className="h-6 w-6 rounded-full bg-[#2d6d94] ring-2 ring-surface" />
-            </div>
-            <span>{item.players}</span>
-          </div>
-
-          <div className="justify-self-end">
-            <span className="inline-flex h-8 min-w-[96px] items-center justify-center rounded-full border border-primary bg-background px-5 text-[13px] font-semibold text-primary">
-              {item.cta}
-            </span>
-          </div>
+        <div className="col-span-2 pt-2">
+          <span className="flex h-12 w-full items-center justify-center rounded-xl bg-primary text-[16px] font-bold text-white shadow-[0_4px_12px_rgba(255,122,26,0.3)] active:scale-[0.98] transition-all">
+            {item.cta}
+          </span>
         </div>
       </div>
     </Link>

@@ -69,8 +69,8 @@ export default function AppPreferencesPage() {
                                 })
                             }
                             className={`relative w-12 h-6 rounded-full transition-colors ${preferences.soundEffects
-                                    ? "bg-primary"
-                                    : "bg-[var(--color-border)]"
+                                ? "bg-primary"
+                                : "bg-[var(--color-border)]"
                                 }`}
                         >
                             <div
@@ -90,8 +90,8 @@ export default function AppPreferencesPage() {
                                 })
                             }
                             className={`relative w-12 h-6 rounded-full transition-colors ${preferences.hapticFeedback
-                                    ? "bg-primary"
-                                    : "bg-[var(--color-border)]"
+                                ? "bg-primary"
+                                : "bg-[var(--color-border)]"
                                 }`}
                         >
                             <div

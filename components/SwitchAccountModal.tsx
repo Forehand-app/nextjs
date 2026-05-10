@@ -43,11 +43,10 @@ function AccountTile({
 }: AccountTileProps) {
   const content = (
     <div
-      className={`flex items-center gap-3 rounded-[22px] border px-4 py-3.5 transition-colors ${
-        active
+      className={`flex items-center gap-3 rounded-[22px] border px-4 py-3.5 transition-colors ${active
           ? "border-primary bg-primary/10 shadow-[0_8px_18px_rgba(255,138,36,0.12)]"
           : "border-[var(--color-border)] bg-[var(--color-surface)] shadow-[0_6px_16px_rgba(15,23,42,0.04)]"
-      }`}
+        }`}
     >
       <div
         className={`grid h-11 w-11 shrink-0 place-content-center rounded-full overflow-hidden ${iconTone}`}
@@ -103,13 +102,19 @@ export default function SwitchAccountModal({
     if (!isOpen) return;
 
     async function fetchOrgs() {
+      console.log("[SwitchAccountModal] fetching organizations for current user");
       try {
         const orgs = await organizationApi.getUserOrganizations();
+        console.log("[SwitchAccountModal] organizations fetched", {
+          count: Array.isArray(orgs) ? orgs.length : 0,
+          orgIds: Array.isArray(orgs) ? orgs.map((org) => org.id) : [],
+        });
         setOrgs(orgs);
       } catch (error) {
-        console.error("Failed to fetch orgs", error);
+        console.error("[SwitchAccountModal] failed to fetch organizations", error);
       } finally {
         setIsLoading(false);
+        console.log("[SwitchAccountModal] fetch organizations completed");
       }
     }
 
@@ -169,9 +174,9 @@ export default function SwitchAccountModal({
                 isIndividualActive
                   ? undefined
                   : () => {
-                      setOrganization(null);
-                      onClose();
-                    }
+                    setOrganization(null);
+                    onClose();
+                  }
               }
               icon={
                 <UserIcon
@@ -230,9 +235,9 @@ export default function SwitchAccountModal({
                       isThisOrgActive
                         ? undefined
                         : () => {
-                            setOrganization(org.id);
-                            onClose();
-                          }
+                          setOrganization(org.id);
+                          onClose();
+                        }
                     }
                     icon={
                       <BuildingIcon

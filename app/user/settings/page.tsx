@@ -1,6 +1,7 @@
 "use client";
 
 import SwitchAccountModal from "@/components/SwitchAccountModal";
+import CreateProfileModal from "@/components/CreateProfileModal";
 import React, { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -8,9 +9,7 @@ import { useTheme } from "@/components/ThemeProvider";
 import { useApp } from "@/components/AppProvider";
 import BottomNav from "@/components/BottomNav";
 import {
-  BellIcon,
   LockIcon,
-  SettingsIcon,
   HelpCircleIcon,
   MailIcon,
   LogOutIcon,
@@ -18,14 +17,16 @@ import {
   ChevronRightIcon,
   ChevronDownIcon,
   CheckIcon,
+  PlusIcon,
 } from "@/components/Icons";
-import { Bell, PhoneIcon, Settings2 } from "lucide-react";
+import { Bell, PhoneIcon, Settings2, Shield } from "lucide-react";
 
 export default function UserSettingsPage() {
   const router = useRouter();
   const { theme, toggleTheme } = useTheme();
   const { logout, userProfile } = useApp();
   const [showSwitchModal, setShowSwitchModal] = useState(false);
+  const [showCreateModal, setShowCreateModal] = useState(false);
   const [isSigningOut, setIsSigningOut] = useState(false);
 
   const settingsItems = [
@@ -33,11 +34,11 @@ export default function UserSettingsPage() {
       href: "/user/settings/notifications",
       icon: Bell,
       label: "Notifications",
-      sub: "Manage preferences",
+      sub: "Manage Preferences",
     },
     {
       href: "/user/settings/privacy",
-      icon: LockIcon,
+      icon: Shield,
       label: "Privacy & Policy",
       sub: "Control your settings",
     },
@@ -51,7 +52,7 @@ export default function UserSettingsPage() {
       href: "/user/settings/help",
       icon: HelpCircleIcon,
       label: "Help & Support",
-      sub: "Connect with support team",
+      sub: "Connect with our support team",
     },
   ];
 
@@ -71,18 +72,25 @@ export default function UserSettingsPage() {
   return (
     <div className="min-h-screen bg-[var(--color-background)] text-[var(--color-text)] flex flex-col">
       <header className="sticky top-0 z-40 bg-[var(--color-surface)] border-b border-[var(--color-border)] shadow-sm">
-        <div className="flex items-center h-14 px-5">
+        <div className="flex items-center justify-between h-14 px-5">
           <button
             type="button"
             onClick={() => setShowSwitchModal(true)}
-            className="flex items-center gap-1.5 font-bold text-[17px] tracking-tight hover:opacity-80 transition-opacity"
+            className="flex items-center gap-1.5 font-bold text-[20px] tracking-tight hover:opacity-80 transition-opacity"
             aria-expanded={showSwitchModal}
           >
-            Profile Switcher
+            Individual Profile
             <ChevronDownIcon
-              size={18}
-              className="text-[var(--color-text-muted)] mt-0.5 shrink-0"
+              size={20}
+              className="text-[var(--color-text)] mt-0.5 shrink-0"
             />
+          </button>
+
+          <button
+            onClick={() => setShowCreateModal(true)}
+            className="w-10 h-10 rounded-full border border-[var(--color-border)] flex items-center justify-center text-[var(--color-text)] hover:bg-[var(--color-surface-elevated)] transition-colors"
+          >
+            <PlusIcon size={20} />
           </button>
         </div>
       </header>
@@ -119,7 +127,7 @@ export default function UserSettingsPage() {
           </div>
           <Link
             href="/user/settings/profile"
-            className="mt-5 block w-full py-2.5 rounded-xl bg-[var(--color-surface-elevated)] border border-[var(--color-border)] text-[var(--color-text)] text-center font-semibold text-[15px] hover:bg-[var(--color-border)] transition-colors"
+            className="mt-5 block w-full py-2.5 rounded-xl bg-[var(--color-primary)] border border-[var(--color-primary)] text-white text-center font-bold text-[15px] hover:opacity-90 transition-opacity"
           >
             Edit Profile
           </Link>
@@ -156,11 +164,10 @@ export default function UserSettingsPage() {
                 <Link
                   key={idx}
                   href={item.href}
-                  className={`flex items-center justify-between p-4 hover:bg-[var(--color-surface-elevated)] transition-colors ${
-                    idx !== settingsItems.length - 1
-                      ? "border-b border-[var(--color-border)]"
-                      : ""
-                  }`}
+                  className={`flex items-center justify-between p-4 hover:bg-[var(--color-surface-elevated)] transition-colors ${idx !== settingsItems.length - 1
+                    ? "border-b border-[var(--color-border)]"
+                    : ""
+                    }`}
                 >
                   <div className="flex items-center gap-3.5">
                     <div className="p-2 rounded-xl bg-[var(--color-surface-elevated)] text-[var(--color-text)] border border-[var(--color-border)] shrink-0">
@@ -201,6 +208,11 @@ export default function UserSettingsPage() {
       <SwitchAccountModal
         isOpen={showSwitchModal}
         onClose={() => setShowSwitchModal(false)}
+      />
+
+      <CreateProfileModal
+        isOpen={showCreateModal}
+        onClose={() => setShowCreateModal(false)}
       />
     </div>
   );

@@ -1,11 +1,10 @@
 "use client";
 
-import { useState, useEffect, UIEvent } from "react";
+import { useState, useEffect, UIEvent, useMemo } from "react";
 import Link from "next/link";
 import { useApp } from "@/components/AppProvider";
 import BottomNav from "@/components/BottomNav";
 import LiveMatchCard from "@/components/Card/LiveMatchCard";
-import NextOnCourtSection from "@/components/Card/NextOnCourtSection";
 import PastMatchesSection from "@/components/Card/PastMatchesSection";
 import QuickMatchCard from "@/components/Card/QuickMatchCard";
 import QuickStatsSection from "@/components/Card/QuickStatsSection";
@@ -16,10 +15,9 @@ import NotificationsSlideOver, {
   NotificationItem,
 } from "@/components/NotificationsSlideOver";
 import { notificationApi } from "@/lib/api/notificationApi";
+import { tournamentApi } from "@/lib/api/tournamentApi";
+import { TournamentData } from "@/lib/models";
 
-// --- TYPE DEFINITIONS ---
-
-// --- CUSTOM ICONS ---
 function BellIcon({ size = 24 }: { size?: number }) {
   return (
     <svg
@@ -55,8 +53,7 @@ function LightningIcon({ size = 18 }: { size?: number }) {
   );
 }
 
-// --- MOCK DATA FOR SPLIT CARDS ---
-const upcomingTournaments: Array<{
+type UpcomingCardData = {
   id: string;
   name: string;
   venue: string;
@@ -68,55 +65,69 @@ const upcomingTournaments: Array<{
   logoText: string;
   entryFee: string;
   ctaText: string;
-}> = [
-  {
-    id: "101",
-    name: "Monsoon Pickleball Raipur Open",
-    venue: "Sports Arena",
-    address: "24 Block Street, Raipur",
-    sport: "Pickleball",
-    category: "Men's",
-    modes: "Multiple Modes",
-    colorVariant: "orange",
-    logoText: "MP",
-    entryFee: "₹500",
-    ctaText: "Register",
-  },
-  {
-    id: "102",
-    name: "National Tennis Championship",
-    venue: "Delhi Sports Complex",
-    address: "Sector 14, New Delhi",
-    sport: "Tennis",
-    category: "Men's & Women's",
-    modes: "Singles & Doubles",
-    colorVariant: "blue",
-    logoText: "NT",
-    entryFee: "₹1200",
-    ctaText: "Register",
-  },
+};
+
+type OngoingCardData = {
+  id: string;
+  name: string;
+  venue: string;
+  sport: string;
+  category: string;
+  modes: string;
+  logoText: string;
+};
+
+const colorVariants: UpcomingCardData["colorVariant"][] = [
+  "orange",
+  "blue",
+  "green",
+  "red",
+  "purple",
 ];
 
-const ongoingTournaments = [
-  {
-    id: "103",
-    name: "Winter Badminton League",
-    venue: "Raipur City Club, Civil Lines",
-    sport: "Badminton",
-    category: "Mixed",
-    modes: "League",
-    logoText: "WB",
-  },
-  {
-    id: "104",
-    name: "Summer Squash Series",
-    venue: "Elite Squash Courts, Downtown",
-    sport: "Squash",
-    category: "Women's",
-    modes: "Knockout",
-    logoText: "SS",
-  },
-];
+function getPrimarySport(t: TournamentData) {
+  return t.events?.[0]?.sportsOption?.label || "Tournament";
+}
+
+function getCategory(t: TournamentData) {
+  return t.events?.[0]?.gender || "Open";
+}
+
+function getModes(t: TournamentData) {
+  const teamTypes = Array.from(
+    new Set((t.events || []).map((e) => e.teamType?.label).filter(Boolean)),
+  ) as string[];
+  if (teamTypes.length === 0) return "Multiple Modes";
+  return teamTypes.join(" & ");
+}
+
+function getLogoText(name: string) {
+  const words = name.trim().split(/\s+/).filter(Boolean);
+  if (words.length === 0) return "T";
+  if (words.length === 1) return words[0].slice(0, 2).toUpperCase();
+  return `${words[0][0] || ""}${words[1][0] || ""}`.toUpperCase();
+}
+
+function getEntryFee(t: TournamentData) {
+  const firstPaidEvent = (t.events || []).find((e) => (e.amount || 0) > 0);
+  if (!firstPaidEvent) return "Free";
+  return `Rs ${firstPaidEvent.amount}`;
+}
+
+function isLiveTournament(t: TournamentData) {
+  if (t.tournamentState === "in_progress") return true;
+  if (!t.startDate) return false;
+  const now = new Date();
+  const start = new Date(t.startDate);
+  const end = t.endDate ? new Date(t.endDate) : null;
+  return start <= now && (!end || end >= now);
+}
+
+function isUpcomingTournament(t: TournamentData) {
+  if (isLiveTournament(t)) return false;
+  if (!t.startDate) return false;
+  return new Date(t.startDate) > new Date();
+}
 
 const liveMatches = [
   {
@@ -145,6 +156,9 @@ export default function UserHomePage() {
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [readIds, setReadIds] = useState<Set<string>>(new Set());
+  const [tournaments, setTournaments] = useState<TournamentData[]>([]);
+  const [isTournamentsLoading, setIsTournamentsLoading] = useState(true);
+
   const attachNotificationActions = (items: NotificationItem[]) =>
     items.map((item) => ({
       ...item,
@@ -165,7 +179,6 @@ export default function UserHomePage() {
           : undefined,
     }));
 
-  // --- CAROUSEL PAGINATION STATES ---
   const [activeUpcomingIndex, setActiveUpcomingIndex] = useState(0);
   const [activeOngoingIndex, setActiveOngoingIndex] = useState(0);
 
@@ -188,6 +201,73 @@ export default function UserHomePage() {
     };
   }, [readIds]);
 
+  useEffect(() => {
+    let active = true;
+    const loadTournaments = async () => {
+      try {
+        if (active) setIsTournamentsLoading(true);
+        const rows = await tournamentApi.getUserTournaments();
+        if (!active) return;
+        setTournaments(Array.isArray(rows) ? rows : []);
+      } catch (error) {
+        if (!active) return;
+        console.error("Failed to load user tournaments", error);
+        setTournaments([]);
+      } finally {
+        if (!active) return;
+        setIsTournamentsLoading(false);
+      }
+    };
+
+    void loadTournaments();
+    const timer = setInterval(() => {
+      void loadTournaments();
+    }, 30000);
+
+    return () => {
+      active = false;
+      clearInterval(timer);
+    };
+  }, []);
+
+  const upcomingTournaments = useMemo<UpcomingCardData[]>(
+    () =>
+      tournaments
+        .filter(isUpcomingTournament)
+        .slice(0, 8)
+        .map((t, idx) => ({
+          id: t.id || `upcoming-${idx}`,
+          name: t.name,
+          venue: t.venueName,
+          address: t.venueAddress,
+          sport: getPrimarySport(t),
+          category: getCategory(t),
+          modes: getModes(t),
+          colorVariant: colorVariants[idx % colorVariants.length],
+          logoText: getLogoText(t.name),
+          entryFee: getEntryFee(t),
+          ctaText: "Register",
+        })),
+    [tournaments],
+  );
+
+  const ongoingTournaments = useMemo<OngoingCardData[]>(
+    () =>
+      tournaments
+        .filter(isLiveTournament)
+        .slice(0, 8)
+        .map((t, idx) => ({
+          id: t.id || `ongoing-${idx}`,
+          name: t.name,
+          venue: `${t.venueName}, ${t.venueCity}`,
+          sport: getPrimarySport(t),
+          category: getCategory(t),
+          modes: getModes(t),
+          logoText: getLogoText(t.name),
+        })),
+    [tournaments],
+  );
+
   const unreadCount = notifications.filter((n) => n.unread).length;
   const userName = userProfile?.name || "Player";
   const displayName = userName.split(" ")[0] || userName;
@@ -199,7 +279,6 @@ export default function UserHomePage() {
     { id: "myspace", label: "My Space" },
   ];
 
-  // Scroll handlers to calculate which card is currently centered
   const handleUpcomingScroll = (e: UIEvent<HTMLDivElement>) => {
     const target = e.currentTarget;
     const itemWidth =
@@ -218,9 +297,6 @@ export default function UserHomePage() {
 
   return (
     <div className="font-body flex min-h-screen flex-col bg-[var(--color-background)] text-[var(--color-text)]">
-      {/* ========================================= */}
-      {/* UNIFIED ORANGE HERO CONTAINER             */}
-      {/* ========================================= */}
       <div className="bg-gradient-to-br from-orange-500 to-orange-600 rounded-b-[32px] px-4 pt-10 pb-12 shadow-md relative z-10 overflow-hidden transition-all duration-300">
         <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full blur-3xl -mr-20 -mt-20 pointer-events-none" />
 
@@ -262,7 +338,7 @@ export default function UserHomePage() {
             </button>
           </div>
 
-          <div className="flex gap-2 overflow-x-auto snap-x snap-mandatory [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden mb-2">
+          <div className="flex justify-center gap-2 overflow-x-auto snap-x snap-mandatory [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden mb-2">
             {homeTabs.map((tab) => (
               <button
                 key={tab.id}
@@ -310,18 +386,12 @@ export default function UserHomePage() {
           )}
         </div>
       </div>
-      {/* ========================================= */}
 
-      {/* MAIN CONTENT AREA */}
       <main className="mx-auto flex w-full max-w-md flex-1 flex-col gap-6 overflow-x-hidden overflow-y-auto px-4 pb-28 pt-8">
-        {/* ======================= */}
-        {/* EXPLORE TAB             */}
-        {/* ======================= */}
         {activeTab === "explore" && (
           <div className="space-y-8 animate-fade-in mt-2">
             <QuickMatchCard href="/match/setup" />
 
-            {/* UPCOMING TOURNAMENTS */}
             <section>
               <div className="flex items-end justify-between mb-3 px-1">
                 <h3 className="font-heading text-xl font-bold tracking-tight">
@@ -338,28 +408,47 @@ export default function UserHomePage() {
                 className="flex overflow-x-auto gap-4 snap-x snap-mandatory [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden -mx-4 px-4 pb-2"
                 onScroll={handleUpcomingScroll}
               >
-                {upcomingTournaments.map((t) => (
-                  <div
-                    key={t.id}
-                    className="min-w-[74vw] sm:min-w-[280px] snap-center shrink-0"
-                  >
-                    <ColorfulTournamentCard
-                      id={t.id}
-                      name={t.name}
-                      venue={t.venue}
-                      address={t.address}
-                      sport={t.sport}
-                      category={t.category}
-                      modes={t.modes}
-                      colorVariant={t.colorVariant}
-                      logoText={t.logoText}
-                      entryFee={t.entryFee}
-                      ctaText={t.ctaText}
-                    />
+                {isTournamentsLoading ? (
+                  <>
+                    {[0, 1].map((idx) => (
+                      <div
+                        key={`upcoming-skeleton-${idx}`}
+                        className="min-w-[74vw] sm:min-w-[280px] snap-center shrink-0 rounded-3xl border border-[var(--color-border)] bg-[var(--color-surface)] p-5 animate-pulse"
+                      >
+                        <div className="h-5 w-40 rounded bg-[var(--color-surface-elevated)]" />
+                        <div className="mt-3 h-3 w-28 rounded bg-[var(--color-surface-elevated)]" />
+                        <div className="mt-2 h-3 w-44 rounded bg-[var(--color-surface-elevated)]" />
+                        <div className="mt-6 h-10 w-full rounded bg-[var(--color-surface-elevated)]" />
+                      </div>
+                    ))}
+                  </>
+                ) : upcomingTournaments.length === 0 ? (
+                  <div className="min-w-[74vw] sm:min-w-[280px] snap-center shrink-0 rounded-3xl border border-[var(--color-border)] bg-[var(--color-surface)] p-5 text-sm text-[var(--color-text-muted)]">
+                    No upcoming tournaments.
                   </div>
-                ))}
+                ) : (
+                  upcomingTournaments.map((t) => (
+                    <div
+                      key={t.id}
+                      className="min-w-[74vw] sm:min-w-[280px] snap-center shrink-0"
+                    >
+                      <ColorfulTournamentCard
+                        id={t.id}
+                        name={t.name}
+                        venue={t.venue}
+                        address={t.address}
+                        sport={t.sport}
+                        category={t.category}
+                        modes={t.modes}
+                        colorVariant={t.colorVariant}
+                        logoText={t.logoText}
+                        entryFee={t.entryFee}
+                        ctaText={t.ctaText}
+                      />
+                    </div>
+                  ))
+                )}
               </div>
-              {/* Upcoming Dots Indicator */}
               {upcomingTournaments.length > 1 && (
                 <div className="flex items-center justify-center gap-1.5 mt-2">
                   {upcomingTournaments.map((_, idx) => (
@@ -376,14 +465,12 @@ export default function UserHomePage() {
               )}
             </section>
 
-            {/* ONGOING TOURNAMENTS */}
             <section>
               <div className="flex items-end justify-between mb-3 px-1">
                 <div className="flex items-center gap-2">
                   <h3 className="font-heading text-xl font-bold tracking-tight">
                     Ongoing Tournaments
                   </h3>
-                  {/* ORANGE LIVE PING ANIMATION */}
                   <div className="relative flex h-3 w-3 items-center justify-center mb-0.5">
                     <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-orange-400 opacity-75"></span>
                     <span className="relative inline-flex rounded-full h-2 w-2 bg-orange-500"></span>
@@ -400,24 +487,43 @@ export default function UserHomePage() {
                 className="flex overflow-x-auto gap-4 snap-x snap-mandatory [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden -mx-4 px-4 pb-2"
                 onScroll={handleOngoingScroll}
               >
-                {ongoingTournaments.map((t) => (
-                  <div
-                    key={t.id}
-                    className="min-w-[74vw] sm:min-w-[280px] snap-center shrink-0"
-                  >
-                    <OngoingTournamentCard
-                      id={t.id}
-                      name={t.name}
-                      sport={t.sport}
-                      category={t.category}
-                      modes={t.modes}
-                      venue={t.venue}
-                      logoText={t.logoText}
-                    />
+                {isTournamentsLoading ? (
+                  <>
+                    {[0, 1].map((idx) => (
+                      <div
+                        key={`ongoing-skeleton-${idx}`}
+                        className="min-w-[74vw] sm:min-w-[280px] snap-center shrink-0 rounded-3xl border border-[var(--color-border)] bg-[var(--color-surface)] p-5 animate-pulse"
+                      >
+                        <div className="h-5 w-36 rounded bg-[var(--color-surface-elevated)]" />
+                        <div className="mt-3 h-3 w-24 rounded bg-[var(--color-surface-elevated)]" />
+                        <div className="mt-2 h-3 w-40 rounded bg-[var(--color-surface-elevated)]" />
+                        <div className="mt-6 h-10 w-full rounded bg-[var(--color-surface-elevated)]" />
+                      </div>
+                    ))}
+                  </>
+                ) : ongoingTournaments.length === 0 ? (
+                  <div className="min-w-[74vw] sm:min-w-[280px] snap-center shrink-0 rounded-3xl border border-[var(--color-border)] bg-[var(--color-surface)] p-5 text-sm text-[var(--color-text-muted)]">
+                    No ongoing tournaments.
                   </div>
-                ))}
+                ) : (
+                  ongoingTournaments.map((t) => (
+                    <div
+                      key={t.id}
+                      className="min-w-[74vw] sm:min-w-[280px] snap-center shrink-0"
+                    >
+                      <OngoingTournamentCard
+                        id={t.id}
+                        name={t.name}
+                        sport={t.sport}
+                        category={t.category}
+                        modes={t.modes}
+                        venue={t.venue}
+                        logoText={t.logoText}
+                      />
+                    </div>
+                  ))
+                )}
               </div>
-              {/* Ongoing Dots Indicator */}
               {ongoingTournaments.length > 1 && (
                 <div className="flex items-center justify-center gap-1.5 mt-2">
                   {ongoingTournaments.map((_, idx) => (
@@ -436,9 +542,6 @@ export default function UserHomePage() {
           </div>
         )}
 
-        {/* ======================= */}
-        {/* LIVE FEED TAB           */}
-        {/* ======================= */}
         {activeTab === "live" && (
           <div className="space-y-4 animate-fade-in">
             <div className="flex items-center justify-center py-1 mb-2">
@@ -463,17 +566,12 @@ export default function UserHomePage() {
           </div>
         )}
 
-        {/* ======================= */}
-        {/* MY SPACE TAB            */}
-        {/* ======================= */}
         {activeTab === "myspace" && (
           <div className="space-y-8 animate-fade-in">
-            {/* Quick Stats */}
             <section>
               <QuickStatsSection won={28} played={38} lost={12} />
             </section>
 
-            {/* Your Live Match */}
             <section>
               <h3 className="mb-3 font-heading text-lg font-semibold tracking-tight flex items-center gap-2 px-1">
                 <span className="h-2 w-2 rounded-full bg-[var(--color-error)] animate-pulse" />
@@ -491,7 +589,6 @@ export default function UserHomePage() {
               />
             </section>
 
-            {/* Your Tournaments */}
             <section>
               <h3 className="mb-3 font-heading text-lg font-semibold tracking-tight px-1">
                 Your Tournaments
@@ -509,21 +606,15 @@ export default function UserHomePage() {
               </div>
             </section>
 
-            {/* Next On Court */}
-            <NextOnCourtSection />
-
-            {/* Past Matches */}
             <PastMatchesSection />
           </div>
         )}
       </main>
 
-      {/* BOTTOM NAVIGATION BAR */}
       <div className="fixed bottom-0 left-0 right-0 z-50">
         <BottomNav />
       </div>
 
-      {/* NOTIFICATIONS SLIDEOVER */}
       <NotificationsSlideOver
         open={notificationsOpen}
         onClose={() => setNotificationsOpen(false)}
@@ -537,3 +628,4 @@ export default function UserHomePage() {
     </div>
   );
 }
+

@@ -3,13 +3,9 @@
 import Image from "next/image";
 import Link from "next/link";
 import Layout from "@/components/Layout";
+import HomeHeader from "@/components/HomeHeader";
 import { useApp } from "@/components/AppProvider";
-import {
-  CalendarIcon,
-  CircleIcon,
-  TimerIcon,
-  TrophyIcon,
-} from "@/components/Icons";
+import { CalendarIcon, CircleIcon, TimerIcon, TrophyIcon } from "@/components/Icons";
 import {
   motion,
   useScroll,
@@ -17,28 +13,9 @@ import {
   type Variants,
   type MotionValue,
 } from "framer-motion";
-import { useRef } from "react";
-
-const liveTournaments = [
-  {
-    id: "lt-1",
-    name: "Champions League",
-    stage: "Day 2 of 3",
-    participants: "64 students",
-  },
-  {
-    id: "lt-2",
-    name: "City Open Cup",
-    stage: "Day 1 of 2",
-    participants: "42 students",
-  },
-  {
-    id: "lt-3",
-    name: "Inter School Clash",
-    stage: "Day 3 of 3",
-    participants: "96 students",
-  },
-];
+import { useEffect, useMemo, useRef, useState } from "react";
+import { tournamentApi } from "@/lib/api/tournamentApi";
+import { TournamentData } from "@/lib/models";
 
 const liveMatches = [
   {
@@ -58,7 +35,6 @@ const liveMatches = [
   },
 ];
 
-// Animation Variants
 const listContainerVariants: Variants = {
   hidden: { opacity: 0 },
   visible: {
@@ -80,7 +56,13 @@ const cardVariants: Variants = {
   },
 };
 
-// --- Components ---
+type LiveTournamentCardData = {
+  id: string;
+  name: string;
+  stage: string;
+  participants: string;
+  subtitle: string;
+};
 
 const AnimatedCard = ({
   children,
@@ -100,23 +82,15 @@ const AnimatedCard = ({
     offset: ["start end", "end start"],
   });
 
-  // REMOVED OPACITY transformation here to prevent "vanishing" bug.
-  // We only scale the card. Visibility is handled by the entrance variants.
   const scale = useTransform(scrollXProgress, [0, 0.5, 1], [0.95, 1, 0.95]);
 
   return (
-    <motion.article
-      ref={cardRef}
-      variants={cardVariants}
-      style={{ scale }} // Only bind scale to scroll
-      className={className}
-    >
+    <motion.article ref={cardRef} variants={cardVariants} style={{ scale }} className={className}>
       {children}
     </motion.article>
   );
 };
 
-// Fixed Dot Component
 const Dot = ({
   index,
   itemCount,
@@ -129,33 +103,24 @@ const Dot = ({
   const step = 1 / (itemCount - 1);
   const target = index * step;
 
-  // Calculate ranges
   let inputRange = [target - step, target, target + step];
   let widthOutput = [6, 24, 6];
   let opacityOutput = [0.2, 1, 0.2];
 
-  // FIX: Truncate values outside [0, 1] to prevent browser crash
   if (inputRange[0] < 0) {
-    // If the start is < 0, shift the interpolation window
     inputRange = [0, target, target + step];
-    widthOutput = [24, 24, 6]; // Keep it active at start
+    widthOutput = [24, 24, 6];
     opacityOutput = [1, 1, 0.2];
   } else if (inputRange[inputRange.length - 1] > 1) {
-    // If the end is > 1, shift the window
     inputRange = [target - step, target, 1];
-    widthOutput = [6, 24, 24]; // Keep it active at end
+    widthOutput = [6, 24, 24];
     opacityOutput = [0.2, 1, 1];
   }
 
   const width = useTransform(scrollXProgress, inputRange, widthOutput);
   const opacity = useTransform(scrollXProgress, inputRange, opacityOutput);
 
-  return (
-    <motion.div
-      style={{ width, opacity }}
-      className="h-1.5 rounded-full bg-primary"
-    />
-  );
+  return <motion.div style={{ width, opacity }} className="h-1.5 rounded-full bg-primary" />;
 };
 
 const ScrollIndicator = ({
@@ -172,153 +137,195 @@ const ScrollIndicator = ({
   return (
     <div className="flex items-center justify-center gap-2 h-3">
       {Array.from({ length: itemCount }).map((_, i) => (
-        <Dot
-          key={i}
-          index={i}
-          itemCount={itemCount}
-          scrollXProgress={scrollXProgress}
-        />
+        <Dot key={i} index={i} itemCount={itemCount} scrollXProgress={scrollXProgress} />
       ))}
     </div>
   );
 };
 
-// --- Main Page ---
+function isLiveTournament(t: TournamentData) {
+  if (t.tournamentState === "in_progress") return true;
+  if (!t.startDate) return false;
+  const now = new Date();
+  const start = new Date(t.startDate);
+  const end = t.endDate ? new Date(t.endDate) : null;
+  return start <= now && (!end || end >= now);
+}
+
+function isCompletedTournament(t: TournamentData) {
+  if (t.tournamentState === "completed") return true;
+  if (!t.endDate) return false;
+  return new Date(t.endDate) < new Date();
+}
+
+function isUpcomingTournament(t: TournamentData) {
+  if (isLiveTournament(t) || isCompletedTournament(t)) return false;
+  if (t.tournamentState === "drafted" || t.tournamentState === "published") return true;
+  if (!t.startDate) return false;
+  return new Date(t.startDate) > new Date();
+}
+
+function formatLiveStage(t: TournamentData) {
+  if (!t.startDate || !t.endDate) return "Live";
+
+  const start = new Date(t.startDate);
+  const end = new Date(t.endDate);
+  const now = new Date();
+  const dayMs = 24 * 60 * 60 * 1000;
+
+  const totalMs = end.getTime() - start.getTime();
+  if (totalMs <= 0) return "Live";
+
+  const totalDays = Math.max(1, Math.ceil(totalMs / dayMs) + 1);
+  const elapsedDays = Math.max(1, Math.ceil((now.getTime() - start.getTime()) / dayMs) + 1);
+  const day = Math.min(totalDays, elapsedDays);
+
+  return `Day ${day} of ${totalDays}`;
+}
+
+function toLiveCard(t: TournamentData): LiveTournamentCardData {
+  const primarySport = t.events?.[0]?.sportsOption?.label || "Tournament";
+  const category = t.events?.[0]?.gender || "Open";
+  const format = t.events?.[0]?.teamType?.label || "Mixed";
+
+  return {
+    id: t.id || `t-${Date.now()}`,
+    name: t.name,
+    stage: formatLiveStage(t),
+    participants: `${t.events?.length || 0} events`,
+    subtitle: `${primarySport} - ${category} - ${format}`,
+  };
+}
 
 export default function OrgHomePage() {
   const tournamentContainerRef = useRef<HTMLDivElement>(null);
   const matchContainerRef = useRef<HTMLDivElement>(null);
-  const { activeOrganization: organization, userProfile: profile } = useApp();
-  const orgName = organization?.name || "Organization";
-  const userFirstName = (profile?.name || "there").split(" ")[0];
+  const { activeOrganization: organization } = useApp();
+  const [tournaments, setTournaments] = useState<TournamentData[]>([]);
+
+  useEffect(() => {
+    let active = true;
+    const orgId = organization?.id;
+
+    if (!orgId) {
+      setTournaments([]);
+      return;
+    }
+
+    const load = async () => {
+      try {
+        const rows = await tournamentApi.getOrganizationTournaments(orgId);
+        if (!active) return;
+        setTournaments(Array.isArray(rows) ? rows : []);
+      } catch (error) {
+        if (!active) return;
+        console.error("Failed to load org tournaments", error);
+        setTournaments([]);
+      }
+    };
+
+    void load();
+    const timer = setInterval(() => {
+      void load();
+    }, 30000);
+
+    return () => {
+      active = false;
+      clearInterval(timer);
+    };
+  }, [organization?.id]);
+
+  const overview = useMemo(() => {
+    const live = tournaments.filter(isLiveTournament).length;
+    const completed = tournaments.filter(isCompletedTournament).length;
+    const upcoming = tournaments.filter(isUpcomingTournament).length;
+    return { live, completed, upcoming };
+  }, [tournaments]);
+
+  const liveTournaments = useMemo(
+    () => tournaments.filter(isLiveTournament).map(toLiveCard),
+    [tournaments],
+  );
 
   return (
-    <Layout title="Home Dashboard">
-      <div className="font-body mx-auto w-full max-w-md space-y-6 px-4 pb-24 pt-4">
-        {/* Header Section */}
-        <section className="card p-4">
-          <header className="mb-4 flex items-center gap-3">
-            <div className="grid h-10 w-10 place-items-center rounded-full border border-[var(--color-border)] bg-[var(--color-surface-elevated)] overflow-hidden">
-              {organization?.logoUrl ? (
-                <img
-                  src={organization.logoUrl}
-                  alt="Organization logo"
-                  className="w-full h-full object-cover"
-                />
-              ) : (
-                <div className="text-primary font-bold">
-                  {orgName.charAt(0)}
-                </div>
-              )}
-            </div>
-            <div>
-              <p className="font-heading text-xl font-bold leading-tight">
-                Hey {userFirstName}!
-              </p>
-              <p className="text-xs text-[var(--color-text-secondary)]">
-                {orgName}
-              </p>
-            </div>
-          </header>
-
-          <h2 className="mb-3 font-heading text-lg font-semibold">
-            Tournament Overview
-          </h2>
+    <Layout hideTopNav>
+      <HomeHeader />
+      <div className="font-body mx-auto w-full max-w-md space-y-6 px-4 pb-24 pt-6">
+        <section className="space-y-4">
+          <h2 className="px-1 text-lg font-bold tracking-tight">Tournament Overview</h2>
           <div className="grid grid-cols-3 gap-3">
-            <article className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-elevated)] p-3 text-center">
-              <CalendarIcon size={18} className="mx-auto mb-1.5 text-primary" />
-              <p className="font-heading text-2xl font-bold leading-none">12</p>
-              <p className="mt-1 text-[11px] uppercase tracking-wide text-[var(--color-muted)]">
-                Upcoming
-              </p>
-            </article>
-            <article className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-elevated)] p-3 text-center">
-              <TrophyIcon size={18} className="mx-auto mb-1.5 text-primary" />
-              <p className="font-heading text-2xl font-bold leading-none">04</p>
-              <p className="mt-1 text-[11px] uppercase tracking-wide text-[var(--color-muted)]">
-                Completed
-              </p>
-            </article>
-            <article className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-elevated)] p-3 text-center">
-              <TimerIcon size={18} className="mx-auto mb-1.5 text-primary" />
-              <p className="font-heading text-2xl font-bold leading-none">02</p>
-              <p className="mt-1 text-[11px] uppercase tracking-wide text-[var(--color-muted)]">
-                Live
-              </p>
-            </article>
+            {[
+              {
+                label: "Upcoming",
+                count: String(overview.upcoming).padStart(2, "0"),
+                icon: CalendarIcon,
+              },
+              {
+                label: "Completed",
+                count: String(overview.completed).padStart(2, "0"),
+                icon: TrophyIcon,
+              },
+              { label: "Live", count: String(overview.live).padStart(2, "0"), icon: TimerIcon },
+            ].map((item) => (
+              <article
+                key={item.label}
+                className="flex flex-col items-center justify-center gap-2 rounded-[24px] border border-[var(--color-border)] bg-[var(--color-surface)] py-6 px-3 shadow-sm transition-transform active:scale-95"
+              >
+                <item.icon size={28} className="text-[#ff7a1a]" />
+                <p className="text-3xl font-bold leading-none tracking-tight text-[var(--color-text)]">{item.count}</p>
+                <p className="text-[11px] font-semibold uppercase tracking-wider text-[var(--color-text-secondary)] opacity-70">{item.label}</p>
+              </article>
+            ))}
           </div>
         </section>
 
-        {/* Live Tournaments Section */}
         <section>
           <div className="mb-3 flex items-center justify-between">
-            <h3 className="font-heading text-xl font-semibold">
-              Live Tournaments
-            </h3>
-            <Link
-              href="/org/tournaments"
-              className="text-xs font-medium uppercase text-primary"
-            >
+            <h3 className="font-heading text-xl font-semibold">Live Tournaments</h3>
+            <Link href="/org/tournaments" className="text-xs font-medium uppercase text-primary">
               See All
             </Link>
           </div>
 
-          <motion.div
-            ref={tournamentContainerRef}
-            className="no-scrollbar -mx-4 flex snap-x snap-mandatory gap-4 overflow-x-auto px-4 pb-4"
-            variants={listContainerVariants}
-            initial="hidden"
-            animate="visible"
-          >
-            {liveTournaments.map((item) => (
-              <AnimatedCard
-                key={item.id}
-                containerRef={tournamentContainerRef}
-                className="card min-w-[85%] snap-center p-4"
+          {liveTournaments.length === 0 ? (
+            <div className="card p-4 text-sm text-[var(--color-muted)]">No live tournaments right now.</div>
+          ) : (
+            <>
+              <motion.div
+                ref={tournamentContainerRef}
+                className="no-scrollbar -mx-4 flex snap-x snap-mandatory gap-4 overflow-x-auto px-4 pb-4"
+                variants={listContainerVariants}
+                initial="hidden"
+                animate="visible"
               >
-                <div className="mb-2 flex items-center justify-between">
-                  <span className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wide text-[var(--color-success)]">
-                    <CircleIcon
-                      size={6}
-                      className="text-[var(--color-success)] fill-current"
-                    />
-                    Live
-                  </span>
-                  <span className="text-xs text-[var(--color-muted)]">
-                    {item.stage}
-                  </span>
-                </div>
-                <h4 className="font-heading text-lg font-bold leading-tight">
-                  {item.name}
-                </h4>
-                <p className="mt-0.5 text-xs text-[var(--color-muted)]">
-                  Pickleball • Men&apos;s • Doubles
-                </p>
-                <div className="mt-3 flex items-center justify-between border-t border-[var(--color-border)] pt-2">
-                  <span className="text-xs text-[var(--color-text-secondary)]">
-                    Participants
-                  </span>
-                  <span className="text-sm font-semibold">
-                    {item.participants}
-                  </span>
-                </div>
-              </AnimatedCard>
-            ))}
-          </motion.div>
+                {liveTournaments.map((item) => (
+                  <AnimatedCard key={item.id} containerRef={tournamentContainerRef} className="card min-w-[85%] snap-center p-4">
+                    <div className="mb-2 flex items-center justify-between">
+                      <span className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wide text-[var(--color-success)]">
+                        <CircleIcon size={6} className="text-[var(--color-success)] fill-current" />
+                        Live
+                      </span>
+                      <span className="text-xs text-[var(--color-muted)]">{item.stage}</span>
+                    </div>
+                    <h4 className="font-heading text-lg font-bold leading-tight">{item.name}</h4>
+                    <p className="mt-0.5 text-xs text-[var(--color-muted)]">{item.subtitle}</p>
+                    <div className="mt-3 flex items-center justify-between border-t border-[var(--color-border)] pt-2">
+                      <span className="text-xs text-[var(--color-text-secondary)]">Participants</span>
+                      <span className="text-sm font-semibold">{item.participants}</span>
+                    </div>
+                  </AnimatedCard>
+                ))}
+              </motion.div>
 
-          <div className="mt-1">
-            <ScrollIndicator
-              itemCount={liveTournaments.length}
-              containerRef={tournamentContainerRef}
-            />
-          </div>
+              <div className="mt-1">
+                <ScrollIndicator itemCount={liveTournaments.length} containerRef={tournamentContainerRef} />
+              </div>
+            </>
+          )}
         </section>
 
-        {/* Live Matches Section */}
         <section>
-          <h3 className="mb-3 font-heading text-xl font-semibold">
-            Live Matches
-          </h3>
+          <h3 className="mb-3 font-heading text-xl font-semibold">Live Matches</h3>
 
           <motion.div
             ref={matchContainerRef}

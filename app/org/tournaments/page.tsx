@@ -18,6 +18,9 @@ import { toQuery } from "@/lib/utils";
 import { tournamentApi } from "@/lib/api/tournamentApi";
 import { TournamentData } from "@/lib/models";
 import OrgTournamentCard from "@/components/OrgTournamentCard";
+import PageHeader from "@/components/PageHeader";
+import TournamentFilterDrawer from "@/components/TournamentFilterDrawer";
+import { SlidersIcon } from "@/components/Icons";
 
 const tabs: TabItem[] = [
   { id: "live", label: "Live" },
@@ -89,6 +92,7 @@ export default function OrgTournamentsPage() {
   const { activeOrganization } = useApp();
   const activeOrgId = activeOrganization?.id ?? null;
   const [showFilters, setShowFilters] = useState(false);
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [tournaments, setTournaments] = useState<TournamentData[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState("");
@@ -201,32 +205,48 @@ export default function OrgTournamentsPage() {
   );
 
   return (
-    <Layout title="Tournaments">
-      <div className="p-4 space-y-4 pb-24">
-        {/* Header */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="font-semibold text-lg">Your Tournaments</h1>
-            <p className="text-sm text-[var(--color-muted)]">
-              Create and manage your tournaments
-            </p>
-          </div>
+    <Layout hideTopNav>
+      <PageHeader
+        title="Your Tournaments"
+        subtitle="Create and manage your tournaments"
+        hideTopRow={true}
+        action={
           <Link
             href="/org/tournaments/create"
-            className="w-10 h-10 rounded-full flex items-center justify-center text-white"
+            className="w-12 h-12 rounded-full flex items-center justify-center text-white shadow-lg active:scale-95 transition-transform"
             style={{ background: "var(--gradient-orange)" }}
           >
-            +
+            <span className="text-3xl font-light leading-none">+</span>
           </Link>
-        </div>
+        }
+      />
 
-        {/* Tabs */}
-        <Tabs
-          tabs={tabs}
-          activeId={activeTab}
-          onChange={setActiveTab}
-          ariaLabel="Tournament status"
-        />
+      <div className="flex items-center gap-3 px-4 py-3 bg-[var(--color-background)] sticky top-0 z-30 transition-colors">
+        <button
+          onClick={() => setIsFilterOpen(true)}
+          className="shrink-0 w-11 h-11 flex items-center justify-center rounded-2xl bg-[var(--color-surface)] text-primary border border-[var(--color-border)] shadow-sm active:scale-95 transition-transform"
+          aria-label="Filter"
+        >
+          <SlidersIcon size={24} />
+        </button>
+        <div className="flex items-center gap-2 overflow-x-auto no-scrollbar py-1">
+          {tabs.map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={`px-6 py-2.5 rounded-full text-sm font-bold whitespace-nowrap transition-all ${
+                activeTab === tab.id
+                  ? "bg-primary text-white shadow-lg shadow-primary/20 scale-105"
+                  : "bg-[var(--color-surface-elevated)] text-[var(--color-text-secondary)] border border-[var(--color-border)] opacity-80 hover:opacity-100"
+              }`}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="p-4 space-y-4 pb-24">
 
         {/* Tournament List */}
         {activeTab !== "drafts" && activeTab !== "past" && (
@@ -392,6 +412,18 @@ export default function OrgTournamentsPage() {
           </div>
         )}
       </div>
+
+      <TournamentFilterDrawer
+        isOpen={isFilterOpen}
+        onClose={() => setIsFilterOpen(false)}
+        onApply={(filters) => {
+          console.log("Applying filters:", filters);
+          // In a real app, we would update the tournament fetch query here
+        }}
+        onReset={() => {
+          console.log("Filters reset");
+        }}
+      />
     </Layout>
   );
 }
