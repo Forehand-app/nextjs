@@ -1,4 +1,11 @@
+import { clsx, type ClassValue } from "clsx";
+import { twMerge } from "tailwind-merge";
+
 type Primitive = string | number | boolean | null | undefined;
+
+export function cn(...inputs: ClassValue[]) {
+  return twMerge(clsx(inputs));
+}
 
 export function toQuery(params: Record<string, Primitive>): string {
     const search = new URLSearchParams();
