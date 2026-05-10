@@ -9,27 +9,26 @@ import {
 } from "@/lib/validators/registrationForm";
 import { userApi } from "@/lib/api/userApi";
 import { storageApi } from "@/lib/api/storageApi";
-import { 
-  CameraIcon, 
-  UserIcon, 
-  PhoneIcon, 
-  UsersIcon, 
-  CalendarIcon, 
-  DumbbellIcon, 
+import {
+  CameraIcon,
+  UserIcon,
+  PhoneIcon,
+  CalendarIcon,
+  DumbbellIcon,
   TrophyIcon,
   ChevronRightIcon,
   InfoIcon
 } from "@/components/Icons";
 import { FloatingIcons } from "@/components/FloatingIcons";
-
-const InputField = ({ 
-  id, 
-  label, 
-  icon: Icon, 
-  children, 
+import { Users } from "lucide-react";
+const InputField = ({
+  id,
+  label,
+  icon: Icon,
+  children,
   error,
   type,
-  ...props 
+  ...props
 }: any) => {
   const handleClick = (e: React.MouseEvent) => {
     // If clicking the input/select directly, let the browser handle it
@@ -52,14 +51,14 @@ const InputField = ({
   };
 
   return (
-    <div 
-      className="w-full min-w-0 space-y-1.5" 
+    <div
+      className="w-full min-w-0 space-y-1.5"
       onClick={(e) => {
         if (type !== 'date') handleClick(e);
       }}
     >
       <div className={`relative h-14 flex items-center rounded-full border bg-[var(--color-surface)] transition-all ${error ? 'border-red-500/50' : 'border-[var(--color-border)] focus-within:border-[#ff7a1a]'}`}>
-        <div 
+        <div
           className="pl-4 text-[#ff7a1a] opacity-80 flex-shrink-0 cursor-pointer h-full flex items-center"
           onClick={(e) => {
             if (type === 'date') {
@@ -319,7 +318,7 @@ export default function RegisterPage() {
             error={fieldErrors.contactNumber}
           />
 
-          <InputField id="gender" icon={UsersIcon} error={fieldErrors.gender}>
+          <InputField id="gender" icon={Users} error={fieldErrors.gender}>
             <div className="relative flex-1 flex items-center">
               <select
                 value={formData.gender || ""}
