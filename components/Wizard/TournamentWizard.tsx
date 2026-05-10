@@ -15,6 +15,8 @@ import {
   type EventFormData,
 } from "@/lib/validators/tournamentSchema";
 import { z } from "zod";
+import { optionsApi } from "@/lib/api/optionsApi";
+import { OptionsData } from "@/lib/models";
 
 // --- CUSTOM ICONS FOR DATE PICKER ---
 const CalendarIcon = ({ size = 20, className = "" }) => (
@@ -47,7 +49,21 @@ const InputError = ({ message }: { message?: string }) => {
 };
 
 // 1. Native Styled Select
-const NativeSelect = ({ label, value, options, onChange, error }: any) => (
+const NativeSelect = ({
+  label,
+  value,
+  options,
+  onChange,
+  error,
+  placeholder,
+}: {
+  label: string;
+  value: string;
+  options: OptionsData[];
+  onChange: (val: string) => void;
+  error?: string;
+  placeholder?: string;
+}) => (
   <div className="relative">
     <label className="block text-sm font-semibold text-[var(--color-text)] mb-2">
       {label}
@@ -59,11 +75,11 @@ const NativeSelect = ({ label, value, options, onChange, error }: any) => (
         className={`w-full px-4 py-3 rounded-xl bg-[var(--color-surface-elevated)] border ${error ? "border-red-500" : "border-[var(--color-border)]"} text-[var(--color-text)] focus:border-primary focus:ring-1 focus:ring-primary outline-none appearance-none cursor-pointer font-medium`}
       >
         <option value="" disabled>
-          Select {label}
+          {placeholder || `Select ${label}`}
         </option>
-        {options.map((opt: string) => (
-          <option key={opt} value={opt}>
-            {opt}
+        {options.map((opt) => (
+          <option key={opt.code} value={opt.code}>
+            {opt.label}
           </option>
         ))}
       </select>
@@ -357,13 +373,49 @@ export default function TournamentWizard({
 
   const [errors, setErrors] = useState<Record<string, string>>({});
 
-  const sportsOpts = ["Pickleball", "Tennis", "Badminton", "Padel"];
-  const formatOpts = ["Knockout", "Round Robin", "League", "Groups + Knockout"];
-  const genderOpts = ["Men's", "Women's", "Mixed", "Open"];
-  const partTypeOpts = ["Singles", "Doubles", "Team"];
-  const setsOpts = ["Best of 1", "Best of 3", "Best of 5"];
-  const pointsOpts = ["11", "15", "21"];
-  const paymentOpts = ["Pay at venue", "Pay online (UPI)"];
+  const [sportsOpts, setSportsOpts] = useState<OptionsData[]>([]);
+  const [formatOpts, setFormatOpts] = useState<OptionsData[]>([]);
+  const [teamTypeOpts, setTeamTypeOpts] = useState<OptionsData[]>([]);
+  const [paymentOpts, setPaymentOpts] = useState<OptionsData[]>([]);
+
+  const genderOpts: OptionsData[] = [
+    { id: 1, code: "male", label: "Men's" },
+    { id: 2, code: "female", label: "Women's" },
+    { id: 3, code: "mixed", label: "Mixed" },
+    { id: 4, code: "open", label: "Open" },
+  ];
+
+  const setsOpts: OptionsData[] = [
+    { id: 1, code: "1", label: "Best of 1" },
+    { id: 2, code: "3", label: "Best of 3" },
+    { id: 3, code: "5", label: "Best of 5" },
+  ];
+
+  const pointsOpts: OptionsData[] = [
+    { id: 1, code: "11", label: "11" },
+    { id: 2, code: "15", label: "15" },
+    { id: 3, code: "21", label: "21" },
+  ];
+
+  useEffect(() => {
+    const fetchOptions = async () => {
+      try {
+        const [sports, formats, teamTypes, payments] = await Promise.all([
+          optionsApi.getSportsOptions(),
+          optionsApi.getEventFormatOptions(),
+          optionsApi.getTeamTypeOptions(),
+          optionsApi.getPaymentModeOptions(),
+        ]);
+        setSportsOpts(sports);
+        setFormatOpts(formats);
+        setTeamTypeOpts(teamTypes);
+        setPaymentOpts(payments);
+      } catch (err) {
+        console.error("Failed to fetch options", err);
+      }
+    };
+    void fetchOptions();
+  }, []);
 
   const validateStep = (currentStep: number) => {
     setErrors({});
@@ -992,7 +1044,7 @@ export default function TournamentWizard({
                           <NativeSelect
                             label="Participation Type"
                             value={event.partType}
-                            options={partTypeOpts}
+                            options={teamTypeOpts}
                             onChange={(v: string) =>
                               updateEvent(index, "partType", v)
                             }
@@ -1035,7 +1087,7 @@ export default function TournamentWizard({
                           <div className="p-5 bg-[var(--color-surface)] rounded-xl border border-[var(--color-border)] space-y-5 animate-in fade-in duration-300">
                             <NativeSelect
                               label="Payment Option"
-                              value={event.paymentOption}
+                              value={event.paymentOption || ""}
                               options={paymentOpts}
                               onChange={(v: string) =>
                                 updateEvent(index, "paymentOption", v)

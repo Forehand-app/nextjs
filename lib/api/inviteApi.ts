@@ -25,11 +25,6 @@ type CrewMemberResponse = {
   status?: "invite_sent" | "accepted" | "rejected" | "idle";
 };
 
-const inviteCreatePath =
-  process.env.NEXT_PUBLIC_TOURNAMENT_CREW_INVITE_PATH || "/invite/create";
-const crewListPath =
-  process.env.NEXT_PUBLIC_TOURNAMENT_CREW_LIST_PATH || "/invite/tournament/crew";
-
 export const inviteApi = {
   sendTournamentCrewInvite: async ({
     phone,
@@ -45,7 +40,7 @@ export const inviteApi = {
       contextType: "tournament_crew",
       notifyReceiver: true,
     };
-    const url = getApiUrl({ path: inviteCreatePath });
+    const url = getApiUrl({ path: "/invite/create" });
     console.log("[inviteApi] sendTournamentCrewInvite:start", {
       url,
       payload,
@@ -69,8 +64,10 @@ export const inviteApi = {
     return (data || {}) as InviteResponse;
   },
 
-  getTournamentCrew: async (tournamentId: string): Promise<CrewMemberResponse[]> => {
-    const url = getApiUrl({ path: crewListPath });
+  getTournamentCrew: async (
+    tournamentId: string,
+  ): Promise<CrewMemberResponse[]> => {
+    const url = getApiUrl({ path: "/invite/tournament/crew" });
     const payload = { tournamentId };
     console.log("[inviteApi] getTournamentCrew:start", { url, payload });
     const { data, error } = await fetchApi(url, {
@@ -94,7 +91,10 @@ export const inviteApi = {
     return Array.isArray(data) ? (data as CrewMemberResponse[]) : [];
   },
 
-  removeTournamentCrewInvite: async (inviteId: string, tournamentId: string) => {
+  removeTournamentCrewInvite: async (
+    inviteId: string,
+    tournamentId: string,
+  ) => {
     const { error } = await fetchApi(
       getApiUrl({ path: "/invite/tournament/crew/remove" }),
       {

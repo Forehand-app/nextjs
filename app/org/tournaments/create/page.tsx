@@ -21,40 +21,26 @@ function normalizePhone(value: string) {
   return clean;
 }
 
+// These are now passthrough because the Wizard uses backend codes directly
 function mapSportCode(value: string) {
-  const codes: Record<string, string> = {
-    Pickleball: "pickleball",
-    Tennis: "tennis",
-    Badminton: "badminton",
-    Padel: "padel",
-  };
-  return codes[value] ?? value.toLowerCase();
+  return value;
 }
 
 function mapFormatCode(value: string) {
-  const codes: Record<string, string> = {
-    Knockout: "single-elimination",
-    "Round Robin": "round-robin",
-    League: "league",
-    "Groups + Knockout": "groups-knockout",
-  };
-  return codes[value] ?? value.toLowerCase().replace(/\s+/g, "-");
+  return value;
 }
 
 function mapGender(value: string): "male" | "female" | null {
-  if (value === "Men's") return "male";
-  if (value === "Women's") return "female";
+  if (value === "male" || value === "female") return value;
   return null;
 }
 
 function mapTeamTypeCode(value: string) {
-  return value.toLowerCase();
+  return value;
 }
 
 function mapPaymentModeCode(value: string | null | undefined, isFree: boolean) {
   if (isFree) return null;
-  if (value === "Pay online (UPI)") return "pay-online";
-  if (value === "Pay at venue") return "pay-at-venue";
   return value || null;
 }
 
@@ -98,7 +84,7 @@ export default function CreateOrgTournamentPage() {
         contactEmail: tournament.organizerEmail,
         contactPhone: normalizePhone(tournament.organizerPhone),
         upiId: tournament.upiId || null,
-        tournamentState: state === "created" ? "published" : "drafted",
+        tournamentState: "drafted",
       };
 
       const tournamentId = await tournamentApi.createTournament(tournamentData);
@@ -128,9 +114,15 @@ export default function CreateOrgTournamentPage() {
           ),
           amount: event.isFree ? 0 : Number(event.fee || 0),
           eventState: "created" as const,
+          activeRound: 0,
         }));
 
         await tournamentApi.createEvents(eventsData);
+      }
+
+      // 4. Publish if requested
+      if (state === "created") {
+        await tournamentApi.publishTournament(tournamentId);
       }
 
       router.push("/org/tournaments");

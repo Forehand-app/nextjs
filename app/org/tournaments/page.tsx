@@ -43,26 +43,16 @@ function getTournamentStatus(
   tournament: TournamentData,
 ): "live" | "upcoming" | "past" | "drafts" {
   if (tournament.tournamentState === "drafted") return "drafts";
+  if (tournament.tournamentState === "in_progress") return "live";
+  if (tournament.tournamentState === "published") return "upcoming";
+  if (
+    tournament.tournamentState === "completed" ||
+    tournament.tournamentState === "cancelled"
+  )
+    return "past";
 
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-
-  const startDate = tournament.startDate
-    ? new Date(tournament.startDate)
-    : null;
-  const endDate = tournament.endDate ? new Date(tournament.endDate) : startDate;
-
-  if (startDate && !Number.isNaN(startDate.getTime())) {
-    startDate.setHours(0, 0, 0, 0);
-  }
-
-  if (endDate && !Number.isNaN(endDate.getTime())) {
-    endDate.setHours(0, 0, 0, 0);
-  }
-
-  if (endDate && endDate < today) return "past";
-  if (startDate && startDate > today) return "upcoming";
-  return "live";
+  // Fallback for safety, though states should be well-defined
+  return "upcoming";
 }
 
 function getPrimarySport(tournament: TournamentData) {
@@ -98,45 +88,67 @@ export default function OrgTournamentsPage() {
   const [errorMessage, setErrorMessage] = useState("");
   const orgId = activeOrgId;
 
+  const loadTournaments = async () => {
+    try {
+      setErrorMessage("");
+      setIsLoading(true);
+
+      const loadedTournaments = await tournamentApi.getOrganizationTournaments(
+        orgId!,
+      );
+
+      const tList = Array.isArray(loadedTournaments)
+        ? [...loadedTournaments]
+        : [];
+
+      setTournaments(tList);
+    } catch (error) {
+      console.error("Failed to load organization tournaments", error);
+      setErrorMessage(
+        error instanceof Error ? error.message : "Unable to load tournaments.",
+      );
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   useEffect(() => {
-    let isActive = true;
-
-    const loadTournaments = async () => {
-      try {
-        setErrorMessage("");
-        setIsLoading(true);
-
-        const loadedTournaments =
-          await tournamentApi.getOrganizationTournaments(orgId!);
-
-        if (isActive) {
-          const tList = Array.isArray(loadedTournaments)
-            ? [...loadedTournaments]
-            : [];
-
-          setTournaments(tList);
-        }
-      } catch (error) {
-        if (!isActive) return;
-        console.error("Failed to load organization tournaments", error);
-        setErrorMessage(
-          error instanceof Error
-            ? error.message
-            : "Unable to load tournaments.",
-        );
-      } finally {
-        if (isActive) {
-          setIsLoading(false);
-        }
-      }
-    };
-
-    void loadTournaments();
-
-    return () => {
-      isActive = false;
-    };
+    if (orgId) {
+      void loadTournaments();
+    }
   }, [orgId]);
+
+  const handlePublish = async (tournamentId: string) => {
+    try {
+      await tournamentApi.publishTournament(tournamentId);
+      await loadTournaments();
+      setActiveTab("upcoming");
+    } catch (error) {
+      console.error("Failed to publish tournament", error);
+      alert(
+        error instanceof Error ? error.message : "Failed to publish tournament",
+      );
+    }
+  };
+
+  const handleDelete = async (tournamentId: string) => {
+    if (
+      !confirm(
+        "Are you sure you want to delete this tournament and all its data? This action cannot be undone.",
+      )
+    ) {
+      return;
+    }
+    try {
+      await tournamentApi.deleteTournament(tournamentId);
+      await loadTournaments();
+    } catch (error) {
+      console.error("Failed to delete tournament", error);
+      alert(
+        error instanceof Error ? error.message : "Failed to delete tournament",
+      );
+    }
+  };
 
   const visibleTournaments = useMemo(
     () =>
@@ -189,14 +201,16 @@ export default function OrgTournamentsPage() {
       </div>
 
       <div className="p-4 space-y-4 pb-24">
-
         {/* Tournament List */}
         {activeTab !== "drafts" && activeTab !== "past" && (
           <div className="space-y-4">
             {isLoading ? (
               <div className="space-y-4">
                 {[1, 2, 3].map((i) => (
-                  <div key={i} className="bg-[var(--color-surface)] rounded-[var(--radius-card)] p-5 border border-[var(--color-border)] animate-pulse">
+                  <div
+                    key={i}
+                    className="bg-[var(--color-surface)] rounded-[var(--radius-card)] p-5 border border-[var(--color-border)] animate-pulse"
+                  >
                     <div className="flex items-start justify-between mb-4">
                       <div className="flex gap-3 w-full">
                         <div className="w-12 h-12 rounded-full bg-[var(--color-surface-elevated)]" />
@@ -300,7 +314,10 @@ export default function OrgTournamentsPage() {
             {isLoading ? (
               <div className="space-y-4">
                 {[1, 2].map((i) => (
-                  <div key={i} className="bg-[var(--color-surface)] rounded-[var(--radius-card)] p-6 border-2 border-dashed border-[var(--color-border)] animate-pulse">
+                  <div
+                    key={i}
+                    className="bg-[var(--color-surface)] rounded-[var(--radius-card)] p-6 border-2 border-dashed border-[var(--color-border)] animate-pulse"
+                  >
                     <div className="h-6 w-1/2 bg-[var(--color-surface-elevated)] rounded mb-4" />
                     <div className="h-4 w-full bg-[var(--color-surface-elevated)] rounded" />
                   </div>
@@ -336,7 +353,10 @@ export default function OrgTournamentsPage() {
                         </p>
                       </div>
                     </div>
-                    <button className="w-8 h-8 rounded-full bg-[var(--badge-error-bg)] text-[var(--badge-error-text)] flex items-center justify-center shrink-0 hover:bg-red-500/20 transition-colors">
+                    <button
+                      onClick={() => handleDelete(t.id!)}
+                      className="w-8 h-8 rounded-full bg-[var(--badge-error-bg)] text-[var(--badge-error-text)] flex items-center justify-center shrink-0 hover:bg-red-500/20 transition-colors"
+                    >
                       <svg
                         width="16"
                         height="16"
@@ -362,13 +382,22 @@ export default function OrgTournamentsPage() {
                     </p>
                   </div>
 
-                  <Link
-                    href={`/org/tournaments/detail${toQuery({ t: t.id })}`}
-                    className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-[var(--radius-button)] bg-[var(--color-surface-elevated)] border border-[var(--color-border)] text-[var(--color-text)] font-semibold hover:border-primary transition-colors"
-                  >
-                    <EditIcon size={18} />
-                    <span>Complete Draft Setup</span>
-                  </Link>
+                  <div className="grid grid-cols-2 gap-3">
+                    <Link
+                      href={`/org/tournaments/detail${toQuery({ t: t.id })}`}
+                      className="flex items-center justify-center gap-2 py-3 px-4 rounded-[var(--radius-button)] bg-[var(--color-surface-elevated)] border border-[var(--color-border)] text-[var(--color-text)] font-semibold hover:border-primary transition-colors"
+                    >
+                      <EditIcon size={18} />
+                      <span>Complete Draft</span>
+                    </Link>
+                    <button
+                      onClick={() => handlePublish(t.id!)}
+                      className="flex items-center justify-center gap-2 py-3 px-4 rounded-[var(--radius-button)] bg-primary text-white font-semibold hover:opacity-90 transition-opacity"
+                    >
+                      <TrophyIcon size={18} />
+                      <span>Publish</span>
+                    </button>
+                  </div>
                 </div>
               ))
             )}

@@ -1,16 +1,16 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useApp } from "@/components/AppProvider";
 import {
-  XIcon,
-  BuildingIcon,
-  PhoneIcon,
-  MapPinIcon,
   ArrowLeftIcon,
+  BuildingIcon,
   ChevronRightIcon,
+  MapPinIcon,
+  PhoneIcon,
+  XIcon,
 } from "@/components/Icons";
 import { organizationApi } from "@/lib/api/orgaizationApi";
 import { storageApi } from "@/lib/api/storageApi";
@@ -20,15 +20,46 @@ import {
   type OrganizationFormData,
 } from "@/lib/validators/organizationSchema";
 
+const STEP_ONE_FIELDS: (keyof OrganizationFormData)[] = [
+  "orgTypeCode",
+  "name",
+  "description",
+  "establishedYear",
+  "logo",
+];
+
+const STEP_TWO_FIELDS: (keyof OrganizationFormData)[] = [
+  "website",
+  "contactEmail",
+  "contactPhone",
+  "address",
+  "city",
+  "state",
+  "postalCode",
+];
+
+function isOrganizationFormField(value: unknown): value is keyof OrganizationFormData {
+  return typeof value === "string";
+}
+
+function formatOrgTypeLabel(orgTypeCode: string) {
+  if (!orgTypeCode) return "Not selected";
+
+  return orgTypeCode
+    .replace(/([a-z])([A-Z])/g, "$1 $2")
+    .replace(/^./, (match) => match.toUpperCase());
+}
+
 export default function CreateOrgPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { setOrganization } = useApp();
 
   const [step, setStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [formData, setFormData] = useState<OrganizationFormData>({
-    orgTypeCode: "sportsClub",
+    orgTypeCode: "",
     name: "",
     description: "",
     establishedYear: new Date().getFullYear(),
@@ -42,41 +73,65 @@ export default function CreateOrgPage() {
     postalCode: "",
   });
 
-  const handleGoBack = () => {
-    if (step > 1) setStep(step - 1);
-  };
+  useEffect(() => {
+    const orgTypeCode = searchParams.get("orgTypeCode");
 
-  const validateStep = (currentStep: number) => {
-    setFieldErrors({});
-    let stepSchema;
-    if (currentStep === 1) {
-      stepSchema = organizationSchema.pick({
-        orgTypeCode: true,
-        name: true,
-        description: true,
-        establishedYear: true,
-        logo: true,
+    if (!orgTypeCode) {
+      router.replace("/org/onboarding");
+      return;
+    }
+
+    setFormData((current) => ({
+      ...current,
+      orgTypeCode,
+    }));
+  }, [router, searchParams]);
+
+  const validateFields = (fields: (keyof OrganizationFormData)[]) => {
+    setFieldErrors((current) => {
+      const next = { ...current };
+      fields.forEach((field) => {
+        delete next[field];
       });
+      return next;
+    });
+
+    const result = organizationSchema.safeParse(formData);
+    if (result.success) {
+      return true;
     }
 
-    if (stepSchema) {
-      const result = stepSchema.safeParse(formData);
-      if (!result.success) {
-        const errors: Record<string, string> = {};
-        result.error.issues.forEach((issue) => {
-          if (issue.path[0]) {
-            errors[issue.path[0].toString()] = issue.message;
-          }
-        });
-        setFieldErrors(errors);
-        return false;
+    const stepErrors: Record<string, string> = {};
+    result.error.issues.forEach((issue) => {
+      const field = issue.path[0];
+      if (typeof field !== "string") return;
+      if (!fields.includes(field as keyof OrganizationFormData)) return;
+      if (!stepErrors[field]) {
+        stepErrors[field] = issue.message;
       }
+    });
+
+    if (Object.keys(stepErrors).length > 0) {
+      setFieldErrors((current) => ({ ...current, ...stepErrors }));
+      return false;
     }
+
     return true;
   };
 
+  const handleGoBack = () => {
+    if (step > 1) {
+      setStep(step - 1);
+      return;
+    }
+
+    router.push(
+      `/org/onboarding?orgTypeCode=${encodeURIComponent(formData.orgTypeCode)}`,
+    );
+  };
+
   const handleNext = () => {
-    if (validateStep(1)) {
+    if (validateFields(STEP_ONE_FIELDS)) {
       setStep(2);
     }
   };
@@ -91,13 +146,23 @@ export default function CreateOrgPage() {
         }
       });
       setFieldErrors(errors);
-      // If there are errors in step 1 fields, go back to step 1
-      const hasStep1Errors = result.error.issues.some((i) =>
-        ["orgTypeCode", "name", "description", "establishedYear"].includes(
-          i.path[0] as string,
-        ),
-      );
-      if (hasStep1Errors) setStep(1);
+
+      const hasStepOneErrors = result.error.issues.some((issue) => {
+        const field = issue.path[0];
+        return isOrganizationFormField(field) && STEP_ONE_FIELDS.includes(field);
+      });
+
+      if (hasStepOneErrors) {
+        setStep(1);
+      } else if (
+        result.error.issues.some((issue) => {
+          const field = issue.path[0];
+          return isOrganizationFormField(field) && STEP_TWO_FIELDS.includes(field);
+        })
+      ) {
+        setStep(2);
+      }
+
       return;
     }
 
@@ -105,7 +170,6 @@ export default function CreateOrgPage() {
     try {
       const validatedData = result.data;
 
-      // Clean phone number to exactly 10 digits
       let cleanPhone = validatedData.contactPhone.replace(/\D/g, "");
       if (cleanPhone.length > 10) {
         if (cleanPhone.length === 12 && cleanPhone.startsWith("91")) {
@@ -118,9 +182,9 @@ export default function CreateOrgPage() {
       const payload: OrganizationData = {
         name: validatedData.name,
         orgTypeCode: validatedData.orgTypeCode,
-        description: validatedData.description || "", // Server expects a string
+        description: validatedData.description || "",
         establishedYear: validatedData.establishedYear,
-        website: validatedData.website || null, // Server expects uri or null
+        website: validatedData.website || null,
         contactEmail: validatedData.contactEmail,
         contactPhone: cleanPhone,
         address: validatedData.address,
@@ -140,7 +204,6 @@ export default function CreateOrgPage() {
         }
       }
 
-      // Switch to org mode with the newly created org ID
       setOrganization(orgId);
       router.push(`/org/home?orgId=${orgId}`);
     } catch (error) {
@@ -155,47 +218,52 @@ export default function CreateOrgPage() {
     return <p className="text-xs text-red-500 mt-1 ml-1">{message}</p>;
   };
 
+  const currentStepLabel = step === 1 ? "Step 2 of 3" : "Step 3 of 3";
+  const currentStepTitle =
+    step === 1 ? "Organization details" : "Contact details";
+  const closeHref = `/org/onboarding${
+    formData.orgTypeCode
+      ? `?orgTypeCode=${encodeURIComponent(formData.orgTypeCode)}`
+      : ""
+  }`;
+
   return (
     <div className="min-h-screen bg-[var(--color-background)]">
-      {/* Header */}
       <div className="sticky top-0 z-40 bg-[var(--color-surface)] border-b border-[var(--color-border)] p-4 flex items-center justify-between">
-        <h1 className="font-semibold">Create Organization Profile</h1>
+        <div>
+          <p className="text-xs uppercase tracking-[0.2em] text-[var(--color-muted)]">
+            {currentStepLabel}
+          </p>
+          <h1 className="font-semibold">{currentStepTitle}</h1>
+        </div>
         <Link
-          href="/org/onboarding"
+          href={closeHref}
           className="p-2 hover:bg-[var(--color-surface-elevated)] rounded-lg"
         >
           <XIcon size={20} />
         </Link>
       </div>
 
-      {/* Step 1: Basic Information */}
       {step === 1 && (
         <div className="p-4 space-y-5 pb-24">
-          <h2 className="font-semibold flex items-center gap-2">
-            <BuildingIcon size={18} /> Basic Information
-          </h2>
-
-          <div>
-            <label className="block text-sm font-medium mb-2">
-              Organization Type *
-            </label>
-            <select
-              value={formData.orgTypeCode}
-              onChange={(e) =>
-                setFormData({ ...formData, orgTypeCode: e.target.value })
-              }
-              className={`w-full px-4 py-3 rounded-lg bg-[var(--color-surface)] border ${fieldErrors.orgTypeCode ? "border-red-500" : "border-[var(--color-border)]"} text-[var(--color-text)] focus:border-primary focus:outline-none`}
+          <div className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-4">
+            <p className="text-xs uppercase tracking-[0.14em] text-[var(--color-muted)]">
+              Organization type
+            </p>
+            <p className="mt-1 font-medium text-[var(--color-text)]">
+              {formatOrgTypeLabel(formData.orgTypeCode)}
+            </p>
+            <Link
+              href={closeHref}
+              className="mt-3 inline-flex text-sm font-medium text-primary"
             >
-              <option value="educationalInstitute">
-                Educational Institute
-              </option>
-              <option value="sportsAcademy">Sports Academy</option>
-              <option value="sportsClub">Sports Club</option>
-              <option value="corporate">Corporate</option>
-              <option value="other">Other</option>
-            </select>
-            <InputError message={fieldErrors.orgTypeCode} />
+              Change type
+            </Link>
           </div>
+
+          <h2 className="font-semibold flex items-center gap-2">
+            <BuildingIcon size={18} /> Basic information
+          </h2>
 
           <div>
             <label className="block text-sm font-medium mb-2">
@@ -208,7 +276,9 @@ export default function CreateOrgPage() {
               onChange={(e) =>
                 setFormData({ ...formData, name: e.target.value })
               }
-              className={`w-full px-4 py-3 rounded-lg bg-[var(--color-surface)] border ${fieldErrors.name ? "border-red-500" : "border-[var(--color-border)]"} text-[var(--color-text)] focus:border-primary focus:outline-none`}
+              className={`w-full px-4 py-3 rounded-lg bg-[var(--color-surface)] border ${
+                fieldErrors.name ? "border-red-500" : "border-[var(--color-border)]"
+              } text-[var(--color-text)] focus:border-primary focus:outline-none`}
             />
             <InputError message={fieldErrors.name} />
           </div>
@@ -224,7 +294,11 @@ export default function CreateOrgPage() {
                 setFormData({ ...formData, description: e.target.value })
               }
               rows={3}
-              className={`w-full px-4 py-3 rounded-lg bg-[var(--color-surface)] border ${fieldErrors.description ? "border-red-500" : "border-[var(--color-border)]"} text-[var(--color-text)] focus:border-primary focus:outline-none resize-none`}
+              className={`w-full px-4 py-3 rounded-lg bg-[var(--color-surface)] border ${
+                fieldErrors.description
+                  ? "border-red-500"
+                  : "border-[var(--color-border)]"
+              } text-[var(--color-text)] focus:border-primary focus:outline-none resize-none`}
             />
             <InputError message={fieldErrors.description} />
           </div>
@@ -240,10 +314,14 @@ export default function CreateOrgPage() {
               onChange={(e) =>
                 setFormData({
                   ...formData,
-                  establishedYear: parseInt(e.target.value) || 0,
+                  establishedYear: parseInt(e.target.value, 10) || 0,
                 })
               }
-              className={`w-full px-4 py-3 rounded-lg bg-[var(--color-surface)] border ${fieldErrors.establishedYear ? "border-red-500" : "border-[var(--color-border)]"} text-[var(--color-text)] focus:border-primary focus:outline-none`}
+              className={`w-full px-4 py-3 rounded-lg bg-[var(--color-surface)] border ${
+                fieldErrors.establishedYear
+                  ? "border-red-500"
+                  : "border-[var(--color-border)]"
+              } text-[var(--color-text)] focus:border-primary focus:outline-none`}
             />
             <InputError message={fieldErrors.establishedYear} />
           </div>
@@ -258,7 +336,7 @@ export default function CreateOrgPage() {
                 accept="image/png, image/jpeg"
                 className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
                 onChange={(e) => {
-                  if (e.target.files && e.target.files[0]) {
+                  if (e.target.files?.[0]) {
                     setFormData({ ...formData, logo: e.target.files[0] });
                   }
                 }}
@@ -267,7 +345,7 @@ export default function CreateOrgPage() {
                 {formData.logo ? (
                   <img
                     src={URL.createObjectURL(formData.logo)}
-                    alt="Logo Preview"
+                    alt="Logo preview"
                     className="w-full h-full object-cover"
                   />
                 ) : (
@@ -288,28 +366,30 @@ export default function CreateOrgPage() {
                 )}
               </div>
               <p className="font-medium">
-                {formData.logo
-                  ? formData.logo.name
-                  : "Upload Organization Logo"}
+                {formData.logo ? formData.logo.name : "Upload Organization Logo"}
               </p>
               <p className="text-sm text-[var(--color-muted)]">
                 PNG, JPG up to 15 MB
               </p>
-              <button className="mt-3 text-primary text-sm font-medium">
+              <button
+                type="button"
+                className="mt-3 text-primary text-sm font-medium"
+              >
                 {formData.logo ? "Change File" : "Choose File"}
               </button>
             </div>
           </div>
 
-          {/* Navigation */}
-          <div className="fixed bottom-0 left-0 right-0 p-4 bg-[var(--color-surface)] border-t border-[var(--color-border)] flex justify-between">
-            <Link
-              href="/org/onboarding"
+          <div className="fixed bottom-0 left-0 right-0 p-4 bg-[var(--color-surface)] border-t border-[var(--color-border)] flex justify-between items-center">
+            <button
+              type="button"
+              onClick={handleGoBack}
               className="text-[var(--color-muted)] flex items-center gap-1"
             >
               <ArrowLeftIcon size={16} /> Previous
-            </Link>
+            </button>
             <button
+              type="button"
               onClick={handleNext}
               className="px-6 py-2 rounded-lg font-semibold text-white"
               style={{ background: "var(--gradient-orange)" }}
@@ -320,38 +400,27 @@ export default function CreateOrgPage() {
         </div>
       )}
 
-      {/* Step 2: Contact Information */}
       {step === 2 && (
         <div className="p-4 space-y-5 pb-24">
           <h2 className="font-semibold flex items-center gap-2">
-            <PhoneIcon size={18} /> Contact Information
+            <PhoneIcon size={18} /> Contact information
           </h2>
-
-          <div>
-            <label className="block text-sm font-medium mb-2">Website</label>
-            <input
-              type="url"
-              placeholder="https://example.com"
-              value={formData.website}
-              onChange={(e) =>
-                setFormData({ ...formData, website: e.target.value })
-              }
-              className={`w-full px-4 py-3 rounded-lg bg-[var(--color-surface)] border ${fieldErrors.website ? "border-red-500" : "border-[var(--color-border)]"} text-[var(--color-text)] focus:border-primary focus:outline-none`}
-            />
-            <InputError message={fieldErrors.website} />
-          </div>
 
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="block text-sm font-medium mb-2">Email *</label>
               <input
                 type="email"
-                placeholder="contact@..."
+                placeholder="contact@example.com"
                 value={formData.contactEmail}
                 onChange={(e) =>
                   setFormData({ ...formData, contactEmail: e.target.value })
                 }
-                className={`w-full px-4 py-3 rounded-lg bg-[var(--color-surface)] border ${fieldErrors.contactEmail ? "border-red-500" : "border-[var(--color-border)]"} text-[var(--color-text)] focus:border-primary focus:outline-none`}
+                className={`w-full px-4 py-3 rounded-lg bg-[var(--color-surface)] border ${
+                  fieldErrors.contactEmail
+                    ? "border-red-500"
+                    : "border-[var(--color-border)]"
+                } text-[var(--color-text)] focus:border-primary focus:outline-none`}
               />
               <InputError message={fieldErrors.contactEmail} />
             </div>
@@ -364,10 +433,32 @@ export default function CreateOrgPage() {
                 onChange={(e) =>
                   setFormData({ ...formData, contactPhone: e.target.value })
                 }
-                className={`w-full px-4 py-3 rounded-lg bg-[var(--color-surface)] border ${fieldErrors.contactPhone ? "border-red-500" : "border-[var(--color-border)]"} text-[var(--color-text)] focus:border-primary focus:outline-none`}
+                className={`w-full px-4 py-3 rounded-lg bg-[var(--color-surface)] border ${
+                  fieldErrors.contactPhone
+                    ? "border-red-500"
+                    : "border-[var(--color-border)]"
+                } text-[var(--color-text)] focus:border-primary focus:outline-none`}
               />
               <InputError message={fieldErrors.contactPhone} />
             </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium mb-2">Website</label>
+            <input
+              type="url"
+              placeholder="https://example.com"
+              value={formData.website}
+              onChange={(e) =>
+                setFormData({ ...formData, website: e.target.value })
+              }
+              className={`w-full px-4 py-3 rounded-lg bg-[var(--color-surface)] border ${
+                fieldErrors.website
+                  ? "border-red-500"
+                  : "border-[var(--color-border)]"
+              } text-[var(--color-text)] focus:border-primary focus:outline-none`}
+            />
+            <InputError message={fieldErrors.website} />
           </div>
 
           <h2 className="font-semibold flex items-center gap-2 pt-4">
@@ -385,7 +476,11 @@ export default function CreateOrgPage() {
               onChange={(e) =>
                 setFormData({ ...formData, address: e.target.value })
               }
-              className={`w-full px-4 py-3 rounded-lg bg-[var(--color-surface)] border ${fieldErrors.address ? "border-red-500" : "border-[var(--color-border)]"} text-[var(--color-text)] focus:border-primary focus:outline-none`}
+              className={`w-full px-4 py-3 rounded-lg bg-[var(--color-surface)] border ${
+                fieldErrors.address
+                  ? "border-red-500"
+                  : "border-[var(--color-border)]"
+              } text-[var(--color-text)] focus:border-primary focus:outline-none`}
             />
             <InputError message={fieldErrors.address} />
           </div>
@@ -400,7 +495,9 @@ export default function CreateOrgPage() {
                 onChange={(e) =>
                   setFormData({ ...formData, city: e.target.value })
                 }
-                className={`w-full px-4 py-3 rounded-lg bg-[var(--color-surface)] border ${fieldErrors.city ? "border-red-500" : "border-[var(--color-border)]"} text-[var(--color-text)] focus:border-primary focus:outline-none`}
+                className={`w-full px-4 py-3 rounded-lg bg-[var(--color-surface)] border ${
+                  fieldErrors.city ? "border-red-500" : "border-[var(--color-border)]"
+                } text-[var(--color-text)] focus:border-primary focus:outline-none`}
               />
               <InputError message={fieldErrors.city} />
             </div>
@@ -413,7 +510,11 @@ export default function CreateOrgPage() {
                 onChange={(e) =>
                   setFormData({ ...formData, state: e.target.value })
                 }
-                className={`w-full px-4 py-3 rounded-lg bg-[var(--color-surface)] border ${fieldErrors.state ? "border-red-500" : "border-[var(--color-border)]"} text-[var(--color-text)] focus:border-primary focus:outline-none`}
+                className={`w-full px-4 py-3 rounded-lg bg-[var(--color-surface)] border ${
+                  fieldErrors.state
+                    ? "border-red-500"
+                    : "border-[var(--color-border)]"
+                } text-[var(--color-text)] focus:border-primary focus:outline-none`}
               />
               <InputError message={fieldErrors.state} />
             </div>
@@ -428,14 +529,18 @@ export default function CreateOrgPage() {
               onChange={(e) =>
                 setFormData({ ...formData, postalCode: e.target.value })
               }
-              className={`w-full px-4 py-3 rounded-lg bg-[var(--color-surface)] border ${fieldErrors.postalCode ? "border-red-500" : "border-[var(--color-border)]"} text-[var(--color-text)] focus:border-primary focus:outline-none`}
+              className={`w-full px-4 py-3 rounded-lg bg-[var(--color-surface)] border ${
+                fieldErrors.postalCode
+                  ? "border-red-500"
+                  : "border-[var(--color-border)]"
+              } text-[var(--color-text)] focus:border-primary focus:outline-none`}
             />
             <InputError message={fieldErrors.postalCode} />
           </div>
 
-          {/* Navigation */}
           <div className="fixed bottom-0 left-0 right-0 p-4 bg-[var(--color-surface)] border-t border-[var(--color-border)] flex justify-between items-center">
             <button
+              type="button"
               onClick={handleGoBack}
               disabled={isSubmitting}
               className="text-[var(--color-muted)] flex items-center gap-1 disabled:opacity-50"
@@ -443,12 +548,13 @@ export default function CreateOrgPage() {
               <ArrowLeftIcon size={16} /> Previous
             </button>
             <button
+              type="button"
               onClick={handleSubmit}
               disabled={isSubmitting}
               className="px-6 py-2 rounded-lg font-semibold text-white flex items-center gap-2 disabled:opacity-70"
               style={{ background: "var(--gradient-orange)" }}
             >
-              {isSubmitting ? "Creating..." : "Create Organization"}{" "}
+              {isSubmitting ? "Creating..." : "Create Organization"}
               <ChevronRightIcon size={16} />
             </button>
           </div>

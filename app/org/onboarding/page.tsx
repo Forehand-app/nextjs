@@ -1,82 +1,192 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import Link from "next/link";
-import { GraduationCapIcon, TrophyIcon, UsersIcon, BuildingIcon, ChevronRightIcon, CheckIcon } from "@/components/Icons";
+import { useRouter, useSearchParams } from "next/navigation";
+import {
+  BuildingIcon,
+  CheckIcon,
+  ChevronRightIcon,
+  GraduationCapIcon,
+  TrophyIcon,
+  UsersIcon,
+  XIcon,
+} from "@/components/Icons";
+import { optionsApi } from "@/lib/api/optionsApi";
+import { type OptionsData } from "@/lib/models";
 
 type IconComponent = React.ComponentType<{ size?: number; className?: string }>;
 
-const orgTypes: { id: string; Icon: IconComponent; label: string }[] = [
-    { id: "educational", Icon: GraduationCapIcon, label: "Educational Institutions" },
-    { id: "academy", Icon: TrophyIcon, label: "Sports Academy" },
-    { id: "club", Icon: UsersIcon, label: "Sports Club" },
-    { id: "corporate", Icon: BuildingIcon, label: "Corporate" },
-    { id: "others", Icon: BuildingIcon, label: "Others" },
-];
+const orgTypeIconMap: Record<string, IconComponent> = {
+  educationalInstitute: GraduationCapIcon,
+  sportsAcademy: TrophyIcon,
+  sportsClub: UsersIcon,
+  corporate: BuildingIcon,
+  other: BuildingIcon,
+};
 
-export default function OrgOnboardingPage() {
-    const [selected, setSelected] = useState<string[]>([]);
-
-    const toggleSelect = (id: string) => {
-        if (selected.includes(id)) {
-            setSelected(selected.filter((s) => s !== id));
-        } else {
-            setSelected([...selected, id]);
-        }
-    };
-
-    return (
-        <div className="min-h-screen bg-[var(--color-background)] flex flex-col p-6">
-            {/* Logo */}
-            <div className="flex items-center gap-2 mb-8">
-                <div className="w-10 h-10 bg-primary rounded-lg flex items-center justify-center">
-                    <span className="text-white font-bold text-xl">F</span>
-                </div>
-                <span className="text-primary font-bold text-xl">FOREHAND</span>
-            </div>
-
-            {/* Title */}
-            <h1 className="text-lg font-semibold mb-2">Let&apos;s get you started.</h1>
-            <p className="text-[var(--color-muted)] mb-8">
-                What type of organization are you?
-            </p>
-
-            {/* Organization Types */}
-            <div className="flex-1 space-y-3">
-                {orgTypes.map((type) => (
-                    <button
-                        key={type.id}
-                        onClick={() => toggleSelect(type.id)}
-                        className={`w-full p-4 rounded-xl border-2 flex items-center gap-3 transition-all ${selected.includes(type.id)
-                            ? "border-primary bg-primary/10"
-                            : "border-[var(--color-border)] hover:border-primary/50"
-                            }`}
-                    >
-                        {selected.includes(type.id) ? (
-                            <div className="w-6 h-6 rounded-full bg-primary flex items-center justify-center">
-                                <CheckIcon size={14} className="text-white" />
-                            </div>
-                        ) : (
-                            <type.Icon size={20} className="text-[var(--color-text)]" />
-                        )}
-                        <span className="font-medium">{type.label}</span>
-                    </button>
-                ))}
-            </div>
-
-            {/* Get Started Button */}
-            <Link
-                href="/org/create"
-                className={`mt-8 w-full min-h-[52px] flex items-center justify-center gap-2 rounded-xl font-semibold text-white transition-all ${selected.length > 0
-                    ? "bg-primary"
-                    : "bg-[var(--color-muted)] cursor-not-allowed"
-                    }`}
-                style={selected.length > 0 ? { background: "var(--gradient-orange)" } : {}}
-            >
-                Get Started
-                <ChevronRightIcon size={18} />
-            </Link>
-        </div>
-    );
+function getOrgTypeIcon(code: string): IconComponent {
+  return orgTypeIconMap[code] ?? BuildingIcon;
 }
 
+export default function OrgOnboardingPage() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const [orgTypes, setOrgTypes] = useState<OptionsData[]>([]);
+  const [selected, setSelected] = useState("");
+  const [isLoading, setIsLoading] = useState(true);
+  const [errorMessage, setErrorMessage] = useState("");
+
+  useEffect(() => {
+    const selectedFromQuery = searchParams.get("orgTypeCode");
+    if (selectedFromQuery) {
+      setSelected(selectedFromQuery);
+    }
+  }, [searchParams]);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const loadOrgTypes = async () => {
+      setIsLoading(true);
+      setErrorMessage("");
+
+      try {
+        const data = await optionsApi.getOrgTypeOptions();
+        if (!isMounted) return;
+
+        setOrgTypes(data);
+        setSelected((current) => {
+          if (current && data.some((item) => item.code === current)) {
+            return current;
+          }
+          return "";
+        });
+      } catch (error) {
+        console.error("Failed to load organization types", error);
+        if (isMounted) {
+          setErrorMessage("Unable to load organization types right now.");
+        }
+      } finally {
+        if (isMounted) {
+          setIsLoading(false);
+        }
+      }
+    };
+
+    loadOrgTypes();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  const handleGetStarted = () => {
+    if (!selected) return;
+    router.push(`/org/create?orgTypeCode=${encodeURIComponent(selected)}`);
+  };
+
+  return (
+    <div className="min-h-screen bg-[var(--color-background)] flex flex-col">
+      <div className="sticky top-0 z-40 bg-[var(--color-surface)] border-b border-[var(--color-border)] p-4 flex items-center justify-between">
+        <div>
+          <p className="text-xs uppercase tracking-[0.2em] text-[var(--color-muted)]">
+            Step 1 of 3
+          </p>
+          <h1 className="font-semibold">Choose organization type</h1>
+        </div>
+        <Link
+          href="/org/home"
+          className="p-2 hover:bg-[var(--color-surface-elevated)] rounded-lg"
+          aria-label="Close organization setup"
+        >
+          <XIcon size={20} />
+        </Link>
+      </div>
+
+      <div className="flex-1 p-4 pb-24">
+        <p className="text-sm text-[var(--color-muted)] mb-6">
+          Pick the organization type that best matches how you will use
+          Forehand.
+        </p>
+
+        {isLoading ? (
+          <div className="space-y-3">
+            {Array.from({ length: 4 }).map((_, index) => (
+              <div
+                key={index}
+                className="h-[76px] rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] animate-pulse"
+              />
+            ))}
+          </div>
+        ) : errorMessage ? (
+          <div className="rounded-2xl border border-red-200 bg-red-50 p-4">
+            <p className="text-sm text-red-600">{errorMessage}</p>
+            <button
+              type="button"
+              onClick={() => window.location.reload()}
+              className="mt-3 text-sm font-semibold text-red-700"
+            >
+              Try again
+            </button>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {orgTypes.map((type) => {
+              const Icon = getOrgTypeIcon(type.code);
+              const isSelected = selected === type.code;
+
+              return (
+                <button
+                  key={type.id}
+                  type="button"
+                  onClick={() => setSelected(type.code)}
+                  className={`w-full p-4 rounded-2xl border-2 flex items-center gap-3 text-left transition-all ${
+                    isSelected
+                      ? "border-primary bg-primary/10"
+                      : "border-[var(--color-border)] bg-[var(--color-surface)] hover:border-primary/50"
+                  }`}
+                >
+                  <div
+                    className={`w-11 h-11 rounded-xl flex items-center justify-center ${
+                      isSelected
+                        ? "bg-primary text-white"
+                        : "bg-[var(--color-surface-elevated)] text-[var(--color-text)]"
+                    }`}
+                  >
+                    {isSelected ? (
+                      <CheckIcon size={18} className="text-white" />
+                    ) : (
+                      <Icon size={20} />
+                    )}
+                  </div>
+                  <div className="flex-1">
+                    <p className="font-medium text-[var(--color-text)]">
+                      {type.label}
+                    </p>
+                    <p className="text-sm text-[var(--color-muted)]">
+                      This will shape your organization profile setup.
+                    </p>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
+      <div className="sticky bottom-0 border-t border-[var(--color-border)] bg-[var(--color-surface)] p-4">
+        <button
+          type="button"
+          onClick={handleGetStarted}
+          disabled={!selected || isLoading}
+          className="w-full min-h-[52px] rounded-xl font-semibold text-white flex items-center justify-center gap-2 disabled:cursor-not-allowed disabled:opacity-60"
+          style={{ background: "var(--gradient-orange)" }}
+        >
+          Get Started
+          <ChevronRightIcon size={18} />
+        </button>
+      </div>
+    </div>
+  );
+}

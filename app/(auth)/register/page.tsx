@@ -13,7 +13,8 @@ import { CameraIcon } from "@/components/Icons";
 
 export default function RegisterPage() {
   const router = useRouter();
-  const { isAuthenticated, isLoading, session, logout, register } = useApp();
+  const { isAuthenticated, isLoading, userProfile, session, logout, register } =
+    useApp();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSigningOut, setIsSigningOut] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
@@ -78,6 +79,13 @@ export default function RegisterPage() {
       router.replace("/login");
       return;
     }
+
+    // Already has a profile → go home
+    if (userProfile) {
+      router.replace("/home");
+      return;
+    }
+
     // Pre-fill name from Google profile
     setFormData((prev) => ({
       ...prev,
@@ -87,7 +95,7 @@ export default function RegisterPage() {
         session?.user?.user_metadata?.name ||
         "",
     }));
-  }, [isAuthenticated, isLoading, router, session]);
+  }, [isAuthenticated, isLoading, userProfile, router, session]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

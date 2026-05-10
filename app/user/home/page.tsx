@@ -17,6 +17,7 @@ import NotificationsSlideOver, {
 import { notificationApi } from "@/lib/api/notificationApi";
 import { tournamentApi } from "@/lib/api/tournamentApi";
 import { TournamentData } from "@/lib/models";
+import { toQuery } from "@/lib/utils";
 
 function BellIcon({ size = 24 }: { size?: number }) {
   return (
@@ -157,6 +158,9 @@ export default function UserHomePage() {
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [readIds, setReadIds] = useState<Set<string>>(new Set());
   const [tournaments, setTournaments] = useState<TournamentData[]>([]);
+  const [joinedTournaments, setJoinedTournaments] = useState<TournamentData[]>(
+    [],
+  );
   const [isTournamentsLoading, setIsTournamentsLoading] = useState(true);
 
   const attachNotificationActions = (items: NotificationItem[]) =>
@@ -206,13 +210,18 @@ export default function UserHomePage() {
     const loadTournaments = async () => {
       try {
         if (active) setIsTournamentsLoading(true);
-        const rows = await tournamentApi.getUserTournaments();
+        const [browseRows, joinedRows] = await Promise.all([
+          tournamentApi.getBrowseTournaments(),
+          tournamentApi.getJoinedTournaments(),
+        ]);
         if (!active) return;
-        setTournaments(Array.isArray(rows) ? rows : []);
+        setTournaments(Array.isArray(browseRows) ? browseRows : []);
+        setJoinedTournaments(Array.isArray(joinedRows) ? joinedRows : []);
       } catch (error) {
         if (!active) return;
         console.error("Failed to load user tournaments", error);
         setTournaments([]);
+        setJoinedTournaments([]);
       } finally {
         if (!active) return;
         setIsTournamentsLoading(false);
@@ -594,15 +603,26 @@ export default function UserHomePage() {
                 Your Tournaments
               </h3>
 
-              <div className="px-1">
-                <UserTournamentCard
-                  href="/user/tournaments"
-                  title="Raipur League 2025"
-                  sport="Pickle ball"
-                  category="Men's"
-                  format="Doubles"
-                  ctaLabel="View Tournament Events"
-                />
+              <div className="px-1 space-y-4">
+                {isTournamentsLoading ? (
+                  <div className="h-24 w-full rounded-2xl bg-[var(--color-surface-elevated)] animate-pulse" />
+                ) : joinedTournaments.length === 0 ? (
+                  <p className="text-sm text-[var(--color-text-muted)] italic px-2">
+                    You haven't joined any tournaments yet.
+                  </p>
+                ) : (
+                  joinedTournaments.map((t) => (
+                    <UserTournamentCard
+                      key={t.id}
+                      href={`/tournaments/detail${toQuery({ id: t.id })}`}
+                      title={t.name}
+                      sport={getPrimarySport(t)}
+                      category={getCategory(t)}
+                      format={getModes(t)}
+                      ctaLabel="View Tournament Events"
+                    />
+                  ))
+                )}
               </div>
             </section>
 
@@ -621,11 +641,12 @@ export default function UserHomePage() {
         items={notifications}
         unreadCount={unreadCount}
         onMarkAllRead={() =>
-          setReadIds(new Set(notifications.map((notification) => notification.id)))
+          setReadIds(
+            new Set(notifications.map((notification) => notification.id)),
+          )
         }
         onClearAll={() => setNotifications([])}
       />
     </div>
   );
 }
-

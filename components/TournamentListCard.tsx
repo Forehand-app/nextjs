@@ -2,7 +2,12 @@
 
 import React from "react";
 import Link from "next/link";
-import { CalendarIcon, ChevronRightIcon, MapPinIcon, WalletIcon } from "@/components/Icons";
+import {
+  CalendarIcon,
+  ChevronRightIcon,
+  MapPinIcon,
+  WalletIcon,
+} from "@/components/Icons";
 import { toQuery } from "@/lib/utils";
 
 export type TournamentListItem = {
@@ -16,20 +21,71 @@ export type TournamentListItem = {
   format?: "singles" | "doubles";
   cta: "Register" | "View" | "Chevron";
   joinedStatus?: string;
+  logoUrl?: string | null;
 };
 
-function SoftballLogo() {
+function SoftballLogo({ url, name }: { url?: string | null; name: string }) {
+  if (url) {
+    return (
+      <div className="w-[42px] h-[42px] md:w-[48px] md:h-[48px] rounded-full overflow-hidden border border-[var(--color-border)] shadow-sm bg-[var(--color-surface-elevated)] shrink-0">
+        <img src={url} alt={name} className="w-full h-full object-cover" />
+      </div>
+    );
+  }
   return (
     <div className="grid h-[42px] w-[42px] shrink-0 place-items-center rounded-full border border-[#f28a36] bg-[radial-gradient(circle_at_35%_35%,#fffefb_0%,#faf7ef_58%,#f3ebd8_100%)] shadow-[inset_0_1px_0_rgba(255,255,255,0.95),0_3px_8px_rgba(242,138,54,0.08)]">
       <svg viewBox="0 0 64 64" className="h-[34px] w-[34px]" aria-hidden="true">
-        <circle cx="32" cy="32" r="27" fill="#fffdf8" stroke="#2f2a21" strokeWidth="1.8" />
-        <circle cx="32" cy="32" r="20.5" fill="none" stroke="#2f2a21" strokeWidth="1.2" strokeDasharray="1.3 2.2" />
-        <path d="M18 12c4.8 6.4 7 13.1 7 20s-2.2 13.6-7 20" fill="none" stroke="#c96b1f" strokeWidth="2.2" strokeLinecap="round" />
-        <path d="M46 12c-4.8 6.4-7 13.1-7 20s2.2 13.6 7 20" fill="none" stroke="#c96b1f" strokeWidth="2.2" strokeLinecap="round" />
-        <text x="32" y="29" textAnchor="middle" fontSize="7.2" fontWeight="700" fill="#2f2a21" letterSpacing="1.5">
+        <circle
+          cx="32"
+          cy="32"
+          r="27"
+          fill="#fffdf8"
+          stroke="#2f2a21"
+          strokeWidth="1.8"
+        />
+        <circle
+          cx="32"
+          cy="32"
+          r="20.5"
+          fill="none"
+          stroke="#2f2a21"
+          strokeWidth="1.2"
+          strokeDasharray="1.3 2.2"
+        />
+        <path
+          d="M18 12c4.8 6.4 7 13.1 7 20s-2.2 13.6-7 20"
+          fill="none"
+          stroke="#c96b1f"
+          strokeWidth="2.2"
+          strokeLinecap="round"
+        />
+        <path
+          d="M46 12c-4.8 6.4-7 13.1-7 20s2.2 13.6 7 20"
+          fill="none"
+          stroke="#c96b1f"
+          strokeWidth="2.2"
+          strokeLinecap="round"
+        />
+        <text
+          x="32"
+          y="29"
+          textAnchor="middle"
+          fontSize="7.2"
+          fontWeight="700"
+          fill="#2f2a21"
+          letterSpacing="1.5"
+        >
           SOFT
         </text>
-        <text x="32" y="37.5" textAnchor="middle" fontSize="6" fontWeight="700" fill="#2f2a21" letterSpacing="1.2">
+        <text
+          x="32"
+          y="37.5"
+          textAnchor="middle"
+          fontSize="6"
+          fontWeight="700"
+          fill="#2f2a21"
+          letterSpacing="1.2"
+        >
           BALL
         </text>
       </svg>
@@ -37,7 +93,13 @@ function SoftballLogo() {
   );
 }
 
-function PennantIcon({ size = 12, className = "" }: { size?: number; className?: string }) {
+function PennantIcon({
+  size = 12,
+  className = "",
+}: {
+  size?: number;
+  className?: string;
+}) {
   return (
     <svg
       width={size}
@@ -57,7 +119,11 @@ function PennantIcon({ size = 12, className = "" }: { size?: number; className?:
   );
 }
 
-export default function TournamentListCard({ item }: { item: TournamentListItem }) {
+export default function TournamentListCard({
+  item,
+}: {
+  item: TournamentListItem;
+}) {
   const isHistory = item.cta === "Chevron";
 
   if (isHistory) {
@@ -68,12 +134,16 @@ export default function TournamentListCard({ item }: { item: TournamentListItem 
       >
         <div className="grid grid-cols-[42px_minmax(0,1fr)_18px] gap-x-3 gap-y-3">
           <div className="row-span-2 self-start pt-0.5">
-            <SoftballLogo />
+            <SoftballLogo url={item.logoUrl} name={item.name} />
           </div>
 
           <div className="min-w-0">
-            <h3 className="truncate text-[15px] font-semibold leading-5 text-[var(--color-text)]">{item.name}</h3>
-            <p className="mt-[2px] truncate text-[11px] text-[var(--color-text-muted)]">{item.subtitle}</p>
+            <h3 className="truncate text-[15px] font-semibold leading-5 text-[var(--color-text)]">
+              {item.name}
+            </h3>
+            <p className="mt-[2px] truncate text-[11px] text-[var(--color-text-muted)]">
+              {item.subtitle}
+            </p>
           </div>
 
           <ChevronRightIcon size={16} className="mt-0.5 text-muted" />
@@ -85,7 +155,7 @@ export default function TournamentListCard({ item }: { item: TournamentListItem 
             </div>
             <div className="flex min-w-0 items-center gap-1.5 justify-self-end text-right">
               <CalendarIcon size={12} className="shrink-0 text-[#5a5a63]" />
-              <span className="truncate">End: {item.end}</span>
+              <span className="truncate">End: {item.end || "Not Decided"}</span>
             </div>
             <div className="flex min-w-0 items-center gap-1.5">
               <MapPinIcon size={12} className="shrink-0 text-[#5a5a63]" />
@@ -108,12 +178,16 @@ export default function TournamentListCard({ item }: { item: TournamentListItem 
     >
       <div className="grid grid-cols-[48px_minmax(0,1fr)] gap-x-4 gap-y-5">
         <div className="self-start">
-          <SoftballLogo />
+          <SoftballLogo url={item.logoUrl} name={item.name} />
         </div>
 
         <div className="min-w-0 flex flex-col justify-center">
-          <h3 className="truncate text-[18px] font-bold leading-tight text-[var(--color-text)]">{item.name}</h3>
-          <p className="mt-1 truncate text-[13px] font-medium text-[var(--color-text-muted)] opacity-90">{item.subtitle}</p>
+          <h3 className="truncate text-[18px] font-bold leading-tight text-[var(--color-text)]">
+            {item.name}
+          </h3>
+          <p className="mt-1 truncate text-[13px] font-medium text-[var(--color-text-muted)] opacity-90">
+            {item.subtitle}
+          </p>
         </div>
 
         <div className="col-span-2 grid grid-cols-2 gap-x-8 gap-y-3.5 text-[13px] font-medium text-[var(--color-text-secondary)]">
@@ -123,11 +197,17 @@ export default function TournamentListCard({ item }: { item: TournamentListItem 
           </div>
           <div className="flex min-w-0 items-center gap-2 justify-self-end text-right">
             <CalendarIcon size={14} className="shrink-0 text-primary/70" />
-            <span className="truncate">End: {item.end}</span>
+            <span className="truncate">End: {item.end || "Not Decided"}</span>
           </div>
           <div className="flex min-w-0 items-center gap-2">
             <WalletIcon size={14} className="shrink-0 text-primary/70" />
-            <span className="truncate">{item.entry}</span>
+            <span className="truncate">
+              {item.entry
+                ? Number.isNaN(Number(item.entry))
+                  ? item.entry
+                  : `${item.entry} ${Number(item.entry) === 1 ? "Event" : "Events"}`
+                : "No Events"}
+            </span>
           </div>
           <div className="flex min-w-0 items-center gap-2 justify-self-end text-right">
             <MapPinIcon size={14} className="shrink-0 text-primary/70" />

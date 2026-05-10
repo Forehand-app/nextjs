@@ -37,7 +37,11 @@ export const fetchApi = async (
     method = "GET",
     contentType,
     body,
-  }: { method?: "POST" | "GET" | "PUT"; contentType?: "json"; body?: any } = {},
+  }: {
+    method?: "POST" | "GET" | "PUT" | "DELETE";
+    contentType?: "json";
+    body?: any;
+  } = {},
 ): Promise<ParsedRespone> => {
   try {
     const supabaseClient = getSupabaseBrowserClient();

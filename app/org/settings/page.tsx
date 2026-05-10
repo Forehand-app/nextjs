@@ -3,6 +3,7 @@
 import SwitchAccountModal from "@/components/SwitchAccountModal";
 import React, { useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useTheme } from "@/components/ThemeProvider";
 import { useApp } from "@/components/AppProvider";
 import BottomNav from "@/components/BottomNav";
@@ -15,14 +16,16 @@ import {
   MoonIcon,
   ChevronRightIcon,
   ChevronDownIcon,
-  CheckIcon,
 } from "@/components/Icons";
 import { Bell, Users } from "lucide-react";
 
 export default function OrgSettingsPage() {
+  const router = useRouter();
   const { theme, toggleTheme } = useTheme();
-  const { activeOrganization: organization } = useApp();
+  const { logout, activeOrganization: organization } = useApp();
   const [showSwitchModal, setShowSwitchModal] = useState(false);
+  const [isSigningOut, setIsSigningOut] = useState(false);
+
   const orgName = organization?.name || "Organization";
   const orgInitial = orgName.trim().charAt(0).toUpperCase() || "O";
   const contactEmail =
@@ -62,6 +65,17 @@ export default function OrgSettingsPage() {
       sub: "Connect with support team",
     },
   ];
+
+  const handleSignOut = async () => {
+    try {
+      setIsSigningOut(true);
+      await logout();
+      router.replace("/login");
+    } catch (error) {
+      console.error("Failed to sign out", error);
+      setIsSigningOut(false);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-[var(--color-background)] text-[var(--color-text)] flex flex-col">
@@ -150,7 +164,7 @@ export default function OrgSettingsPage() {
             </button>
 
             {orgSettingsItems.map((item, idx) => {
-              const Icon = item.icon; // Correctly unwrap component before rendering
+              const Icon = item.icon;
               return (
                 <Link
                   key={idx}
@@ -183,8 +197,13 @@ export default function OrgSettingsPage() {
         </div>
 
         <div className="pt-2">
-          <button className="w-full py-3.5 rounded-2xl border-2 border-red-500/20 bg-red-500/10 text-red-600 dark:text-red-400 font-bold text-[15px] flex items-center justify-center gap-2 hover:bg-red-500/20 transition-colors">
-            <LogOutIcon size={18} className="shrink-0" /> Log Out
+          <button
+            onClick={handleSignOut}
+            disabled={isSigningOut}
+            className="w-full py-3.5 rounded-2xl border-2 border-red-500/20 bg-red-500/10 text-red-600 dark:text-red-400 font-bold text-[15px] flex items-center justify-center gap-2 hover:bg-red-500/20 transition-colors disabled:opacity-70"
+          >
+            <LogOutIcon size={18} className="shrink-0" />{" "}
+            {isSigningOut ? "Signing Out..." : "Log Out"}
           </button>
         </div>
       </main>

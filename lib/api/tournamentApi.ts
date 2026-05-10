@@ -48,10 +48,50 @@ export const tournamentApi = {
     return data as TournamentData[];
   },
 
-  getUserTournaments: async (): Promise<TournamentData[]> => {
-    const { data, error } = await fetchApi(getApiUrl({ path: "/tournament/list/user" }));
+  getBrowseTournaments: async (): Promise<TournamentData[]> => {
+    const { data, error } = await fetchApi(
+      getApiUrl({ path: "/tournament/list/user/browse" }),
+    );
     if (error) throw error;
 
     return data as TournamentData[];
+  },
+
+  getJoinedTournaments: async (): Promise<TournamentData[]> => {
+    const { data, error = null } = await fetchApi(
+      getApiUrl({ path: "/tournament/list/user/joined" }),
+    );
+    if (error) throw error;
+
+    return data as TournamentData[];
+  },
+
+  getHistoryTournaments: async (): Promise<TournamentData[]> => {
+    const { data, error } = await fetchApi(
+      getApiUrl({ path: "/tournament/list/user/history" }),
+    );
+    if (error) throw error;
+
+    return data as TournamentData[];
+  },
+
+  publishTournament: async (tournamentId: string) => {
+    const { error } = await fetchApi(
+      getApiUrl({ path: "/tournament/publish", param: tournamentId }),
+      {
+        method: "POST",
+      },
+    );
+    if (error) throw error;
+  },
+
+  deleteTournament: async (tournamentId: string) => {
+    const { error } = await fetchApi(
+      getApiUrl({ path: "/tournament/delete", param: tournamentId }),
+      {
+        method: "DELETE",
+      },
+    );
+    if (error) throw error;
   },
 };

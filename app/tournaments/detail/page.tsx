@@ -21,69 +21,6 @@ import { toQuery } from "@/lib/utils";
 type MainTab = "about" | "events";
 type PairStep = "idle" | "adding" | "invited" | "pairing" | "paired";
 
-const events: EventData[] = [
-  {
-    id: "single",
-    tournamentId: "1",
-    name: "Men's Singles",
-    eventFormatCode: "singles",
-    startDate: "25 Oct 2025",
-    dueDate: "20 Oct 2025",
-    amount: 1400,
-    paymentModeCode: "Online",
-    pointsPerSet: 11,
-    setsPerMatch: 3,
-  },
-  {
-    id: "double",
-    tournamentId: "1",
-    name: "Men's Doubles",
-    eventFormatCode: "doubles",
-    startDate: "25 Oct 2025",
-    dueDate: "20 Oct 2025",
-    amount: 1400,
-    paymentModeCode: "Venue",
-    pointsPerSet: 11,
-    setsPerMatch: 3,
-  },
-  {
-    id: "mixed",
-    tournamentId: "1",
-    name: "Mixed Doubles",
-    eventFormatCode: "mixed",
-    startDate: "25 Oct 2025",
-    dueDate: "20 Oct 2025",
-    amount: 0,
-    paymentModeCode: "Online",
-    pointsPerSet: 11,
-    setsPerMatch: 3,
-  },
-];
-
-const contacts = [
-  {
-    id: "c1",
-    name: "Piyush Mantri",
-    phone: "+918424959991",
-    email: "piyushmantri0311@gmail.com",
-    role: "Organizer",
-  },
-  {
-    id: "c2",
-    name: "Anil Kumar",
-    phone: "+919876543210",
-    email: "anil.kumar@gmail.com",
-    role: "Coordinator",
-  },
-  {
-    id: "c3",
-    name: "Rahul Sharma",
-    phone: "+917890123456",
-    email: "rahul.sharma@gmail.com",
-    role: "Support",
-  },
-];
-
 function PersonChip({ name }: { name: string }) {
   return (
     <div className="flex items-center gap-2 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2 text-[14px]">
@@ -93,56 +30,137 @@ function PersonChip({ name }: { name: string }) {
   );
 }
 
+function formatDate(value?: string | null) {
+  if (!value) return "TBA";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  return date.toLocaleDateString("en-IN", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  });
+}
+
+function formatDateTime(value?: string | null) {
+  if (!value) return "TBA";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  return date.toLocaleString("en-IN", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
 export default function TournamentDetailPage() {
   const [searchParams, setSearchParams] = useState<URLSearchParams>(
     new URLSearchParams(),
   );
   const router = useRouter();
+  const [tournament, setTournament] = useState<TournamentData | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState("");
 
   useEffect(() => {
     setSearchParams(new URLSearchParams(window.location.search));
   }, []);
 
-  const id = searchParams.get("id") || "1";
+  const id = searchParams.get("id");
+
+  useEffect(() => {
+    if (!id) return;
+
+    let active = true;
+    const loadInfo = async () => {
+      try {
+        setIsLoading(true);
+        setError("");
+        const data = await tournamentApi.getInfo(id);
+        if (active) {
+          setTournament(data);
+        }
+      } catch (err) {
+        console.error("Failed to load tournament info", err);
+        if (active) setError("Failed to load tournament details.");
+      } finally {
+        if (active) setIsLoading(false);
+      }
+    };
+
+    void loadInfo();
+    return () => {
+      active = false;
+    };
+  }, [id]);
 
   const [tab, setTab] = useState<MainTab>("about");
   const [selected, setSelected] = useState<Record<string, boolean>>({});
   const [pairState, setPairState] = useState<PairStep>("idle");
   const [partnerPhone, setPartnerPhone] = useState("");
 
-  const total = useMemo(
-    () =>
-      events
-        .filter((ev) => ev.id && selected[ev.id])
-        .reduce((sum, ev) => sum + (ev.amount ?? 0), 0),
-    [selected],
-  );
+  const total = useMemo(() => {
+    if (!tournament?.events) return 0;
+    return tournament.events
+      .filter((ev) => ev.id && selected[ev.id])
+      .reduce((sum, ev) => sum + (ev.amount ?? 0), 0);
+  }, [selected, tournament]);
 
   const toggleEvent = (ev: EventData) => {
     if (!ev.id) return;
     const current = Boolean(selected[ev.id]);
+    const isDoubles =
+      ev.teamTypeCode?.toLowerCase().includes("double") ||
+      ev.teamType?.label?.toLowerCase().includes("double");
+
     if (current) {
       setSelected((prev) => ({ ...prev, [ev.id!]: false }));
-      if (ev.eventFormatCode === "doubles") {
+      if (isDoubles) {
         setPairState("idle");
         setPartnerPhone("");
       }
       return;
     }
     setSelected((prev) => ({ ...prev, [ev.id!]: true }));
-    if (ev.eventFormatCode === "doubles" && pairState === "idle")
-      setPairState("adding");
+    if (isDoubles && pairState === "idle") setPairState("adding");
   };
+
+  if (isLoading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-[var(--color-background)]">
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent"></div>
+      </div>
+    );
+  }
+
+  if (error || !tournament) {
+    return (
+      <div className="flex min-h-screen flex-col items-center justify-center bg-[var(--color-background)] p-4 text-center">
+        <p className="text-[var(--color-error)]">
+          {error || "Tournament not found"}
+        </p>
+        <button
+          onClick={() => router.back()}
+          className="mt-4 rounded-full bg-primary px-6 py-2 font-semibold text-white"
+        >
+          Go Back
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[var(--color-background)] pb-24 text-[var(--color-text)]">
       <div>
         <TournamentHeroCard
-          title="Mumbai Men's 2025"
-          subtitle="Andheri West Organization"
-          registeredCount={64}
-          registrationStatus="Open"
-          logoUrl={null}
+          title={tournament.name}
+          subtitle={tournament.organization?.name || "Organizer"}
+          registeredCount={0} // TODO: Add registeredCount to TournamentData if needed
+          registrationStatus={
+            tournament.tournamentState === "published" ? "Open" : "Closed"
+          }
+          logoUrl={tournament.logoUrl}
           onBack={() => router.back()}
         />
       </div>
@@ -172,13 +190,17 @@ export default function TournamentDetailPage() {
                   <p className="text-[12px] text-[var(--color-muted)]">
                     Start Date
                   </p>
-                  <p className="text-[14px]">31 Dec 2025, 24:00</p>
+                  <p className="text-[14px]">
+                    {formatDate(tournament.startDate)}
+                  </p>
                 </div>
                 <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-elevated)] p-2">
                   <p className="text-[12px] text-[var(--color-muted)]">
                     End Date
                   </p>
-                  <p className="text-[14px]">31 Dec 2025, 24:00</p>
+                  <p className="text-[14px]">
+                    {formatDate(tournament.endDate)}
+                  </p>
                 </div>
               </div>
               <div className="mt-2 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-elevated)] p-2">
@@ -186,7 +208,8 @@ export default function TournamentDetailPage() {
                   Venue Details
                 </p>
                 <p className="text-[14px]">
-                  Athlete's Club, 24 Sector, Mumbai, Maharashtra
+                  {tournament.venueName}, {tournament.venueAddress},{" "}
+                  {tournament.venueCity}, {tournament.venueState}
                 </p>
               </div>
             </section>
@@ -194,57 +217,58 @@ export default function TournamentDetailPage() {
             <section className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-3">
               <h2 className="text-[18px] font-semibold">Description</h2>
               <p className="mt-1 text-[14px] text-[var(--color-text-secondary)]">
-                Join the biggest badminton tournament in the city! Open to all
-                skill levels with exciting prizes.
+                {tournament.description || "No description provided."}
               </p>
             </section>
 
             <section className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-3">
               <h2 className="text-[18px] font-semibold">Contact Information</h2>
 
-              <div className="mt-3 divide-y divide-[var(--color-border)]">
-                {contacts.map((contact) => (
-                  <div key={contact.id} className="py-4">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <div className="h-10 w-10 rounded-full bg-[radial-gradient(circle_at_30%_30%,#d1d1d1,#7b7b7b)]" />
-                        <p className="text-[16px] font-medium">
-                          {contact.name}
-                        </p>
+              <div className="mt-3">
+                <div className="py-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="h-10 w-10 rounded-full bg-[radial-gradient(circle_at_30%_30%,#d1d1d1,#7b7b7b)] flex items-center justify-center text-white font-bold">
+                        {tournament.contactName?.charAt(0).toUpperCase() || "O"}
                       </div>
-
-                      <span className="rounded-full bg-primary px-3 py-0.5 text-[11px] font-semibold text-white">
-                        {contact.role}
-                      </span>
+                      <p className="text-[16px] font-medium">
+                        {tournament.contactName}
+                      </p>
                     </div>
 
-                    <div className="mt-2 space-y-1 text-[14px]">
-                      <a
-                        href={`tel:${contact.phone}`}
-                        className="flex items-center gap-2 text-[var(--color-muted)] hover:text-primary transition-colors"
-                      >
-                        <PhoneIcon size={14} />
-                        {contact.phone}
-                      </a>
-
-                      <a
-                        href={`mailto:${contact.email}`}
-                        className="flex items-center gap-2 text-[var(--color-muted)] hover:text-primary transition-colors break-all"
-                      >
-                        <MailIcon size={14} />
-                        {contact.email}
-                      </a>
-                    </div>
+                    <span className="rounded-full bg-primary px-3 py-0.5 text-[11px] font-semibold text-white">
+                      Organizer
+                    </span>
                   </div>
-                ))}
+
+                  <div className="mt-2 space-y-1 text-[14px]">
+                    <a
+                      href={`tel:${tournament.contactPhone}`}
+                      className="flex items-center gap-2 text-[var(--color-muted)] hover:text-primary transition-colors"
+                    >
+                      <PhoneIcon size={14} />
+                      {tournament.contactPhone}
+                    </a>
+
+                    <a
+                      href={`mailto:${tournament.contactEmail}`}
+                      className="flex items-center gap-2 text-[var(--color-muted)] hover:text-primary transition-colors break-all"
+                    >
+                      <MailIcon size={14} />
+                      {tournament.contactEmail}
+                    </a>
+                  </div>
+                </div>
               </div>
             </section>
           </>
         ) : (
-          events.map((ev) => {
+          tournament.events?.map((ev) => {
             if (!ev.id) return null;
             const isSelected = Boolean(selected[ev.id]);
-            const isDoubles = ev.eventFormatCode === "doubles";
+            const isDoubles =
+              ev.teamTypeCode?.toLowerCase().includes("double") ||
+              ev.teamType?.label?.toLowerCase().includes("double");
             return (
               <section
                 key={ev.id}
@@ -254,11 +278,11 @@ export default function TournamentDetailPage() {
                 <div className="mt-2 grid grid-cols-2 gap-2 text-[12px] text-[var(--color-text-secondary)]">
                   <p className="flex items-center gap-1.5">
                     <CalendarIcon size={12} className="text-primary" />
-                    Start Date: {ev.startDate}
+                    Start Date: {formatDate(ev.startDate)}
                   </p>
                   <p className="flex items-center gap-1.5">
                     <SearchIcon size={12} className="text-primary" />
-                    Reg. Closes: {ev.dueDate}
+                    Reg. Closes: {formatDate(ev.dueDate)}
                   </p>
                 </div>
                 <div className="mt-2 flex items-end justify-between">
@@ -274,7 +298,8 @@ export default function TournamentDetailPage() {
                       )}
                     </p>
                     <p className="text-[14px] text-[var(--color-muted)]">
-                      Payment: {ev.paymentModeCode}
+                      Payment:{" "}
+                      {ev.paymentMode?.label || ev.paymentModeCode || "N/A"}
                     </p>
                   </div>
                   <button

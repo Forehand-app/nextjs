@@ -101,6 +101,8 @@ const EventStats = ({ tournament }: { tournament: TournamentData | null }) => {
       0,
     ) ?? 0;
 
+  const isRegistrationOpen = tournament?.tournamentState === "published";
+
   return (
     <div className="grid grid-cols-2 gap-3">
       <div className="rounded-xl bg-[var(--color-surface)] p-4 flex gap-3 items-center shadow-sm border border-[var(--color-border)]">
@@ -119,10 +121,14 @@ const EventStats = ({ tournament }: { tournament: TournamentData | null }) => {
           Registration
         </p>
         <div className="flex gap-2">
-          <button className="bg-green-500 text-white px-3 py-1 rounded-full text-xs font-medium flex-1 transition-transform active:scale-95">
+          <button
+            className={`${isRegistrationOpen ? "bg-green-500 text-white" : "bg-[var(--color-surface-elevated)] text-[var(--color-text-secondary)]"} px-3 py-1 rounded-full text-xs font-medium flex-1 transition-transform active:scale-95`}
+          >
             Open
           </button>
-          <button className="bg-[var(--color-surface-elevated)] text-[var(--color-text-secondary)] px-3 py-1 rounded-full text-xs font-medium flex-1 transition-transform active:scale-95">
+          <button
+            className={`${!isRegistrationOpen ? "bg-gray-400 text-white" : "bg-[var(--color-surface-elevated)] text-[var(--color-text-secondary)]"} px-3 py-1 rounded-full text-xs font-medium flex-1 transition-transform active:scale-95`}
+          >
             Close
           </button>
         </div>
@@ -658,7 +664,11 @@ const SummaryTab = ({ events }: { events: EventData[] }) => {
       "3 Matches left in round 1",
       "Match 2 Delayed",
     ];
-    const contextOptions = ["Closes in 2 days", "2 Bye Players", "Due to weather"];
+    const contextOptions = [
+      "Closes in 2 days",
+      "2 Bye Players",
+      "Due to weather",
+    ];
     const detailItems = [
       {
         id: `${event.id}-a`,
@@ -743,7 +753,9 @@ const SummaryTab = ({ events }: { events: EventData[] }) => {
             <div className="mt-3 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-elevated)] p-3">
               <div className="grid grid-cols-2 divide-x divide-[var(--color-border)]">
                 <div className="pr-3">
-                  <p className="text-[10px] text-[var(--color-muted)]">Enrolled</p>
+                  <p className="text-[10px] text-[var(--color-muted)]">
+                    Enrolled
+                  </p>
                   <p className="text-3xl leading-none font-bold text-[var(--color-text)] mt-1">
                     {card.enrolled}
                   </p>
@@ -771,7 +783,10 @@ const SummaryTab = ({ events }: { events: EventData[] }) => {
             {isExpanded && (
               <div className="mt-3 space-y-3">
                 {card.detailItems.map((detail) => (
-                  <div key={detail.id} className="flex items-start justify-between">
+                  <div
+                    key={detail.id}
+                    className="flex items-start justify-between"
+                  >
                     <div className="flex items-start gap-2.5">
                       <CircleIcon
                         size={8}
@@ -915,7 +930,9 @@ const EventCrewTab = ({
   const handleInviteSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!tournamentId) {
-      setFeedback("Tournament id is missing. Re-open this tournament from list.");
+      setFeedback(
+        "Tournament id is missing. Re-open this tournament from list.",
+      );
       return;
     }
     const cleanPhone = normalizePhone(phoneInput);
@@ -924,7 +941,8 @@ const EventCrewTab = ({
       rawPhone: phoneInput,
       cleanPhone,
       tournamentId,
-      organizationId: tournament?.organizationId || activeOrganization?.id || null,
+      organizationId:
+        tournament?.organizationId || activeOrganization?.id || null,
     });
     if (!/^[6-9]\d{9}$/.test(cleanPhone)) {
       setFeedback("Enter a valid 10-digit Indian phone number.");
@@ -939,7 +957,8 @@ const EventCrewTab = ({
         phone: cleanPhone,
         role: activeRole,
         tournamentId,
-        organizationId: tournament?.organizationId || activeOrganization?.id || undefined,
+        organizationId:
+          tournament?.organizationId || activeOrganization?.id || undefined,
       });
 
       setCrewMembers((prev) => [
@@ -959,7 +978,9 @@ const EventCrewTab = ({
     } catch (error) {
       console.error("[EventCrewTab] invite submit failed", error);
       setFeedback(
-        error instanceof Error ? error.message : "Unable to send invite right now.",
+        error instanceof Error
+          ? error.message
+          : "Unable to send invite right now.",
       );
     } finally {
       setIsSubmitting(false);
@@ -973,7 +994,9 @@ const EventCrewTab = ({
       setFeedback("Crew member removed.");
     } catch (error) {
       setFeedback(
-        error instanceof Error ? error.message : "Unable to remove crew member.",
+        error instanceof Error
+          ? error.message
+          : "Unable to remove crew member.",
       );
     }
   };
@@ -1010,7 +1033,9 @@ const EventCrewTab = ({
       </div>
 
       <div className="p-4 space-y-4">
-        <h3 className="text-2xl font-semibold text-[var(--color-text)]">{sectionTitle}</h3>
+        <h3 className="text-2xl font-semibold text-[var(--color-text)]">
+          {sectionTitle}
+        </h3>
         <form onSubmit={handleInviteSubmit} className="space-y-2">
           <div className="flex items-center gap-2">
             <input
@@ -1168,7 +1193,9 @@ export default function TournamentEventDetailsPage() {
                 tournamentId: "dummy-system-1",
                 name: names[index],
                 startDate: new Date().toISOString(),
-                dueDate: new Date(Date.now() + (index + 1) * 86400000).toISOString(),
+                dueDate: new Date(
+                  Date.now() + (index + 1) * 86400000,
+                ).toISOString(),
                 pointsPerSet: 21,
                 setsPerMatch: 3,
                 amount: 3400 + index * 200,
@@ -1261,7 +1288,10 @@ export default function TournamentEventDetailsPage() {
               <SummaryTab events={tournament?.events ?? []} />
             )}
             {activeTab === "Event Crew" && (
-              <EventCrewTab tournamentId={tournamentId} tournament={tournament} />
+              <EventCrewTab
+                tournamentId={tournamentId}
+                tournament={tournament}
+              />
             )}
           </div>
         </>
