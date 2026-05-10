@@ -40,7 +40,7 @@ export default function ScoringControls({
         <button
           type="button"
           onClick={onSide1Rally}
-          className="min-h-[48px] rounded-[var(--radius-button)] bg-[var(--color-surface-elevated)] border border-[var(--color-border)] font-medium py-3 px-4"
+          className="min-h-[48px] rounded-[var(--radius-button)] bg-primary text-white font-medium py-3 px-4"
           aria-label={`${side1Label} won rally`}
         >
           {side1Label} {sideOutMode ? "Won Rally" : "Scored"}

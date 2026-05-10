@@ -18,11 +18,15 @@ import {
   TrashIcon,
   PlusIcon,
   CalendarIcon,
+  CircleIcon,
+  TimerIcon,
   XIcon,
 } from "@/components/Icons";
 import { toQuery } from "@/lib/utils";
 import { tournamentApi } from "@/lib/api/tournamentApi";
 import { EventData, TournamentData } from "@/lib/models";
+import { useApp } from "@/components/AppProvider";
+import { inviteApi } from "@/lib/api/inviteApi";
 
 function formatDate(value?: string | null) {
   if (!value) return "TBA";
@@ -627,17 +631,177 @@ const EventsTab = ({
 };
 
 const SummaryTab = ({ events }: { events: EventData[] }) => {
+  const [expandedById, setExpandedById] = useState<Record<string, boolean>>({});
+
+  const toggleCard = (eventId: string) => {
+    setExpandedById((prev) => ({ ...prev, [eventId]: !prev[eventId] }));
+  };
+
+  const getEventStatePill = (state?: string | null) => {
+    if (state === "in_progress")
+      return { label: "Round 2 Live", className: "bg-red-500 text-white" };
+    if (state === "completed")
+      return { label: "Completed", className: "bg-green-600 text-white" };
+    if (state === "cancelled")
+      return { label: "Cancelled", className: "bg-neutral-500 text-white" };
+    return { label: "Round 1 Live", className: "bg-red-500 text-white" };
+  };
+
+  const cards = events.map((event, index) => {
+    const enrolled = Math.max(
+      Array.isArray(event.teams) ? event.teams.length * 8 : 0,
+      24 + index * 2,
+    );
+    const confirmed = Math.max(Math.floor(enrolled * 0.56), 14 + index);
+    const stageOptions = [
+      "Registrations Open",
+      "3 Matches left in round 1",
+      "Match 2 Delayed",
+    ];
+    const contextOptions = ["Closes in 2 days", "2 Bye Players", "Due to weather"];
+    const detailItems = [
+      {
+        id: `${event.id}-a`,
+        tone: "warning",
+        title: "Participants Confirmation Remaining",
+        subtitle: `${enrolled} participants have enrolled`,
+      },
+      {
+        id: `${event.id}-b`,
+        tone: "warning",
+        title: "Fixtures Setup Remaining",
+        subtitle: `${Math.max(confirmed, 16)} participants pending`,
+      },
+      {
+        id: `${event.id}-c`,
+        tone: "success",
+        title: "Match 2 Completed",
+        subtitle: "Match 2 is completed on 22 dec, 2025",
+      },
+      {
+        id: `${event.id}-d`,
+        tone: "warning",
+        title: "Match 3 Delayed",
+        subtitle: "Because of rain",
+      },
+    ];
+    const statePill = getEventStatePill(event.eventState);
+
+    return {
+      id: event.id || `event-${index}`,
+      title: event.name,
+      stageText: stageOptions[index % stageOptions.length],
+      contextText: contextOptions[index % contextOptions.length],
+      amount: Number(event.amount || 0),
+      enrolled,
+      confirmed,
+      detailItems,
+      statePill,
+    };
+  });
+
   return (
-    <div className="space-y-4">
+    <div className="space-y-3">
       <div className="flex justify-between items-center px-1">
         <h2 className="font-semibold text-lg text-[var(--color-text)]">
           {events.length} Events
         </h2>
-        <button className="flex items-center gap-1.5 text-sm font-medium text-orange-500">
+        <button className="flex items-center gap-1 text-xs font-medium text-orange-500">
           <FilterIcon size={16} /> Filter
         </button>
       </div>
-      <div className="bg-[var(--color-surface)] rounded-xl shadow-sm border border-[var(--color-border)] overflow-hidden">
+      {cards.map((card) => {
+        const isExpanded = Boolean(expandedById[card.id]);
+        return (
+          <div
+            key={card.id}
+            className="bg-[var(--color-surface)] rounded-2xl border border-[var(--color-border)] shadow-sm p-4"
+          >
+            <h3 className="font-bold text-[15px] text-[var(--color-text)]">
+              {card.title}
+            </h3>
+            <div className="mt-2 flex gap-1.5 flex-wrap">
+              <span
+                className={`px-2.5 py-1 text-[10px] leading-none rounded-full font-semibold ${card.statePill.className}`}
+              >
+                {card.statePill.label}
+              </span>
+              <span className="px-2.5 py-1 text-[10px] leading-none rounded-full font-semibold bg-amber-500 text-white">
+                On Track
+              </span>
+              <span className="px-2.5 py-1 text-[10px] leading-none rounded-full font-semibold bg-green-500 text-white">
+                Rs {card.amount} Collected
+              </span>
+            </div>
+            <div className="mt-3 flex items-center justify-between text-xs text-[var(--color-text-secondary)]">
+              <div className="flex items-center gap-1.5">
+                <TimerIcon size={12} />
+                <span>{card.stageText}</span>
+              </div>
+              <span>{card.contextText}</span>
+            </div>
+            <div className="mt-3 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-elevated)] p-3">
+              <div className="grid grid-cols-2 divide-x divide-[var(--color-border)]">
+                <div className="pr-3">
+                  <p className="text-[10px] text-[var(--color-muted)]">Enrolled</p>
+                  <p className="text-3xl leading-none font-bold text-[var(--color-text)] mt-1">
+                    {card.enrolled}
+                  </p>
+                </div>
+                <div className="pl-3">
+                  <p className="text-[10px] text-[var(--color-muted)]">
+                    Confirmed (Paid)
+                  </p>
+                  <p className="text-3xl leading-none font-bold text-[var(--color-text)] mt-1">
+                    {card.confirmed}
+                  </p>
+                </div>
+              </div>
+            </div>
+            <button
+              onClick={() => toggleCard(card.id)}
+              className="w-full mt-3 text-sm font-medium text-[var(--color-text-secondary)] flex items-center justify-center gap-1"
+            >
+              {isExpanded ? "View Less Details" : "View More Details"}
+              <ChevronDownIcon
+                size={14}
+                className={`transition-transform ${isExpanded ? "rotate-180" : ""}`}
+              />
+            </button>
+            {isExpanded && (
+              <div className="mt-3 space-y-3">
+                {card.detailItems.map((detail) => (
+                  <div key={detail.id} className="flex items-start justify-between">
+                    <div className="flex items-start gap-2.5">
+                      <CircleIcon
+                        size={8}
+                        className={
+                          detail.tone === "success"
+                            ? "text-green-500 mt-2"
+                            : "text-amber-500 mt-2"
+                        }
+                      />
+                      <div>
+                        <p className="text-sm font-medium text-[var(--color-text)]">
+                          {detail.title}
+                        </p>
+                        <p className="text-xs text-[var(--color-muted)] mt-0.5">
+                          {detail.subtitle}
+                        </p>
+                      </div>
+                    </div>
+                    <ChevronRightIcon
+                      size={14}
+                      className="text-[var(--color-muted)] mt-1"
+                    />
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        );
+      })}
+      <div className="hidden bg-[var(--color-surface)] rounded-xl shadow-sm border border-[var(--color-border)] overflow-hidden">
         <div className="p-4 space-y-4">
           <h3 className="font-semibold text-[var(--color-text)]">
             {events[0]?.name || "No events yet"}
@@ -677,76 +841,246 @@ const SummaryTab = ({ events }: { events: EventData[] }) => {
   );
 };
 
-const EventCrewTab = () => {
-  const [activeRole, setActiveRole] = useState<"admin" | "scorer">("admin");
-  const crewList: any[] = [];
-  const displayedCrew = crewList.filter((m) => m.role === activeRole);
+type CrewRole = "admin" | "scorer";
+type InviteStatus = "invite_sent" | "accepted" | "rejected" | "idle";
+
+type CrewMember = {
+  id: string;
+  role: CrewRole;
+  name: string;
+  phone?: string;
+  avatarUrl?: string | null;
+  status: InviteStatus;
+};
+
+function normalizePhone(value: string) {
+  const digits = value.replace(/\D/g, "");
+  if (digits.length <= 10) return digits;
+  if (digits.length === 12 && digits.startsWith("91")) return digits.slice(-10);
+  if (digits.length === 11 && digits.startsWith("0")) return digits.slice(-10);
+  return digits.slice(-10);
+}
+
+const EventCrewTab = ({
+  tournamentId,
+  tournament,
+}: {
+  tournamentId: string;
+  tournament: TournamentData | null;
+}) => {
+  const { activeOrganization } = useApp();
+  const [activeRole, setActiveRole] = useState<CrewRole>("admin");
+  const [phoneInput, setPhoneInput] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [feedback, setFeedback] = useState<string>("");
+  const [crewMembers, setCrewMembers] = useState<CrewMember[]>([]);
+
+  useEffect(() => {
+    let active = true;
+    const loadCrew = async () => {
+      try {
+        console.log("[EventCrewTab] loading crew", { tournamentId });
+        const list = await inviteApi.getTournamentCrew(tournamentId);
+        if (!active) return;
+        setCrewMembers(
+          list.map((member) => ({
+            id: member.id,
+            role: member.role,
+            name: member.name,
+            phone: member.phone,
+            avatarUrl: member.avatarUrl,
+            status: member.status || "idle",
+          })),
+        );
+        console.log("[EventCrewTab] crew loaded", { count: list.length, list });
+      } catch {
+        if (!active) return;
+        console.error("[EventCrewTab] crew load failed");
+        setCrewMembers([]);
+      }
+    };
+    void loadCrew();
+    return () => {
+      active = false;
+    };
+  }, [tournamentId]);
+
+  const displayedCrew = crewMembers.filter((m) => m.role === activeRole);
+  const sectionTitle = activeRole === "admin" ? "Add Admin" : "Add Scorer";
+  const phonePlaceholder =
+    activeRole === "admin"
+      ? "Enter Admin's Phone No."
+      : "Enter Scorers Phone No.";
+
+  const handleInviteSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!tournamentId) {
+      setFeedback("Tournament id is missing. Re-open this tournament from list.");
+      return;
+    }
+    const cleanPhone = normalizePhone(phoneInput);
+    console.log("[EventCrewTab] invite submit clicked", {
+      activeRole,
+      rawPhone: phoneInput,
+      cleanPhone,
+      tournamentId,
+      organizationId: tournament?.organizationId || activeOrganization?.id || null,
+    });
+    if (!/^[6-9]\d{9}$/.test(cleanPhone)) {
+      setFeedback("Enter a valid 10-digit Indian phone number.");
+      console.warn("[EventCrewTab] invalid phone for invite", { cleanPhone });
+      return;
+    }
+
+    try {
+      setIsSubmitting(true);
+      setFeedback("");
+      const inviteResult = await inviteApi.sendTournamentCrewInvite({
+        phone: cleanPhone,
+        role: activeRole,
+        tournamentId,
+        organizationId: tournament?.organizationId || activeOrganization?.id || undefined,
+      });
+
+      setCrewMembers((prev) => [
+        {
+          id: inviteResult.inviteId || `${activeRole}-${Date.now()}`,
+          role: activeRole,
+          name: inviteResult.receiverName || `+91 ${cleanPhone}`,
+          phone: cleanPhone,
+          avatarUrl: inviteResult.receiverProfilePicUrl || null,
+          status: "invite_sent",
+        },
+        ...prev,
+      ]);
+      setPhoneInput("");
+      setFeedback("Invite sent successfully.");
+      console.log("[EventCrewTab] invite UI update success", { inviteResult });
+    } catch (error) {
+      console.error("[EventCrewTab] invite submit failed", error);
+      setFeedback(
+        error instanceof Error ? error.message : "Unable to send invite right now.",
+      );
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const removeMember = async (id: string) => {
+    try {
+      await inviteApi.removeTournamentCrewInvite(id, tournamentId);
+      setCrewMembers((prev) => prev.filter((m) => m.id !== id));
+      setFeedback("Crew member removed.");
+    } catch (error) {
+      setFeedback(
+        error instanceof Error ? error.message : "Unable to remove crew member.",
+      );
+    }
+  };
+
+  const statusBadgeClass = (status: InviteStatus) => {
+    if (status === "invite_sent") return "bg-amber-500 text-white";
+    if (status === "accepted") return "bg-green-500 text-white";
+    if (status === "rejected") return "bg-red-500 text-white";
+    return "";
+  };
+
+  const statusLabel = (status: InviteStatus) => {
+    if (status === "invite_sent") return "Invite Sent";
+    if (status === "accepted") return "Accepted";
+    if (status === "rejected") return "Rejected";
+    return "";
+  };
 
   return (
-    <div className="space-y-2">
-      <div className="flex border-b border-[var(--color-border)] mb-4">
+    <div className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] overflow-hidden">
+      <div className="flex items-center border-b border-[var(--color-border)]">
         <button
           onClick={() => setActiveRole("admin")}
-          className={`flex-1 pb-2 text-center text-sm font-medium transition-colors ${activeRole === "admin" ? "text-orange-500 border-b-2 border-orange-500" : "text-[var(--color-muted)] hover:text-[var(--color-text)]"}`}
+          className={`w-1/2 py-3 text-center text-base font-semibold transition-colors border-b-2 ${activeRole === "admin" ? "text-orange-500 border-orange-500" : "text-[var(--color-muted)] border-transparent"}`}
         >
           Admins
         </button>
         <button
           onClick={() => setActiveRole("scorer")}
-          className={`flex-1 pb-2 text-center text-sm font-medium transition-colors ${activeRole === "scorer" ? "text-orange-500 border-b-2 border-orange-500" : "text-[var(--color-muted)] hover:text-[var(--color-text)]"}`}
+          className={`w-1/2 py-3 text-center text-base font-semibold transition-colors border-b-2 ${activeRole === "scorer" ? "text-orange-500 border-orange-500" : "text-[var(--color-muted)] border-transparent"}`}
         >
           Scorers
         </button>
       </div>
-      <form onSubmit={(e) => e.preventDefault()} className="space-y-2 mb-6">
-        <p className="font-medium text-[var(--color-text)] text-sm">
-          Add {activeRole === "admin" ? "Admin" : "Scorer"}
-        </p>
-        <div className="flex gap-2">
-          <input
-            type="tel"
-            placeholder="Enter phone number"
-            className="flex-1 rounded-xl bg-[var(--color-surface)] border border-[var(--color-border)] px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-all shadow-sm"
-          />
-          <button
-            type="submit"
-            className="bg-orange-500 hover:bg-orange-600 text-white rounded-full w-11 h-11 flex items-center justify-center shrink-0 shadow-sm transition-colors active:scale-95"
-          >
-            <PlusIcon size={20} />
-          </button>
-        </div>
-      </form>
-      <div className="space-y-3">
-        {displayedCrew.map((member) => (
-          <div
-            key={member.id}
-            className="flex items-center justify-between bg-[var(--color-surface)] rounded-xl p-3 shadow-sm border border-[var(--color-border)]"
-          >
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-[var(--color-surface-elevated)] border border-[var(--color-border)] flex items-center justify-center text-sm font-semibold text-[var(--color-text-secondary)] shrink-0">
-                {member.initials}
+
+      <div className="p-4 space-y-4">
+        <h3 className="text-2xl font-semibold text-[var(--color-text)]">{sectionTitle}</h3>
+        <form onSubmit={handleInviteSubmit} className="space-y-2">
+          <div className="flex items-center gap-2">
+            <input
+              type="tel"
+              inputMode="numeric"
+              value={phoneInput}
+              onChange={(e) => setPhoneInput(e.target.value)}
+              placeholder={phonePlaceholder}
+              className="flex-1 h-10 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-elevated)] px-3 text-sm text-[var(--color-text)] placeholder:text-[var(--color-muted)] focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500"
+            />
+            <button
+              type="submit"
+              disabled={isSubmitting}
+              className="w-10 h-10 rounded-full bg-orange-500 text-white flex items-center justify-center shrink-0 hover:bg-orange-600 disabled:opacity-60 disabled:cursor-not-allowed transition-colors"
+            >
+              <PlusIcon size={18} />
+            </button>
+          </div>
+          {feedback && (
+            <p className="text-xs text-[var(--color-muted)] px-1">{feedback}</p>
+          )}
+        </form>
+
+        <div className="space-y-3">
+          {displayedCrew.map((member) => (
+            <div
+              key={member.id}
+              className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2.5 flex items-center justify-between"
+            >
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="w-8 h-8 rounded-full overflow-hidden border border-[var(--color-border)] bg-[var(--color-surface-elevated)] shrink-0">
+                  {member.avatarUrl ? (
+                    <img
+                      src={member.avatarUrl}
+                      alt={member.name}
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center text-xs font-semibold text-[var(--color-text-secondary)]">
+                      {member.name.charAt(0).toUpperCase()}
+                    </div>
+                  )}
+                </div>
+                <p className="text-sm font-medium text-[var(--color-text)] truncate">
+                  {member.name}
+                </p>
+                {member.status !== "idle" && (
+                  <span
+                    className={`px-2.5 h-6 inline-flex items-center rounded-full text-[11px] font-medium ${statusBadgeClass(member.status)}`}
+                  >
+                    {statusLabel(member.status)}
+                  </span>
+                )}
               </div>
-              <p className="font-medium text-[var(--color-text)] text-sm">
-                {member.name}
-              </p>
-            </div>
-            <div className="flex items-center gap-3">
-              <span
-                className={`px-2.5 py-0.5 rounded-full text-[10px] font-medium uppercase tracking-wide ${member.inviteStatus === "accepted" ? "bg-green-500 text-white" : "bg-red-500 text-white"}`}
+              <button
+                type="button"
+                onClick={() => void removeMember(member.id)}
+                className="text-red-400 hover:text-red-500 p-1 rounded-md transition-colors"
+                aria-label={`Remove ${member.name}`}
               >
-                {member.inviteStatus}
-              </span>
-              <button className="text-red-400 hover:text-red-600 p-1.5 transition-colors rounded-lg hover:bg-red-50">
-                <TrashIcon size={16} />
+                <TrashIcon size={14} />
               </button>
             </div>
-          </div>
-        ))}
-        {displayedCrew.length === 0 && (
-          <p className="text-center text-sm text-[var(--color-muted)] py-6 bg-[var(--color-surface)] rounded-xl border border-[var(--color-border)] shadow-sm">
-            No {activeRole}s found.
-          </p>
-        )}
+          ))}
+          {displayedCrew.length === 0 && (
+            <p className="text-sm text-center text-[var(--color-muted)] py-5">
+              No {activeRole === "admin" ? "admins" : "scorers"} yet.
+            </p>
+          )}
+        </div>
       </div>
     </div>
   );
@@ -756,10 +1090,11 @@ const EventCrewTab = () => {
 // 3. MAIN PAGE EXPORT
 // ==========================================
 export default function TournamentEventDetailsPage() {
+  const { session, isLoading: isAuthLoading } = useApp();
   const [searchParams, setSearchParams] = useState<URLSearchParams>(
     () => new URLSearchParams(),
   );
-  const tournamentId = searchParams.get("t") || "1";
+  const tournamentId = searchParams.get("t") || "";
   const [tournament, setTournament] = useState<TournamentData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState("");
@@ -773,10 +1108,21 @@ export default function TournamentEventDetailsPage() {
     setSearchParams(new URLSearchParams(window.location.search));
 
     const loadTournament = async () => {
+      if (isAuthLoading) return;
       try {
         setErrorMessage("");
         setIsLoading(true);
         let tournamentData: TournamentData | null = null;
+
+        if (!tournamentId) {
+          setErrorMessage("Tournament id is missing from the URL.");
+          return;
+        }
+
+        if (tournamentId !== "dummy-system-1" && !session?.access_token) {
+          setErrorMessage("Please sign in again to view tournament details.");
+          return;
+        }
 
         if (tournamentId === "dummy-system-1") {
           tournamentData = {
@@ -795,44 +1141,41 @@ export default function TournamentEventDetailsPage() {
             contactEmail: "admin@dummy.com",
             contactPhone: "9999999999",
             tournamentState: "in_progress",
-            events: [
-              {
-                id: "dummy-1",
+            events: Array.from({ length: 8 }, (_, index) => {
+              const names = [
+                "U-17 Boys | Pickleball",
+                "U-17 Girls | Pickleball",
+                "Open Men | Pickleball",
+                "Open Women | Pickleball",
+                "Mixed Doubles | Pickleball",
+                "U-15 Boys | Pickleball",
+                "U-15 Girls | Pickleball",
+                "Veterans 40+ | Pickleball",
+              ];
+              const stateByIndex: EventData["eventState"][] = [
+                "created",
+                "in_progress",
+                "in_progress",
+                "participants_finalized",
+                "completed",
+                "in_progress",
+                "scheduled",
+                "created",
+              ];
+
+              return {
+                id: `dummy-${index + 1}`,
                 tournamentId: "dummy-system-1",
-                name: "Men's Singles (Just Created)",
+                name: names[index],
                 startDate: new Date().toISOString(),
-                dueDate: new Date().toISOString(),
+                dueDate: new Date(Date.now() + (index + 1) * 86400000).toISOString(),
                 pointsPerSet: 21,
                 setsPerMatch: 3,
-                amount: 500,
-                eventState: "created",
-                teams: [],
-              },
-              {
-                id: "dummy-2",
-                tournamentId: "dummy-system-1",
-                name: "Women's Doubles (In Progress)",
-                startDate: new Date().toISOString(),
-                dueDate: new Date().toISOString(),
-                pointsPerSet: 21,
-                setsPerMatch: 3,
-                amount: 1000,
-                eventState: "in_progress",
-                teams: [{}, {}, {}, {}] as any,
-              },
-              {
-                id: "dummy-3",
-                tournamentId: "dummy-system-1",
-                name: "Mixed Doubles (Completed)",
-                startDate: new Date().toISOString(),
-                dueDate: new Date().toISOString(),
-                pointsPerSet: 21,
-                setsPerMatch: 3,
-                amount: 800,
-                eventState: "completed",
-                teams: [{}, {}, {}, {}, {}, {}, {}, {}] as any,
-              },
-            ],
+                amount: 3400 + index * 200,
+                eventState: stateByIndex[index],
+                teams: Array.from({ length: 3 + index }, () => ({})) as any,
+              };
+            }),
           };
         } else {
           tournamentData = await tournamentApi.getInfo(tournamentId);
@@ -844,8 +1187,16 @@ export default function TournamentEventDetailsPage() {
       } catch (error) {
         if (!isActive) return;
         console.error("Failed to load tournament", error);
+        const message =
+          error instanceof Error ? error.message : "Unable to load tournament.";
+        const unauthorized =
+          typeof message === "string" &&
+          (message.includes("401") ||
+            message.toLowerCase().includes("unauthorized"));
         setErrorMessage(
-          error instanceof Error ? error.message : "Unable to load tournament.",
+          unauthorized
+            ? "Your session expired. Please sign in again."
+            : message,
         );
       } finally {
         if (isActive) {
@@ -859,7 +1210,7 @@ export default function TournamentEventDetailsPage() {
     return () => {
       isActive = false;
     };
-  }, [tournamentId]);
+  }, [tournamentId, session?.access_token, isAuthLoading]);
 
   // Retrieve the saved tab from sessionStorage on initial load
   useEffect(() => {
@@ -909,7 +1260,9 @@ export default function TournamentEventDetailsPage() {
             {activeTab === "Summary" && (
               <SummaryTab events={tournament?.events ?? []} />
             )}
-            {activeTab === "Event Crew" && <EventCrewTab />}
+            {activeTab === "Event Crew" && (
+              <EventCrewTab tournamentId={tournamentId} tournament={tournament} />
+            )}
           </div>
         </>
       )}

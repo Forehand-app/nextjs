@@ -1,14 +1,16 @@
 "use client";
 
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
-  BellIcon,
   FilterIcon,
   SearchIcon,
 } from "@/components/Icons";
 import BottomNav from "@/components/BottomNav";
 import NotificationsSlideOver, { type NotificationItem } from "@/components/NotificationsSlideOver";
 import TournamentListCard, { type TournamentListItem } from "@/components/TournamentListCard";
+import { useApp } from "@/components/AppProvider";
+import { notificationApi } from "@/lib/api/notificationApi";
+import { Bell } from "lucide-react";
 
 type TopTab = "browse" | "joined" | "history";
 type FormatTab = "all" | "singles" | "doubles";
@@ -134,29 +136,52 @@ const historyItems: TournamentListItem[] = [
   },
 ];
 
-const mockNotifications: NotificationItem[] = [
-  {
-    id: "1",
-    type: "registration",
-    title: "Registration confirmed",
-    body: "Mumbai Men's 2025",
-    timeAgo: "2h ago",
-    unread: true,
-  },
-  {
-    id: "2",
-    type: "info",
-    title: "Fixtures updated",
-    body: "Quarter finals published",
-    timeAgo: "5h ago",
-    unread: true,
-  },
-];
-
 export default function TournamentsPage() {
+  const { userProfile } = useApp();
   const [activeTab, setActiveTab] = useState<TopTab>("browse");
   const [format, setFormat] = useState<FormatTab>("all");
   const [notificationsOpen, setNotificationsOpen] = useState(false);
+  const [notifications, setNotifications] = useState<NotificationItem[]>([]);
+  const [readIds, setReadIds] = useState<Set<string>>(new Set());
+
+  const attachActions = (items: NotificationItem[]) =>
+    items.map((item) => ({
+      ...item,
+      unread: item.unread && !readIds.has(item.id),
+      onAccept:
+        item.type === "invite"
+          ? async () => {
+              await notificationApi.respondToInvite(item.id, "accept");
+              setNotifications((prev) => prev.filter((n) => n.id !== item.id));
+            }
+          : undefined,
+      onReject:
+        item.type === "invite"
+          ? async () => {
+              await notificationApi.respondToInvite(item.id, "reject");
+              setNotifications((prev) => prev.filter((n) => n.id !== item.id));
+            }
+          : undefined,
+    }));
+
+  useEffect(() => {
+    let active = true;
+    const loadNotifications = async () => {
+      try {
+        const items = await notificationApi.getUserNotifications();
+        if (!active) return;
+        setNotifications(attachActions(items));
+      } catch (error) {
+        if (!active) return;
+        console.error("Failed to load notifications", error);
+        setNotifications([]);
+      }
+    };
+    void loadNotifications();
+    return () => {
+      active = false;
+    };
+  }, [readIds]);
 
   const list = useMemo(() => {
     if (activeTab === "joined") return joinedItems;
@@ -164,7 +189,9 @@ export default function TournamentsPage() {
     return browseItems;
   }, [activeTab]);
 
-  const unreadCount = mockNotifications.filter((item) => item.unread).length;
+  const unreadCount = notifications.filter((item) => item.unread).length;
+  const userInitial = userProfile?.name?.trim().charAt(0).toUpperCase() || "P";
+  const profilePicUrl = userProfile?.profilePicUrl;
 
   return (
     <>
@@ -173,7 +200,15 @@ export default function TournamentsPage() {
           <div className="flex items-start justify-between gap-3">
             <div className="flex min-w-0 items-center gap-3">
               <div className="grid h-11 w-11 shrink-0 place-content-center overflow-hidden rounded-full border-2 border-white/65 bg-[radial-gradient(circle_at_30%_30%,#f7d8b5,#8f5f42)] shadow-[0_4px_10px_rgba(119,46,0,0.18)]">
-                <span className="text-[13px] font-semibold text-white">A</span>
+                {profilePicUrl ? (
+                  <img
+                    src={profilePicUrl}
+                    alt="Profile"
+                    className="h-full w-full object-cover"
+                  />
+                ) : (
+                  <span className="text-[13px] font-semibold text-white">{userInitial}</span>
+                )}
               </div>
               <div className="min-w-0 pt-0.5">
                 <h1 className="truncate text-[32px] font-extrabold leading-none tracking-[-0.02em] text-white">Tournaments</h1>
@@ -187,7 +222,7 @@ export default function TournamentsPage() {
               className="relative mt-0.5 grid h-11 w-11 shrink-0 place-content-center rounded-full bg-white text-[#2a2a31] shadow-[0_8px_18px_rgba(130,55,0,0.18)]"
               aria-label="Notifications"
             >
-              <BellIcon size={19} />
+              <Bell size={19} />
               {unreadCount > 0 ? (
                 <span className="absolute right-0.5 top-0.5 grid h-5 min-w-[20px] place-content-center rounded-full bg-[#ff6b00] px-1 text-[10px] font-bold text-white ring-2 ring-[#fff3ea]">
                   {unreadCount}
@@ -274,10 +309,12 @@ export default function TournamentsPage() {
       <NotificationsSlideOver
         open={notificationsOpen}
         onClose={() => setNotificationsOpen(false)}
-        items={mockNotifications}
+        items={notifications}
         unreadCount={unreadCount}
-        onMarkAllRead={() => undefined}
-        onClearAll={() => undefined}
+        onMarkAllRead={() =>
+          setReadIds(new Set(notifications.map((notification) => notification.id)))
+        }
+        onClearAll={() => setNotifications([])}
       />
     </>
   );

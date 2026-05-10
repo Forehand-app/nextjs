@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, UIEvent } from "react";
+import { useState, useEffect, UIEvent } from "react";
 import Link from "next/link";
 import { useApp } from "@/components/AppProvider";
 import BottomNav from "@/components/BottomNav";
@@ -15,6 +15,7 @@ import OngoingTournamentCard from "@/components/Card/OngoingTournamentCard";
 import NotificationsSlideOver, {
   NotificationItem,
 } from "@/components/NotificationsSlideOver";
+import { notificationApi } from "@/lib/api/notificationApi";
 
 // --- TYPE DEFINITIONS ---
 
@@ -138,35 +139,56 @@ const liveMatches = [
   },
 ];
 
-const mockNotifications: NotificationItem[] = [
-  {
-    id: "1",
-    type: "match_start",
-    title: "Tennis match Started",
-    body: "Raipur Sports Academy",
-    timeAgo: "2 hours ago",
-    unread: true,
-  },
-  {
-    id: "2",
-    type: "match_start",
-    title: "Pickleball Singles Started",
-    body: "Court 3",
-    timeAgo: "3 hours ago",
-    unread: true,
-  },
-];
-
 export default function UserHomePage() {
   const { userProfile } = useApp();
   const [activeTab, setActiveTab] = useState("explore");
   const [notificationsOpen, setNotificationsOpen] = useState(false);
+  const [notifications, setNotifications] = useState<NotificationItem[]>([]);
+  const [readIds, setReadIds] = useState<Set<string>>(new Set());
+  const attachNotificationActions = (items: NotificationItem[]) =>
+    items.map((item) => ({
+      ...item,
+      unread: item.unread && !readIds.has(item.id),
+      onAccept:
+        item.type === "invite"
+          ? async () => {
+              await notificationApi.respondToInvite(item.id, "accept");
+              setNotifications((prev) => prev.filter((n) => n.id !== item.id));
+            }
+          : undefined,
+      onReject:
+        item.type === "invite"
+          ? async () => {
+              await notificationApi.respondToInvite(item.id, "reject");
+              setNotifications((prev) => prev.filter((n) => n.id !== item.id));
+            }
+          : undefined,
+    }));
 
   // --- CAROUSEL PAGINATION STATES ---
   const [activeUpcomingIndex, setActiveUpcomingIndex] = useState(0);
   const [activeOngoingIndex, setActiveOngoingIndex] = useState(0);
 
-  const unreadCount = mockNotifications.filter((n) => n.unread).length;
+  useEffect(() => {
+    let active = true;
+    const loadNotifications = async () => {
+      try {
+        const items = await notificationApi.getUserNotifications();
+        if (!active) return;
+        setNotifications(attachNotificationActions(items));
+      } catch (error) {
+        if (!active) return;
+        console.error("Failed to load user notifications", error);
+        setNotifications([]);
+      }
+    };
+    void loadNotifications();
+    return () => {
+      active = false;
+    };
+  }, [readIds]);
+
+  const unreadCount = notifications.filter((n) => n.unread).length;
   const userName = userProfile?.name || "Player";
   const displayName = userName.split(" ")[0] || userName;
   const userInitial = userName.trim().charAt(0).toUpperCase() || "P";
@@ -505,10 +527,12 @@ export default function UserHomePage() {
       <NotificationsSlideOver
         open={notificationsOpen}
         onClose={() => setNotificationsOpen(false)}
-        items={mockNotifications}
+        items={notifications}
         unreadCount={unreadCount}
-        onMarkAllRead={() => console.log("Mark all read")}
-        onClearAll={() => console.log("Clear all")}
+        onMarkAllRead={() =>
+          setReadIds(new Set(notifications.map((notification) => notification.id)))
+        }
+        onClearAll={() => setNotifications([])}
       />
     </div>
   );

@@ -7,7 +7,6 @@ import { useTheme } from "@/components/ThemeProvider";
 import { useApp } from "@/components/AppProvider";
 import BottomNav from "@/components/BottomNav";
 import {
-  BellIcon,
   LockIcon,
   HelpCircleIcon,
   PhoneIcon,
@@ -17,8 +16,8 @@ import {
   ChevronRightIcon,
   ChevronDownIcon,
   CheckIcon,
-  UsersIcon,
 } from "@/components/Icons";
+import { Bell, Users } from "lucide-react";
 
 export default function OrgSettingsPage() {
   const { theme, toggleTheme } = useTheme();
@@ -40,13 +39,13 @@ export default function OrgSettingsPage() {
   const orgSettingsItems = [
     {
       href: "/org/settings/notifications",
-      icon: BellIcon,
+      icon: Bell,
       label: "Notifications",
       sub: "Manage preferences",
     },
     {
       href: "/org/settings/members",
-      icon: UsersIcon,
+      icon: Users,
       label: "Manage Members",
       sub: "Add or remove staff",
     },
@@ -74,7 +73,7 @@ export default function OrgSettingsPage() {
             className="flex items-center gap-1.5 font-bold text-[17px] tracking-tight hover:opacity-80 transition-opacity"
             aria-expanded={showSwitchModal}
           >
-            Organization Settings
+            Profile Switcher
             <ChevronDownIcon
               size={18}
               className="text-[var(--color-text-muted)] mt-0.5 shrink-0"

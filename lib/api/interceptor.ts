@@ -18,6 +18,12 @@ export function getApiUrl({
   path: string;
   param?: string;
 }): string {
+  if (/^https?:\/\//i.test(path)) {
+    const cleanPath = path.endsWith("/") ? path.slice(0, -1) : path;
+    const cleanParam = param ? `/${param}` : "";
+    return `${cleanPath}${cleanParam}`;
+  }
+
   const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || "";
   const cleanBaseUrl = baseUrl.endsWith("/") ? baseUrl.slice(0, -1) : baseUrl;
   const cleanPath = path.startsWith("/") ? path : `/${path}`;
@@ -69,7 +75,14 @@ export const fetchApi = async (
         result?.message ||
         result?.summary ||
         (result?.errors ? JSON.stringify(result.errors) : null) ||
-        "Failed to fetch! It might be a server problem";
+        `HTTP ${res.status} ${res.statusText} for ${path}`;
+      console.error("[fetchApi] non-2xx response", {
+        path,
+        method,
+        status: res.status,
+        statusText: res.statusText,
+        response: result,
+      });
       throw new Error(errorMessage);
     }
 
@@ -87,6 +100,12 @@ export const fetchApi = async (
       data: result,
     };
   } catch (e) {
+    console.error("[fetchApi] request failed", {
+      path,
+      method,
+      hasBody: Boolean(body),
+      error: e instanceof Error ? e.message : e,
+    });
     return {
       error: e,
     };

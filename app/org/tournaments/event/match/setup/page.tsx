@@ -369,7 +369,7 @@ export default function OrgMatchSetupPage() {
           </div>
 
           {/* Card */}
-          <div className="rounded-2xl border border-[var(--color-border)] bg-white overflow-hidden divide-y divide-[var(--color-border)]">
+          <div className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] overflow-hidden divide-y divide-[var(--color-border)]">
             {[
               {
                 label: "1 Timeout per set",
@@ -386,9 +386,9 @@ export default function OrgMatchSetupPage() {
               return (
                 <label
                   key={opt.key}
-                  className="flex items-center justify-between px-4 py-3.5 cursor-pointer transition-colors hover:bg-gray-50"
+                  className="flex items-center justify-between px-4 py-3.5 cursor-pointer transition-colors hover:bg-[var(--color-surface-elevated)]"
                 >
-                  <span className="text-sm font-medium text-gray-900">
+                  <span className="text-sm font-medium text-[var(--color-text)]">
                     {opt.label}
                   </span>
                   {/* Custom checkbox */}
@@ -435,12 +435,12 @@ export default function OrgMatchSetupPage() {
             <p className="text-sm font-bold text-[var(--color-text)] mb-2">
               Warm-up Time
             </p>
-            <div className="rounded-2xl border border-[var(--color-border)] bg-white overflow-hidden">
+            <div className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] overflow-hidden">
               {(() => {
                 const checked = draft.config.warmupMinutes === 0;
                 return (
-                  <label className="flex items-center justify-between px-4 py-3.5 cursor-pointer transition-colors hover:bg-gray-50">
-                    <span className="text-sm font-medium text-gray-900">
+                  <label className="flex items-center justify-between px-4 py-3.5 cursor-pointer transition-colors hover:bg-[var(--color-surface-elevated)]">
+                    <span className="text-sm font-medium text-[var(--color-text)]">
                       No warm-up
                     </span>
                     <div

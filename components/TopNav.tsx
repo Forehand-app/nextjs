@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { ArrowLeftIcon } from "@/components/Icons";
@@ -8,6 +8,7 @@ import { useApp } from "@/components/AppProvider";
 import NotificationsSlideOver, {
   NotificationItem,
 } from "@/components/NotificationsSlideOver";
+import { notificationApi } from "@/lib/api/notificationApi";
 
 type TopNavProps = {
   title?: string;
@@ -35,34 +36,6 @@ function BellIcon({ size = 24 }: { size?: number }) {
   );
 }
 
-// Mock notifications
-const mockNotifications: NotificationItem[] = [
-  {
-    id: "1",
-    type: "match_start",
-    title: "Tennis match Started",
-    body: "Raipur Sports Academy",
-    timeAgo: "2 hours ago",
-    unread: true,
-  },
-  {
-    id: "2",
-    type: "match_start",
-    title: "Tennis match Started",
-    body: "Raipur Sports Academy",
-    timeAgo: "2 hours ago",
-    unread: true,
-  },
-  {
-    id: "3",
-    type: "match_start",
-    title: "Tennis match Started",
-    body: "Raipur Sports Academy",
-    timeAgo: "2 hours ago",
-    unread: false,
-  },
-];
-
 export default function TopNav({
   title,
   showBack = false,
@@ -77,7 +50,49 @@ export default function TopNav({
   const profileHref = isOrg ? "/org/settings" : "/user/settings";
 
   const [notificationsOpen, setNotificationsOpen] = useState(false);
-  const unreadCount = mockNotifications.filter((n) => n.unread).length;
+  const [notifications, setNotifications] = useState<NotificationItem[]>([]);
+  const [readIds, setReadIds] = useState<Set<string>>(new Set());
+
+  const attachActions = (items: NotificationItem[]) =>
+    items.map((item) => ({
+      ...item,
+      unread: item.unread && !readIds.has(item.id),
+      onAccept:
+        item.type === "invite"
+          ? async () => {
+              await notificationApi.respondToInvite(item.id, "accept");
+              setNotifications((prev) => prev.filter((n) => n.id !== item.id));
+            }
+          : undefined,
+      onReject:
+        item.type === "invite"
+          ? async () => {
+              await notificationApi.respondToInvite(item.id, "reject");
+              setNotifications((prev) => prev.filter((n) => n.id !== item.id));
+            }
+          : undefined,
+    }));
+
+  useEffect(() => {
+    let active = true;
+    const loadNotifications = async () => {
+      try {
+        const items = await notificationApi.getUserNotifications();
+        if (!active) return;
+        setNotifications(attachActions(items));
+      } catch (error) {
+        if (!active) return;
+        console.error("Failed to load notifications", error);
+        setNotifications([]);
+      }
+    };
+    void loadNotifications();
+    return () => {
+      active = false;
+    };
+  }, [readIds]);
+
+  const unreadCount = notifications.filter((n) => n.unread).length;
 
   const handleBack = () => {
     if (onBack) return onBack();
@@ -158,10 +173,12 @@ export default function TopNav({
       <NotificationsSlideOver
         open={notificationsOpen}
         onClose={() => setNotificationsOpen(false)}
-        items={mockNotifications}
+        items={notifications}
         unreadCount={unreadCount}
-        onMarkAllRead={() => console.log("Mark all read")}
-        onClearAll={() => console.log("Clear all")}
+        onMarkAllRead={() =>
+          setReadIds(new Set(notifications.map((notification) => notification.id)))
+        }
+        onClearAll={() => setNotifications([])}
       />
     </>
   );
