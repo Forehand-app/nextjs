@@ -1,28 +1,42 @@
 "use client";
 
-import React from "react";
-import { useRouter } from "next/navigation";
-import Layout from "@/components/Layout";
-import { ArrowLeftIcon } from "@/components/Icons";
+import React, { useState } from "react";
+import { Bell } from "lucide-react";
+import {
+  IntroWithIcon,
+  SettingsShell,
+  ToggleRow,
+} from "../_components/SettingsScaffold";
 
 export default function OrgNotificationsPage() {
-  const router = useRouter();
+  const [toggles, setToggles] = useState([true, true, false, false, false, true, true]);
+
+  const updateToggle = (index: number) => {
+    setToggles((current) =>
+      current.map((value, currentIndex) => (currentIndex === index ? !value : value)),
+    );
+  };
+
   return (
-    <Layout>
-      <div className="p-4">
-        <button
-          type="button"
-          onClick={() => router.back()}
-          className="p-2 rounded-lg hover:bg-[var(--color-surface-elevated)] min-h-[44px] flex items-center gap-2"
-          aria-label="Back"
-        >
-          <ArrowLeftIcon size={20} />
-          <span className="font-medium">Notifications</span>
-        </button>
-        <h1 className="text-xl font-semibold mt-4">Notifications</h1>
-        <p className="text-sm text-[var(--color-muted)]">Manage preferences.</p>
+    <SettingsShell title="Notifications">
+      <IntroWithIcon
+        icon={Bell}
+        title="Stay Updated"
+        subtitle="Choose which notifications you want to receive"
+      />
+
+      <div className="flex flex-col gap-3">
+        {toggles.map((on, index) => (
+          <ToggleRow
+            key={index}
+            label="Tournament Alerts"
+            subtitle="Get notified about new tournaments"
+            on={on}
+            onToggle={() => updateToggle(index)}
+          />
+        ))}
       </div>
-    </Layout>
+    </SettingsShell>
   );
 }
 

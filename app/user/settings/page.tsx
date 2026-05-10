@@ -43,7 +43,7 @@ export default function UserSettingsPage() {
       sub: "Control your settings",
     },
     {
-      href: "/user/settings",
+      href: "/user/settings/preferences",
       icon: Settings2,
       label: "Settings",
       sub: "App preferences",

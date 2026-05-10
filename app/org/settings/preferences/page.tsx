@@ -8,9 +8,9 @@ import {
   SelectRow,
   SettingsShell,
   ToggleRow,
-} from "@/app/org/settings/_components/SettingsScaffold";
+} from "../_components/SettingsScaffold";
 
-export default function UserPreferencesPage() {
+export default function OrgPreferencesPage() {
   const [themeMode, setThemeMode] = useState("system");
   const [showStats, setShowStats] = useState(true);
   const [language, setLanguage] = useState("en");
@@ -35,7 +35,7 @@ export default function UserPreferencesPage() {
 
         <SelectRow
           label="Language"
-          subtitle="Change app Language"
+          subtitle="Change app language"
           value={language}
           onChange={setLanguage}
           options={[

@@ -442,3 +442,36 @@ export function TimerIcon(props: IconProps) {
     </SvgIcon>
   );
 }
+
+export function DumbbellIcon(props: IconProps) {
+  return (
+    <SvgIcon {...props}>
+      <path d="M14.4 14.4 9.6 9.6" />
+      <path d="M18.657 21.485a2 2 0 1 1-2.829-2.828l-1.767 1.768 1.414 1.414-1.768 1.767-1.414-1.414-1.768 1.768a2 2 0 1 1-2.828-2.829l1.768-1.767-1.414-1.415 1.767-1.767 1.415 1.414 1.767-1.768-1.767-1.767a2 2 0 1 1 2.828-2.829l1.768 1.768 1.414-1.414-1.767-1.768 1.414-1.414 1.768-1.768a2 2 0 1 1 2.828 2.829l-1.768 1.767 1.415 1.415-1.768 1.767-1.414-1.414-1.768 1.767Z" />
+    </SvgIcon>
+  );
+}
+
+export function HierarchyIcon(props: IconProps) {
+  return (
+    <SvgIcon {...props}>
+      <circle cx="12" cy="5" r="2" />
+      <path d="M12 7v3" />
+      <path d="M6 13h12" />
+      <path d="M6 13v3" />
+      <path d="M12 13v3" />
+      <path d="M18 13v3" />
+      <circle cx="6" cy="19" r="2" />
+      <circle cx="12" cy="19" r="2" />
+      <circle cx="18" cy="19" r="2" />
+    </SvgIcon>
+  );
+}
+
+export function ShieldIcon(props: IconProps) {
+  return (
+    <SvgIcon {...props}>
+      <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10" />
+    </SvgIcon>
+  );
+}

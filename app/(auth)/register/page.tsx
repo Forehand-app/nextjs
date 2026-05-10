@@ -9,7 +9,81 @@ import {
 } from "@/lib/validators/registrationForm";
 import { userApi } from "@/lib/api/userApi";
 import { storageApi } from "@/lib/api/storageApi";
-import { CameraIcon } from "@/components/Icons";
+import {
+  CameraIcon,
+  UserIcon,
+  PhoneIcon,
+  CalendarIcon,
+  DumbbellIcon,
+  TrophyIcon,
+  ChevronRightIcon,
+  InfoIcon
+} from "@/components/Icons";
+import { FloatingIcons } from "@/components/FloatingIcons";
+import { Users } from "lucide-react";
+const InputField = ({
+  id,
+  label,
+  icon: Icon,
+  children,
+  error,
+  type,
+  ...props
+}: any) => {
+  const handleClick = (e: React.MouseEvent) => {
+    // If clicking the input/select directly, let the browser handle it
+    if (e.target instanceof HTMLInputElement || e.target instanceof HTMLSelectElement) {
+      return;
+    }
+
+    const input = (e.currentTarget as HTMLElement).querySelector('input, select') as HTMLInputElement | HTMLSelectElement;
+    if (input) {
+      if (type === 'date' && (input as any).showPicker) {
+        try {
+          (input as any).showPicker();
+        } catch {
+          input.focus();
+        }
+      } else {
+        input.focus();
+      }
+    }
+  };
+
+  return (
+    <div
+      className="w-full min-w-0 space-y-1.5"
+      onClick={(e) => {
+        if (type !== 'date') handleClick(e);
+      }}
+    >
+      <div className={`relative h-14 flex items-center rounded-full border bg-[var(--color-surface)] transition-all ${error ? 'border-red-500/50' : 'border-[var(--color-border)] focus-within:border-[#ff7a1a]'}`}>
+        <div
+          className="pl-4 text-[#ff7a1a] opacity-80 flex-shrink-0 cursor-pointer h-full flex items-center"
+          onClick={(e) => {
+            if (type === 'date') {
+              e.stopPropagation();
+              handleClick(e);
+            }
+          }}
+        >
+          <Icon size={18} />
+        </div>
+        <div className="flex-1 min-w-0 flex items-center h-full">
+          {children || (
+            <input
+              id={id}
+              type={type}
+              className="w-full bg-transparent px-4 text-[15px] font-medium text-[var(--color-text)] outline-none placeholder:text-[var(--color-text-secondary)] placeholder:opacity-30"
+              {...props}
+            />
+          )}
+        </div>
+      </div>
+      {error && <p className="ml-4 text-[11px] font-bold text-red-500">{error}</p>}
+    </div>
+  );
+};
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -31,7 +105,7 @@ export default function RegisterPage() {
     primarySport: "",
   });
 
-  // Real-time contact uniqueness check (using Zod async validation)
+  // Real-time contact uniqueness check
   useEffect(() => {
     const contact = formData.contactNumber;
     if (!contact || contact.length < 10) {
@@ -43,9 +117,7 @@ export default function RegisterPage() {
     }
 
     const timer = setTimeout(async () => {
-      // Run the async Zod validation
       const result = await registrationSchema.safeParseAsync(formData);
-
       if (!result.success) {
         const contactError = result.error.issues.find(
           (i) => i.path[0] === "contactNumber",
@@ -74,19 +146,14 @@ export default function RegisterPage() {
 
   useEffect(() => {
     if (isLoading) return;
-    // Not logged in → back to login
     if (!isAuthenticated) {
       router.replace("/login");
       return;
     }
-
-    // Already has a profile → go home
     if (userProfile) {
       router.replace("/home");
       return;
     }
-
-    // Pre-fill name from Google profile
     setFormData((prev) => ({
       ...prev,
       name:
@@ -101,7 +168,6 @@ export default function RegisterPage() {
     e.preventDefault();
     setErrorMessage("");
 
-    // 1. Zod async validation (includes uniqueness check)
     const result = await registrationSchema.safeParseAsync(formData);
     if (!result.success) {
       const errors: Record<string, string> = {};
@@ -118,11 +184,8 @@ export default function RegisterPage() {
 
     try {
       setIsSubmitting(true);
-
-      // 1. Clean phone number to exactly 10 digits (no +, no spaces, handle country code)
       let cleanPhone = validatedData.contactNumber.replace(/\D/g, "");
       if (cleanPhone.length > 10) {
-        // If it starts with 91 and is 12 digits, take last 10
         if (cleanPhone.length === 12 && cleanPhone.startsWith("91")) {
           cleanPhone = cleanPhone.slice(-10);
         } else if (cleanPhone.length === 11 && cleanPhone.startsWith("0")) {
@@ -130,7 +193,6 @@ export default function RegisterPage() {
         }
       }
 
-      // 2. Register profile first
       await register({
         name: validatedData.name,
         phone: cleanPhone,
@@ -140,22 +202,17 @@ export default function RegisterPage() {
         primarySport: validatedData.primarySport ?? null,
       });
 
-      // 3. Now upload avatar if exists (profile record now exists)
       if (avatarFile) {
         try {
           await storageApi.uploadProfileAvatar(avatarFile);
         } catch (uploadErr) {
           console.error("Avatar upload failed:", uploadErr);
-          // We continue since registration was successful
         }
       }
-
       router.replace("/home");
     } catch (err) {
       setErrorMessage(
-        err instanceof Error
-          ? err.message
-          : "Registration failed. Please try again.",
+        err instanceof Error ? err.message : "Registration failed. Please try again.",
       );
       setIsSubmitting(false);
     }
@@ -174,215 +231,153 @@ export default function RegisterPage() {
   if (isLoading || !isAuthenticated) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[var(--color-background)]">
-        <p className="text-sm text-[var(--color-muted)]">Loading...</p>
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-[#ff7a1a] border-t-transparent" />
       </div>
     );
   }
 
-  const InputError = ({ message }: { message?: string }) => {
-    if (!message) return null;
-    return <p className="text-xs text-red-500 mt-1 ml-1">{message}</p>;
-  };
-
   return (
-    <div className="min-h-screen bg-[var(--color-background)] p-6 pb-safe">
-      <div className="max-w-md mx-auto">
-        {/* Header */}
-        <div
-          className="rounded-2xl p-6 mb-6 text-white"
-          style={{ background: "var(--gradient-orange)" }}
-        >
-          <h1 className="text-2xl font-bold mb-1">Create your profile</h1>
-          <p className="text-sm opacity-90">
-            Just a few details to get you started
-          </p>
-          {session?.user?.email && (
-            <p className="text-xs opacity-75 mt-2">{session.user.email}</p>
-          )}
+    <div className="relative min-h-screen flex flex-col bg-[var(--color-background)] overflow-hidden">
+      {/* Orange Diagonal Background - Top Section */}
+      <svg
+        className="absolute top-0 left-0 w-full h-[40vh] text-[#ff7a1a] fill-current z-0"
+        preserveAspectRatio="none"
+        viewBox="0 0 100 100"
+      >
+        <polygon points="0,0 100,0 100,20 0,55" />
+      </svg>
+
+      {/* Dynamic Floating Icons */}
+      <FloatingIcons count={20} page="register" />
+
+      {/* Main Content */}
+      <div className="relative z-10 flex-1 flex flex-col items-center px-6 pb-12 pt-16">
+        {/* Avatar Section */}
+        <div className="relative mb-10">
+          <div className="relative">
+            <div className="w-32 h-32 rounded-full border-4 border-white bg-[#3a2a57] shadow-xl overflow-hidden flex items-center justify-center relative">
+              {avatarPreview ? (
+                <img src={avatarPreview} alt="Avatar" className="w-full h-full object-cover" />
+              ) : (
+                <div className="text-[var(--color-text-secondary)] opacity-30">
+                  <UserIcon size={48} />
+                </div>
+              )}
+              <label className="absolute inset-0 bg-black/0 hover:bg-black/20 transition-colors cursor-pointer flex items-center justify-center opacity-0 hover:opacity-100 z-10">
+                <input
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) {
+                      setAvatarFile(file);
+                      const reader = new FileReader();
+                      reader.onloadend = () => setAvatarPreview(reader.result as string);
+                      reader.readAsDataURL(file);
+                    }
+                  }}
+                />
+              </label>
+            </div>
+            {/* Camera Badge at Top Right */}
+            <div className="absolute -top-1 -right-1 bg-[#ff7a1a] text-white p-2 rounded-full shadow-lg border-[3px] border-[var(--color-background)] z-20">
+              <CameraIcon size={16} />
+            </div>
+          </div>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          {/* Avatar Upload */}
-          <div className="flex flex-col items-center mb-8">
-            <div className="relative group">
-              <div className="w-32 h-32 rounded-full overflow-hidden bg-[var(--color-surface-elevated)] border-4 border-white shadow-md flex items-center justify-center relative">
-                {avatarPreview ? (
-                  <img
-                    src={avatarPreview}
-                    alt="Avatar preview"
-                    className="w-full h-full object-cover"
-                  />
-                ) : (
-                  <div className="text-[var(--color-muted)] flex flex-col items-center">
-                    <CameraIcon size={32} />
-                    <span className="text-[10px] font-bold mt-1 uppercase tracking-wider">
-                      Add Photo
-                    </span>
-                  </div>
-                )}
-                <label className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors cursor-pointer flex items-center justify-center opacity-0 group-hover:opacity-100">
-                  <CameraIcon size={24} className="text-white" />
-                  <input
-                    type="file"
-                    accept="image/*"
-                    className="hidden"
-                    onChange={(e) => {
-                      const file = e.target.files?.[0];
-                      if (file) {
-                        setAvatarFile(file);
-                        const reader = new FileReader();
-                        reader.onloadend = () => {
-                          setAvatarPreview(reader.result as string);
-                        };
-                        reader.readAsDataURL(file);
-                      }
-                    }}
-                  />
-                </label>
-              </div>
-              <div className="absolute -bottom-1 -right-1 bg-primary text-white p-2 rounded-full shadow-lg border-2 border-white pointer-events-none">
-                <CameraIcon size={16} />
+        {/* Title */}
+        <div className="text-center mb-10">
+          <h1 className="text-[32px] font-black text-white leading-tight mb-2 drop-shadow-sm">
+            Finalize <span className="text-[#ff7a1a]">Registration</span>
+          </h1>
+          <p className="text-[16px] font-medium text-[var(--color-text-secondary)] opacity-60">
+            Let's set up your player profile
+          </p>
+        </div>
+
+        {/* Form */}
+        <form onSubmit={handleSubmit} className="w-full max-w-[360px] flex flex-col items-center space-y-4">
+          <InputField
+            id="name"
+            placeholder="Full Name"
+            icon={UserIcon}
+            value={formData.name}
+            onChange={(e: any) => setFormData({ ...formData, name: e.target.value })}
+            error={fieldErrors.name}
+          />
+
+          <InputField
+            id="contact"
+            placeholder="Contact Number"
+            type="tel"
+            icon={PhoneIcon}
+            value={formData.contactNumber}
+            onChange={(e: any) => setFormData({ ...formData, contactNumber: e.target.value })}
+            error={fieldErrors.contactNumber}
+          />
+
+          <InputField id="gender" icon={Users} error={fieldErrors.gender}>
+            <div className="relative flex-1 flex items-center">
+              <select
+                value={formData.gender || ""}
+                onChange={(e) => setFormData({ ...formData, gender: e.target.value as any })}
+                className="flex-1 bg-transparent px-4 py-4 text-[16px] font-medium text-[var(--color-text)] outline-none appearance-none"
+              >
+                <option value="" disabled className="bg-[var(--color-background)]">Gender</option>
+                <option value="male" className="bg-[var(--color-background)]">Male</option>
+                <option value="female" className="bg-[var(--color-background)]">Female</option>
+              </select>
+              <div className="absolute right-4 pointer-events-none opacity-40">
+                <ChevronRightIcon size={16} className="rotate-90" />
               </div>
             </div>
-            <p className="text-xs text-[var(--color-muted)] mt-3">
-              Help organizers and players recognize you
-            </p>
-          </div>
+          </InputField>
 
-          {/* Full Name */}
-          <div>
-            <label className="block text-sm font-medium text-[var(--color-text)] mb-2">
-              Full Name
-            </label>
-            <input
-              type="text"
-              value={formData.name}
-              onChange={(e) =>
-                setFormData({ ...formData, name: e.target.value })
-              }
-              className={`w-full px-4 py-3 rounded-[var(--radius-input)] bg-[var(--color-surface)] border ${
-                fieldErrors.name
-                  ? "border-red-500"
-                  : "border-[var(--color-border)]"
-              } text-[var(--color-text)] placeholder:text-[var(--color-muted)] focus:border-primary focus:outline-none transition-colors`}
-              placeholder="Enter your full name"
-            />
-            <InputError message={fieldErrors.name} />
-          </div>
+          <InputField
+            id="dob"
+            type="date"
+            placeholder="Date of birth"
+            icon={CalendarIcon}
+            value={formData.dob}
+            onChange={(e: any) => setFormData({ ...formData, dob: e.target.value })}
+            error={fieldErrors.dob}
+          />
 
-          {/* Contact Number */}
-          <div>
-            <label className="block text-sm font-medium text-[var(--color-text)] mb-2">
-              Contact Number
-            </label>
-            <input
-              type="tel"
-              value={formData.contactNumber || ""}
-              onChange={(e) =>
-                setFormData({ ...formData, contactNumber: e.target.value })
-              }
-              className={`w-full px-4 py-3 rounded-[var(--radius-input)] bg-[var(--color-surface)] border ${
-                fieldErrors.contactNumber
-                  ? "border-red-500"
-                  : "border-[var(--color-border)]"
-              } text-[var(--color-text)] placeholder:text-[var(--color-muted)] focus:border-primary focus:outline-none transition-colors`}
-              placeholder="Enter your contact number"
-            />
-            <InputError message={fieldErrors.contactNumber} />
-          </div>
-
-          {/* Gender */}
-          <div>
-            <label className="block text-sm font-medium text-[var(--color-text)] mb-2">
-              Gender
-            </label>
-            <select
-              value={formData.gender || ""}
-              onChange={(e) =>
-                setFormData({ ...formData, gender: e.target.value as any })
-              }
-              className={`w-full px-4 py-3 rounded-[var(--radius-input)] bg-[var(--color-surface)] border ${
-                fieldErrors.gender
-                  ? "border-red-500"
-                  : "border-[var(--color-border)]"
-              } text-[var(--color-text)] focus:border-primary focus:outline-none transition-colors`}
-            >
-              <option value="">Select gender</option>
-              <option value="male">Male</option>
-              <option value="female">Female</option>
-            </select>
-            <InputError message={fieldErrors.gender} />
-          </div>
-
-          {/* Date of Birth */}
-          <div>
-            <label className="block text-sm font-medium text-[var(--color-text)] mb-2">
-              Date of Birth
-            </label>
-            <input
-              type="date"
-              value={formData.dob || ""}
-              onChange={(e) =>
-                setFormData({ ...formData, dob: e.target.value })
-              }
-              className={`w-full px-4 py-3 rounded-[var(--radius-input)] bg-[var(--color-surface)] border ${
-                fieldErrors.dob
-                  ? "border-red-500"
-                  : "border-[var(--color-border)]"
-              } text-[var(--color-text)] focus:border-primary focus:outline-none transition-colors`}
-            />
-            <InputError message={fieldErrors.dob} />
-          </div>
-
-          {/* Playing Hand */}
-          <div>
-            <label className="block text-sm font-medium text-[var(--color-text)] mb-2">
-              Playing Hand
-            </label>
-            <select
-              value={formData.playingHand || ""}
-              onChange={(e) =>
-                setFormData({
-                  ...formData,
-                  playingHand: e.target.value as any,
-                })
-              }
-              className={`w-full px-4 py-3 rounded-[var(--radius-input)] bg-[var(--color-surface)] border ${
-                fieldErrors.playingHand
-                  ? "border-red-500"
-                  : "border-[var(--color-border)]"
-              } text-[var(--color-text)] focus:border-primary focus:outline-none transition-colors`}
-            >
-              <option value="">Select playing hand</option>
-              <option value="right">Right</option>
-              <option value="left">Left</option>
-            </select>
-            <InputError message={fieldErrors.playingHand} />
-          </div>
-
-          {/* Primary Sport */}
-          <div>
-            <label className="block text-sm font-medium text-[var(--color-text)] mb-2">
-              Primary Sport
-            </label>
-            <input
-              type="text"
-              value={formData.primarySport || ""}
-              onChange={(e) =>
-                setFormData({ ...formData, primarySport: e.target.value })
-              }
-              className={`w-full px-4 py-3 rounded-[var(--radius-input)] bg-[var(--color-surface)] border ${
-                fieldErrors.primarySport
-                  ? "border-red-500"
-                  : "border-[var(--color-border)]"
-              } text-[var(--color-text)] placeholder:text-[var(--color-muted)] focus:border-primary focus:outline-none transition-colors`}
-              placeholder="e.g. Badminton"
-            />
-            <InputError message={fieldErrors.primarySport} />
+          <div className="flex gap-3 w-full">
+            <div className="flex-1">
+              <InputField id="playingHand" icon={DumbbellIcon} error={fieldErrors.playingHand}>
+                <div className="relative flex-1 flex items-center">
+                  <select
+                    value={formData.playingHand || ""}
+                    onChange={(e) => setFormData({ ...formData, playingHand: e.target.value as any })}
+                    className="flex-1 bg-transparent px-3 py-4 text-[15px] font-medium text-[var(--color-text)] outline-none appearance-none"
+                  >
+                    <option value="" disabled className="bg-[var(--color-background)]">Playing Hand</option>
+                    <option value="right" className="bg-[var(--color-background)]">Right</option>
+                    <option value="left" className="bg-[var(--color-background)]">Left</option>
+                  </select>
+                  <div className="absolute right-3 pointer-events-none opacity-40">
+                    <ChevronRightIcon size={14} className="rotate-90" />
+                  </div>
+                </div>
+              </InputField>
+            </div>
+            <div className="flex-1">
+              <InputField
+                id="sport"
+                placeholder="Primary sport"
+                icon={TrophyIcon}
+                value={formData.primarySport}
+                onChange={(e: any) => setFormData({ ...formData, primarySport: e.target.value })}
+                error={fieldErrors.primarySport}
+              />
+            </div>
           </div>
 
           {errorMessage && (
-            <p className="rounded-xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-600 dark:text-red-400">
+            <p className="text-sm font-bold text-red-500 text-center bg-red-500/10 py-3 rounded-xl border border-red-500/20">
               {errorMessage}
             </p>
           )}
@@ -390,24 +385,23 @@ export default function RegisterPage() {
           <button
             type="submit"
             disabled={isSubmitting}
-            className="w-full min-h-[52px] flex items-center justify-center rounded-xl font-semibold text-white shadow-lg transition-transform active:scale-95 mt-6 disabled:opacity-70"
-            style={{ background: "var(--gradient-orange)" }}
+            className="w-[340px] h-14 mt-8 flex items-center justify-center rounded-full bg-[#ff7a1a] text-[18px] font-black text-white shadow-lg transition-all hover:bg-[#ff8a33] active:scale-[0.98] disabled:opacity-70 group"
           >
             {isSubmitting ? "Creating profile..." : "Create Profile"}
           </button>
-        </form>
 
-        <p className="text-xs text-[var(--color-muted)] text-center mt-6">
-          Wrong account?{" "}
-          <button
-            type="button"
-            onClick={handleSignOut}
-            disabled={isSigningOut}
-            className="text-primary font-medium disabled:opacity-60"
-          >
-            {isSigningOut ? "Signing out..." : "Sign out"}
-          </button>
-        </p>
+          <p className="text-sm font-medium text-[var(--color-text-secondary)] text-center mt-6">
+            Wrong account?{" "}
+            <button
+              type="button"
+              onClick={handleSignOut}
+              disabled={isSigningOut}
+              className="text-[#ff7a1a] font-bold hover:underline disabled:opacity-60"
+            >
+              Sign out
+            </button>
+          </p>
+        </form>
       </div>
     </div>
   );
