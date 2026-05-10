@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import {
   ArrowLeftIcon,
@@ -9,8 +9,7 @@ import {
   XIcon,
   EllipsisIcon,
 } from "@/components/Icons";
-import { routes } from "@/lib/routes";
-import { useClientSearchParams } from "@/lib/useClientSearchParams";
+import { toQuery } from "@/lib/utils";
 
 type ParticipantStatus = "pending" | "confirmed" | "rejected";
 
@@ -24,43 +23,100 @@ type Participant = {
 };
 
 const DUMMY_PARTICIPANTS: Participant[] = [
-  { id: "1", name: "Anil Kumar", role: "Power Player", age: "under 20", avatar: "AK", status: "pending" },
-  { id: "2", name: "Rahul Singh", role: "Power Player", age: "under 20", avatar: "RS", status: "confirmed" },
-  { id: "3", name: "Priya Patel", role: "Power Player", age: "under 20", avatar: "PP", status: "rejected" },
-  { id: "4", name: "John Doe", role: "Power Player", age: "under 20", avatar: "JD", status: "confirmed" },
-  { id: "5", name: "Emily Chen", role: "Power Player", age: "under 20", avatar: "EC", status: "pending" },
-  { id: "6", name: "Kunal Verma", role: "Power Player", age: "under 20", avatar: "KV", status: "confirmed" },
+  {
+    id: "1",
+    name: "Anil Kumar",
+    role: "Power Player",
+    age: "under 20",
+    avatar: "AK",
+    status: "pending",
+  },
+  {
+    id: "2",
+    name: "Rahul Singh",
+    role: "Power Player",
+    age: "under 20",
+    avatar: "RS",
+    status: "confirmed",
+  },
+  {
+    id: "3",
+    name: "Priya Patel",
+    role: "Power Player",
+    age: "under 20",
+    avatar: "PP",
+    status: "rejected",
+  },
+  {
+    id: "4",
+    name: "John Doe",
+    role: "Power Player",
+    age: "under 20",
+    avatar: "JD",
+    status: "confirmed",
+  },
+  {
+    id: "5",
+    name: "Emily Chen",
+    role: "Power Player",
+    age: "under 20",
+    avatar: "EC",
+    status: "pending",
+  },
+  {
+    id: "6",
+    name: "Kunal Verma",
+    role: "Power Player",
+    age: "under 20",
+    avatar: "KV",
+    status: "confirmed",
+  },
 ];
 
 type FilterTab = "all" | "pending" | "confirmed";
 
 export default function EventParticipantsPage() {
   const router = useRouter();
-  const searchParams = useClientSearchParams();
+  const [searchParams, setSearchParams] = useState<URLSearchParams>(
+    new URLSearchParams(),
+  );
+
+  useEffect(() => {
+    setSearchParams(new URLSearchParams(window.location.search));
+  }, []);
+
   const tournamentId = searchParams.get("tournamentId") || "1";
   const eventId = searchParams.get("eventId") || "1";
 
   const [filter, setFilter] = useState<FilterTab>("all");
   const [search, setSearch] = useState("");
-  const [participants, setParticipants] = useState<Participant[]>(DUMMY_PARTICIPANTS);
+  const [participants, setParticipants] =
+    useState<Participant[]>(DUMMY_PARTICIPANTS);
 
   const filtered = participants.filter((p) => {
     const matchesFilter =
-      filter === "all" || (filter === "confirmed" ? p.status === "confirmed" : p.status === "pending");
+      filter === "all" ||
+      (filter === "confirmed"
+        ? p.status === "confirmed"
+        : p.status === "pending");
     const matchesSearch = p.name.toLowerCase().includes(search.toLowerCase());
     return matchesFilter && matchesSearch;
   });
 
-  const pendingCount = participants.filter((p) => p.status === "pending").length;
+  const pendingCount = participants.filter(
+    (p) => p.status === "pending",
+  ).length;
 
   const updateStatus = (id: string, status: ParticipantStatus) => {
     setParticipants((prev) =>
-      prev.map((p) => (p.id === id ? { ...p, status } : p))
+      prev.map((p) => (p.id === id ? { ...p, status } : p)),
     );
   };
 
   const handleProceed = () => {
-    router.push(routes.orgEventFixture(tournamentId, eventId));
+    router.push(
+      "/org/tournaments/event/fixture" + toQuery({ tournamentId, eventId }),
+    );
   };
 
   return (
@@ -73,14 +129,22 @@ export default function EventParticipantsPage() {
         >
           <ArrowLeftIcon size={20} />
         </button>
-        <h1 className="font-semibold text-[var(--color-text)] text-lg">Participant Confirmation</h1>
+        <h1 className="font-semibold text-[var(--color-text)] text-lg">
+          Participant Confirmation
+        </h1>
       </div>
 
       {/* Event Info */}
       <div className="bg-[var(--color-surface)] px-4 py-3 border-b border-[var(--color-border)]">
-        <h2 className="font-bold text-base text-[var(--color-text)]">Pickle Ball Men&apos;s 2025</h2>
-        <p className="text-sm text-[var(--color-muted)] mt-0.5">Under 20 | 24 Dec 2025, 9:00 AM</p>
-        <p className="text-xs text-orange-500 font-medium mt-1">{pendingCount} Registration Pending</p>
+        <h2 className="font-bold text-base text-[var(--color-text)]">
+          Pickle Ball Men&apos;s 2025
+        </h2>
+        <p className="text-sm text-[var(--color-muted)] mt-0.5">
+          Under 20 | 24 Dec 2025, 9:00 AM
+        </p>
+        <p className="text-xs text-orange-500 font-medium mt-1">
+          {pendingCount} Registration Pending
+        </p>
       </div>
 
       <div className="flex-1 px-4 py-4 space-y-4 pb-28">
@@ -96,14 +160,21 @@ export default function EventParticipantsPage() {
                   : "bg-[var(--color-surface-elevated)] text-[var(--color-text-secondary)]"
               }`}
             >
-              {f === "all" ? "All" : f === "confirmed" ? "Confirmed" : "Pending"}
+              {f === "all"
+                ? "All"
+                : f === "confirmed"
+                  ? "Confirmed"
+                  : "Pending"}
             </button>
           ))}
         </div>
 
         {/* Search */}
         <div className="relative">
-          <SearchIcon size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--color-muted)]" />
+          <SearchIcon
+            size={16}
+            className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--color-muted)]"
+          />
           <input
             type="text"
             placeholder="Search Participants by name"
@@ -133,7 +204,9 @@ export default function EventParticipantsPage() {
 
                 {/* Info */}
                 <div className="flex-1 min-w-0">
-                  <p className="font-semibold text-sm text-[var(--color-text)] truncate">{p.name}</p>
+                  <p className="font-semibold text-sm text-[var(--color-text)] truncate">
+                    {p.name}
+                  </p>
                   <p className="text-xs text-[var(--color-muted)]">
                     {p.role} • {p.age}
                   </p>

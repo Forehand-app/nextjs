@@ -4,16 +4,20 @@ import React, { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useApp } from "@/components/AppProvider";
 
-/** 
- * Wraps protected route groups. 
- * Redirects unauthenticated users to /login, and authenticated users without a profile to /register. 
+/**
+ * Wraps protected route groups.
+ * Redirects unauthenticated users to /login, and authenticated users without a profile to /register.
  */
-export default function ProtectedRoute({ children }: { children: React.ReactNode }) {
+export default function ProtectedRoute({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   const router = useRouter();
-  const { isAuthenticated, isLoading, isResolving, userProfile } = useApp();
+  const { isAuthenticated, isLoading, userProfile } = useApp();
 
   useEffect(() => {
-    if (isLoading || isResolving) return;
+    if (isLoading) return;
 
     // Not authenticated -> login
     if (!isAuthenticated) {
@@ -25,14 +29,16 @@ export default function ProtectedRoute({ children }: { children: React.ReactNode
     if (!userProfile) {
       router.replace("/register");
     }
-  }, [isAuthenticated, isLoading, isResolving, userProfile, router]);
+  }, [isAuthenticated, isLoading, userProfile, router]);
 
-  if (isLoading || isResolving) {
+  if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[var(--color-background)]">
         <div className="text-center space-y-2">
           <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto" />
-          <p className="text-sm text-[var(--color-muted)]">Loading session...</p>
+          <p className="text-sm text-[var(--color-muted)]">
+            Loading session...
+          </p>
         </div>
       </div>
     );

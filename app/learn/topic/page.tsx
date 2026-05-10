@@ -1,14 +1,22 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { useClientSearchParams } from "@/lib/useClientSearchParams";
 import Layout from "@/components/Layout";
 import FeynmanStep from "@/components/Learning/FeynmanStep";
 import { getSession, saveSession } from "@/lib/storage";
 
 export default function TopicPage() {
-  const searchParams = useClientSearchParams();
-  const topic = decodeURIComponent(searchParams.get("topic") || "bracket-seeding");
+  const [searchParams, setSearchParams] = useState<URLSearchParams>(
+    new URLSearchParams(),
+  );
+
+  useEffect(() => {
+    setSearchParams(new URLSearchParams(window.location.search));
+  }, []);
+
+  const topic = decodeURIComponent(
+    searchParams.get("topic") || "bracket-seeding",
+  );
   const [session, setSession] = useState<Record<string, unknown> | null>(null);
   const [explanation, setExplanation] = useState("");
   const [analogy, setAnalogy] = useState("");
@@ -19,7 +27,8 @@ export default function TopicPage() {
     if (s) {
       const sess = s as Record<string, unknown>;
       setSession(sess);
-      const steps = (sess.steps as { explanation?: string; analogy?: string }[]) ?? [];
+      const steps =
+        (sess.steps as { explanation?: string; analogy?: string }[]) ?? [];
       const idx = (sess.currentStep as number) ?? 0;
       setStepIndex(idx);
       const step = steps[idx] ?? {};
@@ -29,7 +38,16 @@ export default function TopicPage() {
       const newSession = {
         id: topic + Date.now(),
         topic,
-        steps: [{ id: "0", explanation: "", analogy: "", confusions: [], refinements: [], assessment: null }],
+        steps: [
+          {
+            id: "0",
+            explanation: "",
+            analogy: "",
+            confusions: [],
+            refinements: [],
+            assessment: null,
+          },
+        ],
         currentStep: 0,
       };
       setSession(newSession);
@@ -42,7 +60,12 @@ export default function TopicPage() {
   function saveAndNext() {
     if (!session) return;
     const stepsCopy = [...(session.steps as object[])];
-    stepsCopy[stepIndex] = { ...stepsCopy[stepIndex], explanation, analogy, refinements: [] };
+    stepsCopy[stepIndex] = {
+      ...stepsCopy[stepIndex],
+      explanation,
+      analogy,
+      refinements: [],
+    };
     const updated = {
       ...session,
       steps: stepsCopy,
@@ -67,7 +90,9 @@ export default function TopicPage() {
   return (
     <Layout showBottomNav={false}>
       <main className="max-w-2xl mx-auto p-6">
-        <h1 className="text-2xl font-semibold mb-4">Learn: {topic.replace(/-/g, " ")}</h1>
+        <h1 className="text-2xl font-semibold mb-4">
+          Learn: {topic.replace(/-/g, " ")}
+        </h1>
         <FeynmanStep
           stepIndex={stepIndex}
           explanation={explanation}
@@ -80,6 +105,3 @@ export default function TopicPage() {
     </Layout>
   );
 }
-
-
-

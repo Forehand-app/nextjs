@@ -37,7 +37,11 @@ function getDisplayField(value: string, fallback = "Not added") {
 export default function OrgProfilePage() {
   const [showSwitchModal, setShowSwitchModal] = useState(false);
   const { theme, toggleTheme } = useTheme();
-  const { isResolving, activeOrganization: organization, userProfile: profile } = useApp();
+  const {
+    isLoading,
+    activeOrganization: organization,
+    userProfile: profile,
+  } = useApp();
   const orgName = organization?.name || "Organization";
   const orgType =
     typeof organization?.orgType === "object" &&
@@ -45,18 +49,18 @@ export default function OrgProfilePage() {
     "name" in organization.orgType
       ? String(organization.orgType.name)
       : "Organization";
-  const description = getStringField(organization, "description");
-  const contactEmail = getStringField(organization, "contactEmail");
-  const contactPhone = getStringField(organization, "contactPhone");
-  const website = getStringField(organization, "website");
-  const address = getStringField(organization, "address");
-  const city = getStringField(organization, "city");
-  const state = getStringField(organization, "state");
-  const postalCode = getStringField(organization, "postalCode");
+  const description = getStringField(organization as any, "description");
+  const contactEmail = getStringField(organization as any, "contactEmail");
+  const contactPhone = getStringField(organization as any, "contactPhone");
+  const website = getStringField(organization as any, "website");
+  const address = getStringField(organization as any, "address");
+  const city = getStringField(organization as any, "city");
+  const state = getStringField(organization as any, "state");
+  const postalCode = getStringField(organization as any, "postalCode");
   const establishedYear =
     typeof organization?.establishedYear === "number"
       ? String(organization.establishedYear)
-      : getStringField(organization, "establishedYear");
+      : getStringField(organization as any, "establishedYear");
   const adminName = profile?.name || "Organizer";
   const orgInitial = orgName.trim().charAt(0).toUpperCase() || "O";
   const location = [city, state, postalCode].filter(Boolean).join(", ");
@@ -82,7 +86,7 @@ export default function OrgProfilePage() {
             +
           </button>
         </div>
-        {isResolving ? (
+        {isLoading ? (
           <p className="text-center text-sm text-[var(--color-muted)]">
             Loading organization...
           </p>
@@ -94,8 +98,12 @@ export default function OrgProfilePage() {
             </div>
             <div className="min-w-0 flex-1">
               <h2 className="text-lg font-semibold truncate">{orgName}</h2>
-              <p className="text-sm text-[var(--color-muted)] truncate">{orgType}</p>
-              <p className="text-sm text-[var(--color-muted)] truncate">Admin: {adminName}</p>
+              <p className="text-sm text-[var(--color-muted)] truncate">
+                {orgType}
+              </p>
+              <p className="text-sm text-[var(--color-muted)] truncate">
+                Admin: {adminName}
+              </p>
               <p className="text-sm text-[var(--color-muted)] truncate">
                 {getDisplayField(contactPhone, "No phone added")}
               </p>
@@ -143,7 +151,10 @@ export default function OrgProfilePage() {
           <h3 className="font-semibold mb-3">Contact</h3>
           <div className="space-y-3">
             <div className="flex items-start gap-3">
-              <MailIcon size={18} className="mt-0.5 text-[var(--color-muted)] shrink-0" />
+              <MailIcon
+                size={18}
+                className="mt-0.5 text-[var(--color-muted)] shrink-0"
+              />
               <div className="min-w-0">
                 <p className="text-xs text-[var(--color-muted)]">Email</p>
                 <p className="text-sm truncate">
@@ -152,7 +163,10 @@ export default function OrgProfilePage() {
               </div>
             </div>
             <div className="flex items-start gap-3">
-              <PhoneIcon size={18} className="mt-0.5 text-[var(--color-muted)] shrink-0" />
+              <PhoneIcon
+                size={18}
+                className="mt-0.5 text-[var(--color-muted)] shrink-0"
+              />
               <div className="min-w-0">
                 <p className="text-xs text-[var(--color-muted)]">Phone</p>
                 <p className="text-sm truncate">
@@ -161,14 +175,19 @@ export default function OrgProfilePage() {
               </div>
             </div>
             <div className="flex items-start gap-3">
-              <MapPinIcon size={18} className="mt-0.5 text-[var(--color-muted)] shrink-0" />
+              <MapPinIcon
+                size={18}
+                className="mt-0.5 text-[var(--color-muted)] shrink-0"
+              />
               <div className="min-w-0">
                 <p className="text-xs text-[var(--color-muted)]">Address</p>
                 <p className="text-sm">
                   {getDisplayField(address, "No address added.")}
                 </p>
                 {location ? (
-                  <p className="text-sm text-[var(--color-muted)]">{location}</p>
+                  <p className="text-sm text-[var(--color-muted)]">
+                    {location}
+                  </p>
                 ) : null}
               </div>
             </div>
@@ -194,66 +213,110 @@ export default function OrgProfilePage() {
             <MoonIcon size={20} className="text-[var(--color-muted)]" />
             <div className="text-left">
               <span className="font-medium">Theme</span>
-              <p className="text-sm text-[var(--color-muted)]">{theme === "dark" ? "Dark" : "Light"} mode</p>
+              <p className="text-sm text-[var(--color-muted)]">
+                {theme === "dark" ? "Dark" : "Light"} mode
+              </p>
             </div>
           </div>
-          <span className="rounded-full bg-[var(--color-surface-elevated)] px-3 py-1 text-sm">Switch</span>
+          <span className="rounded-full bg-[var(--color-surface-elevated)] px-3 py-1 text-sm">
+            Switch
+          </span>
         </button>
         <nav className="space-y-1" aria-label="Settings">
           <Link
             href="/org/settings/notifications"
             className="flex items-center gap-3 p-4 rounded-[var(--radius-card)] bg-[var(--color-surface)] border border-[var(--color-border)]"
           >
-            <BellIcon size={20} className="text-[var(--color-muted)] shrink-0" />
+            <BellIcon
+              size={20}
+              className="text-[var(--color-muted)] shrink-0"
+            />
             <div className="flex-1 min-w-0">
               <span className="font-medium">Notifications</span>
-              <p className="text-sm text-[var(--color-muted)]">Manage preferences.</p>
+              <p className="text-sm text-[var(--color-muted)]">
+                Manage preferences.
+              </p>
             </div>
-            <ChevronRightIcon size={18} className="text-[var(--color-muted)] shrink-0" />
+            <ChevronRightIcon
+              size={18}
+              className="text-[var(--color-muted)] shrink-0"
+            />
           </Link>
           <Link
             href="/org/settings/members"
             className="flex items-center gap-3 p-4 rounded-[var(--radius-card)] bg-[var(--color-surface)] border border-[var(--color-border)]"
           >
-            <UsersIcon size={20} className="text-[var(--color-muted)] shrink-0" />
+            <UsersIcon
+              size={20}
+              className="text-[var(--color-muted)] shrink-0"
+            />
             <div className="flex-1 min-w-0">
               <span className="font-medium">Organization Members</span>
-              <p className="text-sm text-[var(--color-muted)]">Manage members.</p>
+              <p className="text-sm text-[var(--color-muted)]">
+                Manage members.
+              </p>
             </div>
-            <ChevronRightIcon size={18} className="text-[var(--color-muted)] shrink-0" />
+            <ChevronRightIcon
+              size={18}
+              className="text-[var(--color-muted)] shrink-0"
+            />
           </Link>
           <Link
             href="/org/settings/privacy"
             className="flex items-center gap-3 p-4 rounded-[var(--radius-card)] bg-[var(--color-surface)] border border-[var(--color-border)]"
           >
-            <LockIcon size={20} className="text-[var(--color-muted)] shrink-0" />
+            <LockIcon
+              size={20}
+              className="text-[var(--color-muted)] shrink-0"
+            />
             <div className="flex-1 min-w-0">
               <span className="font-medium">Privacy &amp; Policy</span>
-              <p className="text-sm text-[var(--color-muted)]">Control your settings.</p>
+              <p className="text-sm text-[var(--color-muted)]">
+                Control your settings.
+              </p>
             </div>
-            <ChevronRightIcon size={18} className="text-[var(--color-muted)] shrink-0" />
+            <ChevronRightIcon
+              size={18}
+              className="text-[var(--color-muted)] shrink-0"
+            />
           </Link>
           <Link
             href="/org/settings"
             className="flex items-center gap-3 p-4 rounded-[var(--radius-card)] bg-[var(--color-surface)] border border-[var(--color-border)]"
           >
-            <SettingsIcon size={20} className="text-[var(--color-muted)] shrink-0" />
+            <SettingsIcon
+              size={20}
+              className="text-[var(--color-muted)] shrink-0"
+            />
             <div className="flex-1 min-w-0">
               <span className="font-medium">Settings</span>
-              <p className="text-sm text-[var(--color-muted)]">App preferences.</p>
+              <p className="text-sm text-[var(--color-muted)]">
+                App preferences.
+              </p>
             </div>
-            <ChevronRightIcon size={18} className="text-[var(--color-muted)] shrink-0" />
+            <ChevronRightIcon
+              size={18}
+              className="text-[var(--color-muted)] shrink-0"
+            />
           </Link>
           <Link
             href="/org/settings/help"
             className="flex items-center gap-3 p-4 rounded-[var(--radius-card)] bg-[var(--color-surface)] border border-[var(--color-border)]"
           >
-            <HelpCircleIcon size={20} className="text-[var(--color-muted)] shrink-0" />
+            <HelpCircleIcon
+              size={20}
+              className="text-[var(--color-muted)] shrink-0"
+            />
             <div className="flex-1 min-w-0">
               <span className="font-medium">Help &amp; Support</span>
-              <p className="text-sm text-[var(--color-muted)]">Get support from our support team.</p>
+              <p className="text-sm text-[var(--color-muted)]">
+                Get support from our support team.
+              </p>
             </div>
-            <ChevronRightIcon size={18} className="text-[var(--color-muted)] shrink-0" />
+            <ChevronRightIcon
+              size={18}
+              className="text-[var(--color-muted)] shrink-0"
+            />
           </Link>
         </nav>
         <button
@@ -264,8 +327,10 @@ export default function OrgProfilePage() {
         </button>
       </div>
 
-            <SwitchAccountModal isOpen={showSwitchModal} onClose={() => setShowSwitchModal(false)} />
+      <SwitchAccountModal
+        isOpen={showSwitchModal}
+        onClose={() => setShowSwitchModal(false)}
+      />
     </Layout>
   );
 }
-

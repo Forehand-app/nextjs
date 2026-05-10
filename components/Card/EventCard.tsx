@@ -2,21 +2,26 @@
 
 import React from "react";
 import Link from "next/link";
-import type { Event } from "@/types/models";
+import { EventData } from "@/lib/models";
 
 type EventCardProps = {
-  event: Event;
+  event: EventData;
   cta?: "Add" | "View" | "Manage" | "Joined";
   onCta?: () => void;
   href?: string;
 };
 
-export default function EventCard({ event, cta = "View", onCta, href }: EventCardProps) {
+export default function EventCard({
+  event,
+  cta = "View",
+  onCta,
+  href,
+}: EventCardProps) {
   const isJoined = cta === "Joined";
   const statusColor =
-    event.status === "open"
+    event.eventState === "created"
       ? "bg-[var(--color-success)]/20 text-[var(--color-success)]"
-      : event.status === "ended"
+      : event.eventState === "completed"
         ? "bg-[var(--color-muted)]/20 text-[var(--color-muted)]"
         : "bg-primary/20 text-primary";
 
@@ -26,15 +31,17 @@ export default function EventCard({ event, cta = "View", onCta, href }: EventCar
         <div className="min-w-0">
           <h3 className="font-semibold">{event.name}</h3>
           <p className="text-sm text-[var(--color-muted)]">
-            {event.sport} · {event.format} · {event.startDate}
+            {event.sportsOption?.label || event.sportsOptionCode || "—"} ·{" "}
+            {event.eventFormat?.label || event.eventFormatCode || "—"} ·{" "}
+            {event.startDate}
           </p>
           <div className="flex flex-wrap gap-2 mt-2">
             <span className={`text-xs px-2 py-0.5 rounded-full ${statusColor}`}>
-              {event.status}
+              {event.eventState}
             </span>
-            {event.entryFee != null && (
+            {event.amount != null && (
               <span className="text-xs">
-                {event.entryFee === 0 ? "Free" : `₹${event.entryFee}`}
+                {event.amount === 0 ? "Free" : `₹${event.amount}`}
               </span>
             )}
           </div>
@@ -69,4 +76,3 @@ export default function EventCard({ event, cta = "View", onCta, href }: EventCar
   }
   return content;
 }
-

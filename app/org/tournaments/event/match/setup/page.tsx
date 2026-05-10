@@ -5,16 +5,15 @@ import { useRouter } from "next/navigation";
 import { animate, motion, useMotionValue } from "framer-motion";
 import Layout from "@/components/Layout";
 import { setItem } from "@/lib/storage";
-import type { MatchConfig } from "@/types/models";
+import type { MatchConfigData } from "@/lib/models";
 import MatchReadyPopup from "@/components/QuickMatch/MatchReadyPopup";
-import { routes } from "@/lib/routes";
-import { useClientSearchParams } from "@/lib/useClientSearchParams";
+import { toQuery } from "@/lib/utils";
 import { ChevronDownIcon } from "@/components/Icons";
 
 type SidePlayer = { name: string; initials: string };
 
 type MatchSetupDraft = {
-  config: MatchConfig;
+  config: MatchConfigData;
   side0: SidePlayer[];
   side1: SidePlayer[];
 };
@@ -103,7 +102,14 @@ function PlayerPin({ player }: { player: SidePlayer }) {
 // ─── Main ─────────────────────────────────────────────────────────────────────
 export default function OrgMatchSetupPage() {
   const router = useRouter();
-  const searchParams = useClientSearchParams();
+  const [searchParams, setSearchParams] = useState<URLSearchParams>(
+    new URLSearchParams(),
+  );
+
+  useEffect(() => {
+    setSearchParams(new URLSearchParams(window.location.search));
+  }, []);
+
   const tournamentId = searchParams.get("tournamentId") || "1";
   const eventId = searchParams.get("eventId") || "1";
   const matchId = searchParams.get("matchId") || "m-1";
@@ -132,7 +138,7 @@ export default function OrgMatchSetupPage() {
         { name: "The Rock", initials: "TR" },
       ],
     }),
-    []
+    [],
   );
 
   const [draft, setDraft] = useState<MatchSetupDraft>(defaultDraft);
@@ -144,7 +150,7 @@ export default function OrgMatchSetupPage() {
   const [maxDrag, setMaxDrag] = useState(200);
 
   // THUMB constants (must match the style below exactly)
-  const THUMB_W = 70;  // px — width of the white pill (further decreased)
+  const THUMB_W = 70; // px — width of the white pill (further decreased)
   const SIDE_PAD = 12; // px — inset from each side (further increased)
 
   useEffect(() => {
@@ -152,7 +158,9 @@ export default function OrgMatchSetupPage() {
       const track = trackRef.current;
       if (!track) return;
       // trackWidth - thumbWidth - leftPad - rightPad
-      setMaxDrag(Math.max(0, track.clientWidth - THUMB_W - SIDE_PAD - SIDE_PAD));
+      setMaxDrag(
+        Math.max(0, track.clientWidth - THUMB_W - SIDE_PAD - SIDE_PAD),
+      );
     };
     update();
     window.addEventListener("resize", update);
@@ -162,11 +170,14 @@ export default function OrgMatchSetupPage() {
   const handleSwipeEnd = () => {
     const cur = x.get();
     // Fire when user drags past 80% of the available track
-    if (cur >= maxDrag * 0.80) {
+    if (cur >= maxDrag * 0.8) {
       animate(x, maxDrag, { type: "spring", stiffness: 500, damping: 30 });
       window.setTimeout(() => {
         save();
-        router.replace(routes.orgMatchLive(tournamentId, eventId, matchId));
+        router.replace(
+          "/org/tournaments/event/match/live" +
+            toQuery({ tournamentId, eventId, matchId }),
+        );
       }, 200);
       return;
     }
@@ -176,21 +187,27 @@ export default function OrgMatchSetupPage() {
 
   const save = () => {
     setItem(`match:${matchId}:config`, draft.config);
-    setItem(`match:${matchId}:players`, { side0: draft.side0, side1: draft.side1 });
+    setItem(`match:${matchId}:players`, {
+      side0: draft.side0,
+      side1: draft.side1,
+    });
   };
 
   const startMatch = () => {
     save();
-    router.replace(routes.orgMatchLive(tournamentId, eventId, matchId));
+    router.replace(
+      "/org/tournaments/event/match/live" +
+        toQuery({ tournamentId, eventId, matchId }),
+    );
   };
 
-  const setConfig = (next: Partial<MatchConfig>) =>
+  const setConfig = (next: Partial<MatchConfigData>) =>
     setDraft((d) => ({ ...d, config: { ...d.config, ...next } }));
 
   const updatePlayer = (side: 0 | 1, index: number, name: string) => {
     setDraft((d) => {
       const nextSide = (side === 0 ? d.side0 : d.side1).map((p, i) =>
-        i === index ? { ...p, name, initials: initialsFromName(name) } : p
+        i === index ? { ...p, name, initials: initialsFromName(name) } : p,
       );
       return side === 0 ? { ...d, side0: nextSide } : { ...d, side1: nextSide };
     });
@@ -199,17 +216,34 @@ export default function OrgMatchSetupPage() {
   const isDoubles = draft.config.format === "doubles";
 
   return (
-    <Layout title="Match Setup" showBack showBottomNav={false} onBack={() => router.back()}>
+    <Layout
+      title="Match Setup"
+      showBack
+      showBottomNav={false}
+      onBack={() => router.back()}
+    >
       <div className="p-4 space-y-4 pb-32">
-
         {/* ── Court Layout ── */}
         <div>
           <p className="text-xs font-semibold text-[var(--color-muted)] uppercase tracking-wider mb-2">
             Select Player Sides
           </p>
-          <CourtLayout side0={draft.side0} side1={draft.side1} isDoubles={isDoubles} />
+          <CourtLayout
+            side0={draft.side0}
+            side1={draft.side1}
+            isDoubles={isDoubles}
+          />
           <p className="text-[10px] text-[var(--color-muted)] mt-2 flex items-center justify-center gap-1">
-            <svg width={12} height={12} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round">
+            <svg
+              width={12}
+              height={12}
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth={3}
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
               <circle cx="12" cy="12" r="10" />
               <path d="M12 16v-4" />
               <path d="M12 8h.01" />
@@ -220,7 +254,9 @@ export default function OrgMatchSetupPage() {
 
         {/* ── Initial Server ── */}
         <div>
-          <p className="text-sm font-semibold text-[var(--color-text)] mb-2">Initial Server</p>
+          <p className="text-sm font-semibold text-[var(--color-text)] mb-2">
+            Initial Server
+          </p>
           <div className="grid grid-cols-2 gap-2">
             {[1, 2].map((v) => (
               <label key={v} className="flex items-center gap-2 cursor-pointer">
@@ -232,7 +268,13 @@ export default function OrgMatchSetupPage() {
                   className="accent-primary"
                 />
                 <span className="text-sm text-[var(--color-text)]">
-                  {v === 1 ? (isDoubles ? "Pair A" : "Player 1") : isDoubles ? "Pair B" : "Player 2"}
+                  {v === 1
+                    ? isDoubles
+                      ? "Pair A"
+                      : "Player 1"
+                    : isDoubles
+                      ? "Pair B"
+                      : "Player 2"}
                 </span>
               </label>
             ))}
@@ -241,7 +283,9 @@ export default function OrgMatchSetupPage() {
 
         {/* ── Scoring System ── */}
         <div>
-          <p className="text-sm font-semibold text-[var(--color-text)] mb-2">Scoring System</p>
+          <p className="text-sm font-semibold text-[var(--color-text)] mb-2">
+            Scoring System
+          </p>
           <div className="grid grid-cols-2 gap-2">
             {(["sideout", "rally"] as const).map((s) => (
               <button
@@ -262,7 +306,9 @@ export default function OrgMatchSetupPage() {
 
         {/* ── Match Format ── */}
         <div>
-          <p className="text-sm font-semibold text-[var(--color-text)] mb-2">Match Format</p>
+          <p className="text-sm font-semibold text-[var(--color-text)] mb-2">
+            Match Format
+          </p>
           <div className="space-y-2">
             <div className="relative">
               <select
@@ -271,22 +317,34 @@ export default function OrgMatchSetupPage() {
                 className="w-full appearance-none py-3 px-4 pr-10 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] text-sm text-[var(--color-text)]"
               >
                 {BEST_OF_OPTIONS.map((n) => (
-                  <option key={n} value={n}>Best of {n}</option>
+                  <option key={n} value={n}>
+                    Best of {n}
+                  </option>
                 ))}
               </select>
-              <ChevronDownIcon size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--color-muted)] pointer-events-none" />
+              <ChevronDownIcon
+                size={16}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--color-muted)] pointer-events-none"
+              />
             </div>
             <div className="relative">
               <select
                 value={draft.config.pointsToWin}
-                onChange={(e) => setConfig({ pointsToWin: Number(e.target.value) })}
+                onChange={(e) =>
+                  setConfig({ pointsToWin: Number(e.target.value) })
+                }
                 className="w-full appearance-none py-3 px-4 pr-10 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] text-sm text-[var(--color-text)]"
               >
                 {POINTS_OPTIONS.map((n) => (
-                  <option key={n} value={n}>{n} points to win</option>
+                  <option key={n} value={n}>
+                    {n} points to win
+                  </option>
                 ))}
               </select>
-              <ChevronDownIcon size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--color-muted)] pointer-events-none" />
+              <ChevronDownIcon
+                size={16}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--color-muted)] pointer-events-none"
+              />
             </div>
           </div>
         </div>
@@ -294,8 +352,18 @@ export default function OrgMatchSetupPage() {
         {/* ── Time out Rules ── */}
         <div>
           <div className="flex items-center justify-between mb-2">
-            <p className="text-sm font-bold text-[var(--color-text)]">Time out Rules</p>
-            <svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} className="text-[var(--color-text)]">
+            <p className="text-sm font-bold text-[var(--color-text)]">
+              Time out Rules
+            </p>
+            <svg
+              width={18}
+              height={18}
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth={2.5}
+              className="text-[var(--color-text)]"
+            >
               <path d="M18 15l-6-6-6 6" />
             </svg>
           </div>
@@ -303,8 +371,16 @@ export default function OrgMatchSetupPage() {
           {/* Card */}
           <div className="rounded-2xl border border-[var(--color-border)] bg-white overflow-hidden divide-y divide-[var(--color-border)]">
             {[
-              { label: "1 Timeout per set",  key: "timeoutPerSet",  getChecked: () => draft.config.timeoutPerSet === 1 },
-              { label: "Win by 2 points",    key: "winByTwo",       getChecked: () => !!draft.config.winByTwo },
+              {
+                label: "1 Timeout per set",
+                key: "timeoutPerSet",
+                getChecked: () => draft.config.timeoutPerSet === 1,
+              },
+              {
+                label: "Win by 2 points",
+                key: "winByTwo",
+                getChecked: () => !!draft.config.winByTwo,
+              },
             ].map((opt) => {
               const checked = opt.getChecked();
               return (
@@ -316,13 +392,24 @@ export default function OrgMatchSetupPage() {
                     {opt.label}
                   </span>
                   {/* Custom checkbox */}
-                  <div className={`w-5 h-5 rounded flex items-center justify-center border-2 transition-colors ${
-                    checked
-                      ? "bg-orange-500 border-orange-500"
-                      : "bg-transparent border-[var(--color-border)]"
-                  }`}>
+                  <div
+                    className={`w-5 h-5 rounded flex items-center justify-center border-2 transition-colors ${
+                      checked
+                        ? "bg-orange-500 border-orange-500"
+                        : "bg-transparent border-[var(--color-border)]"
+                    }`}
+                  >
                     {checked && (
-                      <svg width={11} height={11} viewBox="0 0 12 12" fill="none" stroke="white" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round">
+                      <svg
+                        width={11}
+                        height={11}
+                        viewBox="0 0 12 12"
+                        fill="none"
+                        stroke="white"
+                        strokeWidth={2.5}
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      >
                         <path d="M2 6l3 3 5-5" />
                       </svg>
                     )}
@@ -332,8 +419,10 @@ export default function OrgMatchSetupPage() {
                     className="sr-only"
                     checked={checked}
                     onChange={(e) => {
-                      if (opt.key === "winByTwo") setConfig({ winByTwo: e.target.checked });
-                      else setConfig({ timeoutPerSet: e.target.checked ? 1 : 0 });
+                      if (opt.key === "winByTwo")
+                        setConfig({ winByTwo: e.target.checked });
+                      else
+                        setConfig({ timeoutPerSet: e.target.checked ? 1 : 0 });
                     }}
                   />
                 </label>
@@ -343,24 +432,35 @@ export default function OrgMatchSetupPage() {
 
           {/* Warm-up Time sub-section */}
           <div className="mt-3">
-            <p className="text-sm font-bold text-[var(--color-text)] mb-2">Warm-up Time</p>
+            <p className="text-sm font-bold text-[var(--color-text)] mb-2">
+              Warm-up Time
+            </p>
             <div className="rounded-2xl border border-[var(--color-border)] bg-white overflow-hidden">
               {(() => {
                 const checked = draft.config.warmupMinutes === 0;
                 return (
-                  <label
-                    className="flex items-center justify-between px-4 py-3.5 cursor-pointer transition-colors hover:bg-gray-50"
-                  >
+                  <label className="flex items-center justify-between px-4 py-3.5 cursor-pointer transition-colors hover:bg-gray-50">
                     <span className="text-sm font-medium text-gray-900">
                       No warm-up
                     </span>
-                    <div className={`w-5 h-5 rounded flex items-center justify-center border-2 transition-colors ${
-                      checked
-                        ? "bg-orange-500 border-orange-500"
-                        : "bg-transparent border-[var(--color-border)]"
-                    }`}>
+                    <div
+                      className={`w-5 h-5 rounded flex items-center justify-center border-2 transition-colors ${
+                        checked
+                          ? "bg-orange-500 border-orange-500"
+                          : "bg-transparent border-[var(--color-border)]"
+                      }`}
+                    >
                       {checked && (
-                        <svg width={11} height={11} viewBox="0 0 12 12" fill="none" stroke="white" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round">
+                        <svg
+                          width={11}
+                          height={11}
+                          viewBox="0 0 12 12"
+                          fill="none"
+                          stroke="white"
+                          strokeWidth={2.5}
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        >
                           <path d="M2 6l3 3 5-5" />
                         </svg>
                       )}
@@ -369,7 +469,9 @@ export default function OrgMatchSetupPage() {
                       type="checkbox"
                       className="sr-only"
                       checked={checked}
-                      onChange={(e) => setConfig({ warmupMinutes: e.target.checked ? 0 : 5 })}
+                      onChange={(e) =>
+                        setConfig({ warmupMinutes: e.target.checked ? 0 : 5 })
+                      }
                     />
                   </label>
                 );
@@ -380,11 +482,15 @@ export default function OrgMatchSetupPage() {
 
         {/* ── Serve Rotation ── */}
         <div>
-          <p className="text-sm font-semibold text-[var(--color-text)] mb-2">Serve Rotation</p>
+          <p className="text-sm font-semibold text-[var(--color-text)] mb-2">
+            Serve Rotation
+          </p>
           <div className="relative">
             <select
               value={draft.config.switchSidesEvery}
-              onChange={(e) => setConfig({ switchSidesEvery: Number(e.target.value) })}
+              onChange={(e) =>
+                setConfig({ switchSidesEvery: Number(e.target.value) })
+              }
               className="w-full appearance-none py-3 px-4 pr-10 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] text-sm text-[var(--color-text)]"
             >
               <option value={0}>No side switching</option>
@@ -392,10 +498,12 @@ export default function OrgMatchSetupPage() {
               <option value={6}>Switch sides at 6 points (Set 1 to 1)</option>
               <option value={8}>Switch sides at 8 points (Set 1 to N)</option>
             </select>
-            <ChevronDownIcon size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--color-muted)] pointer-events-none" />
+            <ChevronDownIcon
+              size={16}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--color-muted)] pointer-events-none"
+            />
           </div>
         </div>
-
       </div>
 
       {/* ── Swipe to Start Match – capsule ── */}
@@ -403,7 +511,10 @@ export default function OrgMatchSetupPage() {
         <div
           ref={trackRef}
           className="relative flex h-14 w-full max-w-[340px] select-none items-center overflow-hidden rounded-full shadow-xl"
-          style={{ background: "linear-gradient(135deg,#ff8c00,#f97316)", boxShadow: "0 8px 32px rgba(249,115,22,0.45)" }}
+          style={{
+            background: "linear-gradient(135deg,#ff8c00,#f97316)",
+            boxShadow: "0 8px 32px rgba(249,115,22,0.45)",
+          }}
         >
           {/* Centered label — sits behind thumb via z-index */}
           <span className="pointer-events-none absolute inset-0 z-0 flex items-center justify-center text-[14px] font-bold tracking-wide text-white">
@@ -432,7 +543,16 @@ export default function OrgMatchSetupPage() {
             className="z-10 touch-none cursor-grab flex items-center justify-center rounded-full bg-white shadow-md active:cursor-grabbing"
           >
             {/* Orange arrow icon */}
-            <svg width={22} height={22} viewBox="0 0 24 24" fill="none" stroke="#f97316" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round">
+            <svg
+              width={22}
+              height={22}
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="#f97316"
+              strokeWidth={3}
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
               <path d="M5 12h14" />
               <path d="M12 5l7 7-7 7" />
             </svg>

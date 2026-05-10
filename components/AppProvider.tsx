@@ -154,11 +154,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   /** Registers the user via the backend and re-fetches the profile. */
   const register = useCallback(
     async (profileData: ProfileData) => {
-      try {
-        await userApi.registerUser(profileData);
-      } catch (e) {
-        console.log(e);
-      }
+      await userApi.registerUser(profileData);
 
       // Re-fetch profile so userProfile is populated
       const profile = await userApi.getInfo();

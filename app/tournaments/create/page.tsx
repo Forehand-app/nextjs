@@ -4,12 +4,12 @@ import React from "react";
 import { useRouter } from "next/navigation";
 import Layout from "@/components/Layout";
 import TournamentWizard from "@/components/Wizard/TournamentWizard";
-import type { Tournament } from "@/types/models";
+import type { TournamentData } from "@/lib/models";
 
 export default function CreateTournamentPage() {
   const router = useRouter();
 
-  const handleComplete = (tournament: Partial<Tournament>) => {
+  const handleComplete = (tournament: any, state: "created" | "draft") => {
     // In production: persist and redirect to tournament page
     router.push("/tournaments");
   };
@@ -22,4 +22,3 @@ export default function CreateTournamentPage() {
     </Layout>
   );
 }
-

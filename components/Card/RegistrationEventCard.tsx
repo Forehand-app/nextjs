@@ -2,10 +2,10 @@
 
 import React from "react";
 import { CalendarIcon, PlusIcon } from "@/components/Icons";
-import type { Event } from "@/types/models";
+import { EventData } from "@/lib/models";
 
 interface RegistrationEventCardProps {
-  event: Event;
+  event: EventData;
   isSelected: boolean;
   onSelect: () => void;
   onDeselect: () => void;
@@ -32,16 +32,26 @@ export default function RegistrationEventCard({
         </p>
         <p className="flex items-center gap-1.5">
           <CalendarIcon size={12} className="text-primary" />
-          Reg. Closes: {event.regDueDate ?? "-"}
+          Reg. Closes: {event.dueDate ?? "-"}
         </p>
       </div>
 
       <div className="mt-2 flex items-end justify-between gap-3">
         <div>
           <p className="text-3xl font-semibold leading-8 text-primary">
-            {event.entryFee === 0 ? "Free Entry" : <><span className="currency-inr">&#8377;</span>{event.entryFee ?? 0}</>}
+            {event.amount === 0 ? (
+              "Free Entry"
+            ) : (
+              <>
+                <span className="currency-inr">&#8377;</span>
+                {event.amount ?? 0}
+              </>
+            )}
           </p>
-          <p className="text-sm text-muted">Payment: {event.paymentOption ?? "Venue"}</p>
+          <p className="text-sm text-muted">
+            Payment:{" "}
+            {event.paymentMode?.label || event.paymentModeCode || "Venue"}
+          </p>
         </div>
 
         <button
@@ -49,11 +59,17 @@ export default function RegistrationEventCard({
           onClick={toggle}
           className={`inline-flex h-9 min-w-[102px] items-center justify-center gap-1 rounded-full border px-4 text-base font-semibold transition-colors ${
             isSelected
-              ? "border-primary bg-primary text-primary-contrast"
+              ? "border-primary bg-primary text-white"
               : "border-primary text-primary"
           }`}
         >
-          {isSelected ? "Added" : <><PlusIcon size={12} /> Add</>}
+          {isSelected ? (
+            "Added"
+          ) : (
+            <>
+              <PlusIcon size={12} /> Add
+            </>
+          )}
         </button>
       </div>
 

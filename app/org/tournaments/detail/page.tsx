@@ -294,15 +294,24 @@ const StepRow = ({
 
 const getQuickAction = (state: string): string => {
   switch (state) {
-    case "created": return "Open registration to start accepting participants.";
-    case "registration_closed": return "Finalize your participant list to proceed.";
-    case "participants_finalized": return "Set up fixtures to define the bracket.";
-    case "scheduled": return "Matches are scheduled. Start when ready.";
-    case "in_progress": return "Now, you can manage your matches.";
-    case "round_over": return "A round is complete. Begin the next round.";
-    case "completed": return "Event is complete. View the champion.";
-    case "cancelled": return "This event has been cancelled.";
-    default: return "Manage your event progress below.";
+    case "created":
+      return "Open registration to start accepting participants.";
+    case "registration_closed":
+      return "Finalize your participant list to proceed.";
+    case "participants_finalized":
+      return "Set up fixtures to define the bracket.";
+    case "scheduled":
+      return "Matches are scheduled. Start when ready.";
+    case "in_progress":
+      return "Now, you can manage your matches.";
+    case "round_over":
+      return "A round is complete. Begin the next round.";
+    case "completed":
+      return "Event is complete. View the champion.";
+    case "cancelled":
+      return "This event has been cancelled.";
+    default:
+      return "Manage your event progress below.";
   }
 };
 
@@ -320,7 +329,10 @@ const getWorkflowSteps = (event: EventData, tournamentId: string) => {
     {
       title: "Participants",
       state: "inactive",
-      subtext: participantCount > 0 ? `${participantCount} Participants Playing` : undefined,
+      subtext:
+        participantCount > 0
+          ? `${participantCount} Participants Playing`
+          : undefined,
       actionLabel: "View Participants",
       href: participantsHref,
       isLast: false,
@@ -356,7 +368,8 @@ const getWorkflowSteps = (event: EventData, tournamentId: string) => {
   // Participants step
   if (state === "created" || state === "registration_closed") {
     steps[0].state = "active";
-    steps[0].actionLabel = state === "registration_closed" ? "Finalize" : "Manage Participants";
+    steps[0].actionLabel =
+      state === "registration_closed" ? "Finalize" : "Manage Participants";
   } else {
     steps[0].state = "completed";
     steps[0].actionLabel = "View Participants";
@@ -367,7 +380,9 @@ const getWorkflowSteps = (event: EventData, tournamentId: string) => {
     steps[1].state = "active";
     steps[1].actionLabel = "Assign Players";
     steps[1].subtext = "Best of 3, Round of 64";
-  } else if (["scheduled", "in_progress", "round_over", "completed"].includes(state)) {
+  } else if (
+    ["scheduled", "in_progress", "round_over", "completed"].includes(state)
+  ) {
     steps[1].state = "completed";
     steps[1].actionLabel = "View Fixtures";
     steps[1].subtext = "Best of 3, Round of 64";
@@ -379,7 +394,8 @@ const getWorkflowSteps = (event: EventData, tournamentId: string) => {
     steps[2].actionLabel = "Start Matches";
   } else if (state === "in_progress" || state === "round_over") {
     steps[2].state = "active";
-    steps[2].actionLabel = state === "round_over" ? "Next Round" : "Manage Matches";
+    steps[2].actionLabel =
+      state === "round_over" ? "Next Round" : "Manage Matches";
   } else if (state === "completed") {
     steps[2].state = "completed";
     steps[2].actionLabel = "View Matches";
@@ -414,7 +430,9 @@ const ExtendDueDateModal = ({
       />
       <div className="fixed bottom-0 left-0 right-0 z-50 bg-[var(--color-surface)] rounded-t-3xl p-6 shadow-2xl border-t border-[var(--color-border)] animate-in slide-in-from-bottom-4 duration-300">
         <div className="flex items-center justify-between mb-5">
-          <h3 className="font-bold text-base text-[var(--color-text)]">Extend Due Date</h3>
+          <h3 className="font-bold text-base text-[var(--color-text)]">
+            Extend Due Date
+          </h3>
           <button
             onClick={onClose}
             className="w-8 h-8 rounded-full bg-[var(--color-surface-elevated)] flex items-center justify-center text-[var(--color-muted)] hover:text-[var(--color-text)] transition-colors"
@@ -426,9 +444,14 @@ const ExtendDueDateModal = ({
           Select a new registration due date for this event.
         </p>
         <label className="block mb-5">
-          <span className="text-xs font-semibold text-[var(--color-muted)] uppercase tracking-wider block mb-2">New Due Date</span>
+          <span className="text-xs font-semibold text-[var(--color-muted)] uppercase tracking-wider block mb-2">
+            New Due Date
+          </span>
           <div className="relative">
-            <CalendarIcon size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--color-muted)] pointer-events-none" />
+            <CalendarIcon
+              size={16}
+              className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--color-muted)] pointer-events-none"
+            />
             <input
               type="date"
               value={selected}
@@ -439,10 +462,18 @@ const ExtendDueDateModal = ({
           </div>
         </label>
         <button
-          onClick={() => { if (selected) { onSave(selected); onClose(); } }}
+          onClick={() => {
+            if (selected) {
+              onSave(selected);
+              onClose();
+            }
+          }}
           disabled={!selected}
           className="w-full py-3.5 rounded-xl font-bold text-white disabled:opacity-50 disabled:cursor-not-allowed transition-all active:scale-[0.98]"
-          style={{ background: selected ? "var(--gradient-orange)" : undefined, backgroundColor: !selected ? "#ccc" : undefined }}
+          style={{
+            background: selected ? "var(--gradient-orange)" : undefined,
+            backgroundColor: !selected ? "#ccc" : undefined,
+          }}
         >
           Confirm New Date
         </button>
@@ -460,7 +491,9 @@ const EventsTab = ({
 }) => {
   const [activeFilter, setActiveFilter] = useState("All");
   const filters = ["All", "Upcoming", "Past", "Ongoing"];
-  const [extendModalEventId, setExtendModalEventId] = useState<string | null>(null);
+  const [extendModalEventId, setExtendModalEventId] = useState<string | null>(
+    null,
+  );
 
   return (
     <div className="space-y-4">
@@ -495,10 +528,10 @@ const EventsTab = ({
           const badgeClass = isCancelled
             ? "bg-red-100 text-red-700"
             : state === "completed"
-            ? "bg-green-100 text-green-700"
-            : state === "in_progress" || state === "round_over"
-            ? "bg-orange-100 text-orange-700"
-            : "bg-[var(--color-surface-elevated)] text-[var(--color-text-secondary)]";
+              ? "bg-green-100 text-green-700"
+              : state === "in_progress" || state === "round_over"
+                ? "bg-orange-100 text-orange-700"
+                : "bg-[var(--color-surface-elevated)] text-[var(--color-text-secondary)]";
 
           return (
             <div
@@ -535,7 +568,9 @@ const EventsTab = ({
                   <CalendarIcon size={14} />
                   Extend Due Date
                 </button>
-                <span className={`px-3 py-1 rounded-full text-xs font-semibold tracking-wide capitalize ${badgeClass}`}>
+                <span
+                  className={`px-3 py-1 rounded-full text-xs font-semibold tracking-wide capitalize ${badgeClass}`}
+                >
                   {state.replace(/_/g, " ")}
                 </span>
               </div>
@@ -543,10 +578,17 @@ const EventsTab = ({
               {/* Quick Action Banner */}
               {!isCancelled && (
                 <div className="mb-4 border border-orange-200 dark:border-orange-500/30 bg-orange-50 dark:bg-orange-500/10 rounded-xl p-3 flex gap-2 items-start">
-                  <CalendarIcon size={16} className="text-orange-500 shrink-0 mt-0.5" />
+                  <CalendarIcon
+                    size={16}
+                    className="text-orange-500 shrink-0 mt-0.5"
+                  />
                   <div>
-                    <p className="text-xs font-semibold text-orange-700 dark:text-orange-400 mb-0.5">Quick Action:</p>
-                    <p className="text-sm text-orange-700 dark:text-orange-300">{quickAction}</p>
+                    <p className="text-xs font-semibold text-orange-700 dark:text-orange-400 mb-0.5">
+                      Quick Action:
+                    </p>
+                    <p className="text-sm text-orange-700 dark:text-orange-300">
+                      {quickAction}
+                    </p>
                   </div>
                 </div>
               )}
@@ -727,62 +769,62 @@ export default function TournamentEventDetailsPage() {
         setErrorMessage("");
         setIsLoading(true);
         let tournamentData: TournamentData | null = null;
-        
+
         if (tournamentId === "dummy-system-1") {
           tournamentData = {
-              id: "dummy-system-1",
-              organizationId: "org-1",
-              name: "System Dummy Tournament",
-              description: "A dummy tournament showing various event states",
-              startDate: new Date().toISOString(),
-              venueName: "Dummy Arena",
-              venueAddress: "123 Fake St",
-              venueCity: "Mumbai",
-              venueState: "MH",
-              venuePostalCode: "400001",
-              venueCourts: 4,
-              contactName: "Admin",
-              contactEmail: "admin@dummy.com",
-              contactPhone: "9999999999",
-              tournamentState: "live",
-              events: [
-                {
-                  id: "dummy-1",
-                  tournamentId: "dummy-system-1",
-                  name: "Men's Singles (Just Created)",
-                  startDate: new Date().toISOString(),
-                  dueDate: new Date().toISOString(),
-                  pointsPerSet: 21,
-                  setsPerMatch: 3,
-                  amount: 500,
-                  eventState: "created",
-                  teams: []
-                },
-                {
-                  id: "dummy-2",
-                  tournamentId: "dummy-system-1",
-                  name: "Women's Doubles (In Progress)",
-                  startDate: new Date().toISOString(),
-                  dueDate: new Date().toISOString(),
-                  pointsPerSet: 21,
-                  setsPerMatch: 3,
-                  amount: 1000,
-                  eventState: "in_progress",
-                  teams: [{}, {}, {}, {}] as any
-                },
-                {
-                  id: "dummy-3",
-                  tournamentId: "dummy-system-1",
-                  name: "Mixed Doubles (Completed)",
-                  startDate: new Date().toISOString(),
-                  dueDate: new Date().toISOString(),
-                  pointsPerSet: 21,
-                  setsPerMatch: 3,
-                  amount: 800,
-                  eventState: "completed",
-                  teams: [{}, {}, {}, {}, {}, {}, {}, {}] as any
-                }
-              ]
+            id: "dummy-system-1",
+            organizationId: "org-1",
+            name: "System Dummy Tournament",
+            description: "A dummy tournament showing various event states",
+            startDate: new Date().toISOString(),
+            venueName: "Dummy Arena",
+            venueAddress: "123 Fake St",
+            venueCity: "Mumbai",
+            venueState: "MH",
+            venuePostalCode: "400001",
+            venueCourts: 4,
+            contactName: "Admin",
+            contactEmail: "admin@dummy.com",
+            contactPhone: "9999999999",
+            tournamentState: "in_progress",
+            events: [
+              {
+                id: "dummy-1",
+                tournamentId: "dummy-system-1",
+                name: "Men's Singles (Just Created)",
+                startDate: new Date().toISOString(),
+                dueDate: new Date().toISOString(),
+                pointsPerSet: 21,
+                setsPerMatch: 3,
+                amount: 500,
+                eventState: "created",
+                teams: [],
+              },
+              {
+                id: "dummy-2",
+                tournamentId: "dummy-system-1",
+                name: "Women's Doubles (In Progress)",
+                startDate: new Date().toISOString(),
+                dueDate: new Date().toISOString(),
+                pointsPerSet: 21,
+                setsPerMatch: 3,
+                amount: 1000,
+                eventState: "in_progress",
+                teams: [{}, {}, {}, {}] as any,
+              },
+              {
+                id: "dummy-3",
+                tournamentId: "dummy-system-1",
+                name: "Mixed Doubles (Completed)",
+                startDate: new Date().toISOString(),
+                dueDate: new Date().toISOString(),
+                pointsPerSet: 21,
+                setsPerMatch: 3,
+                amount: 800,
+                eventState: "completed",
+                teams: [{}, {}, {}, {}, {}, {}, {}, {}] as any,
+              },
+            ],
           };
         } else {
           tournamentData = await tournamentApi.getInfo(tournamentId);

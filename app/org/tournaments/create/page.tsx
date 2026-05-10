@@ -10,7 +10,15 @@ import type { TournamentFormData } from "@/lib/validators/tournamentSchema";
 import type { TournamentData, EventData, TournamentState } from "@/lib/models";
 
 function normalizePhone(value: string) {
-  return value.replace(/\D/g, "");
+  let clean = value.replace(/\D/g, "");
+  if (clean.length > 10) {
+    if (clean.length === 12 && clean.startsWith("91")) {
+      clean = clean.slice(-10);
+    } else if (clean.length === 11 && clean.startsWith("0")) {
+      clean = clean.slice(-10);
+    }
+  }
+  return clean;
 }
 
 function mapSportCode(value: string) {
@@ -63,7 +71,7 @@ export default function CreateOrgTournamentPage() {
 
   const handleComplete = async (
     tournament: TournamentFormData,
-    state: TournamentState,
+    state: "created" | "draft",
   ) => {
     if (!activeOrgId) {
       alert("No active organization selected.");
@@ -79,9 +87,9 @@ export default function CreateOrgTournamentPage() {
         name: tournament.name,
         description: tournament.description || "",
         startDate: tournament.startDate,
-        endDate: tournament.endDate || undefined,
+        endDate: tournament.endDate || null,
         venueName: tournament.venueName,
-        venueAddress: tournament.addressLine,
+        venueAddress: tournament.addressLine || "",
         venueCity: tournament.city,
         venueState: tournament.state,
         venuePostalCode: tournament.zipCode,
@@ -90,7 +98,7 @@ export default function CreateOrgTournamentPage() {
         contactEmail: tournament.organizerEmail,
         contactPhone: normalizePhone(tournament.organizerPhone),
         upiId: tournament.upiId || null,
-        tournamentState: state,
+        tournamentState: state === "created" ? "published" : "drafted",
       };
 
       const tournamentId = await tournamentApi.createTournament(tournamentData);
@@ -119,6 +127,7 @@ export default function CreateOrgTournamentPage() {
             event.isFree,
           ),
           amount: event.isFree ? 0 : Number(event.fee || 0),
+          eventState: "created" as const,
         }));
 
         await tournamentApi.createEvents(eventsData);

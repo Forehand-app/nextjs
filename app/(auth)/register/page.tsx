@@ -8,6 +8,8 @@ import {
   type RegistrationFormData,
 } from "@/lib/validators/registrationForm";
 import { userApi } from "@/lib/api/userApi";
+import { storageApi } from "@/lib/api/storageApi";
+import { CameraIcon } from "@/components/Icons";
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -16,10 +18,13 @@ export default function RegisterPage() {
   const [isSigningOut, setIsSigningOut] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+  const [avatarFile, setAvatarFile] = useState<File | null>(null);
+  const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
+
   const [formData, setFormData] = useState<RegistrationFormData>({
     name: "",
     contactNumber: "",
-    gender: "",
+    gender: "" as any,
     dob: "",
     playingHand: undefined,
     primarySport: "",
@@ -106,14 +111,36 @@ export default function RegisterPage() {
     try {
       setIsSubmitting(true);
 
+      // 1. Clean phone number to exactly 10 digits (no +, no spaces, handle country code)
+      let cleanPhone = validatedData.contactNumber.replace(/\D/g, "");
+      if (cleanPhone.length > 10) {
+        // If it starts with 91 and is 12 digits, take last 10
+        if (cleanPhone.length === 12 && cleanPhone.startsWith("91")) {
+          cleanPhone = cleanPhone.slice(-10);
+        } else if (cleanPhone.length === 11 && cleanPhone.startsWith("0")) {
+          cleanPhone = cleanPhone.slice(-10);
+        }
+      }
+
+      // 2. Register profile first
       await register({
         name: validatedData.name,
-        phone: validatedData.contactNumber,
+        phone: cleanPhone,
         gender: validatedData.gender,
         dob: validatedData.dob,
-        playingHand: validatedData.playingHand,
-        primarySport: validatedData.primarySport,
+        playingHand: validatedData.playingHand ?? null,
+        primarySport: validatedData.primarySport ?? null,
       });
+
+      // 3. Now upload avatar if exists (profile record now exists)
+      if (avatarFile) {
+        try {
+          await storageApi.uploadProfileAvatar(avatarFile);
+        } catch (uploadErr) {
+          console.error("Avatar upload failed:", uploadErr);
+          // We continue since registration was successful
+        }
+      }
 
       router.replace("/home");
     } catch (err) {
@@ -167,6 +194,53 @@ export default function RegisterPage() {
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
+          {/* Avatar Upload */}
+          <div className="flex flex-col items-center mb-8">
+            <div className="relative group">
+              <div className="w-32 h-32 rounded-full overflow-hidden bg-[var(--color-surface-elevated)] border-4 border-white shadow-md flex items-center justify-center relative">
+                {avatarPreview ? (
+                  <img
+                    src={avatarPreview}
+                    alt="Avatar preview"
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <div className="text-[var(--color-muted)] flex flex-col items-center">
+                    <CameraIcon size={32} />
+                    <span className="text-[10px] font-bold mt-1 uppercase tracking-wider">
+                      Add Photo
+                    </span>
+                  </div>
+                )}
+                <label className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors cursor-pointer flex items-center justify-center opacity-0 group-hover:opacity-100">
+                  <CameraIcon size={24} className="text-white" />
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) {
+                        setAvatarFile(file);
+                        const reader = new FileReader();
+                        reader.onloadend = () => {
+                          setAvatarPreview(reader.result as string);
+                        };
+                        reader.readAsDataURL(file);
+                      }
+                    }}
+                  />
+                </label>
+              </div>
+              <div className="absolute -bottom-1 -right-1 bg-primary text-white p-2 rounded-full shadow-lg border-2 border-white pointer-events-none">
+                <CameraIcon size={16} />
+              </div>
+            </div>
+            <p className="text-xs text-[var(--color-muted)] mt-3">
+              Help organizers and players recognize you
+            </p>
+          </div>
+
           {/* Full Name */}
           <div>
             <label className="block text-sm font-medium text-[var(--color-text)] mb-2">

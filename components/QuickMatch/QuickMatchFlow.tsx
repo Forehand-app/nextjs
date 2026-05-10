@@ -7,7 +7,7 @@ import { useRouter } from "next/navigation";
 import CourtSlider from "./CourtSlider";
 import MatchSplash from "./MatchSplash";
 import MatchReadyPopup from "./MatchReadyPopup";
-import { routes } from "@/lib/routes";
+import { toQuery } from "@/lib/utils";
 
 type FlowStep = "select" | "confirm" | "loading";
 type SetupPayload = {
@@ -51,7 +51,9 @@ export default function QuickMatchFlow() {
           </div>
           <div>
             <h3 className="font-semibold text-text">Quick Match</h3>
-            <p className="mt-0.5 text-sm text-muted">Invite players and score</p>
+            <p className="mt-0.5 text-sm text-muted">
+              Invite players and score
+            </p>
           </div>
         </div>
         <ChevronRight className="text-muted" size={20} />
@@ -105,21 +107,22 @@ export default function QuickMatchFlow() {
               const matchId = `quick-${Date.now()}`;
               closeAll();
               router.push(
-                routes.matchLive({
-                  matchId,
-                  format: setup.format,
-                  scoring: setup.scoring,
-                  bestOf: setup.bestOf,
-                  points: setup.points,
-                  winByTwo: setup.winByTwo,
-                  server: setup.initialServer,
-                  p1: setup.players.leftTop ?? "Kunal Verma",
-                  p2: setup.players.rightBottom ?? "Anil Kumar",
-                  p3: setup.players.leftBottom ?? "",
-                  p4: setup.players.rightTop ?? "",
-                  court: setup.courtId,
-                  quick: "1",
-                })
+                "/match/live" +
+                  toQuery({
+                    matchId,
+                    format: setup.format,
+                    scoring: setup.scoring,
+                    bestOf: setup.bestOf,
+                    points: setup.points,
+                    winByTwo: setup.winByTwo,
+                    server: setup.initialServer,
+                    p1: setup.players.leftTop ?? "Kunal Verma",
+                    p2: setup.players.rightBottom ?? "Anil Kumar",
+                    p3: setup.players.leftBottom ?? "",
+                    p4: setup.players.rightTop ?? "",
+                    court: setup.courtId,
+                    quick: "1",
+                  }),
               );
             }}
           />
@@ -128,4 +131,3 @@ export default function QuickMatchFlow() {
     </>
   );
 }
-

@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { getSupabaseBrowserClient } from "@/lib/supabase";
+import { userApi } from "@/lib/api/userApi";
 
 /**
  * Handles the Google OAuth PKCE callback.
@@ -27,33 +28,28 @@ export default function AuthCallbackPage() {
 
         if (!code) throw new Error("No auth code found in URL.");
 
-        const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
+        const { error: exchangeError } =
+          await supabase.auth.exchangeCodeForSession(code);
         if (exchangeError) throw exchangeError;
 
-        // Check if the user already has a backend profile
-        const { data: { session } } = await supabase.auth.getSession();
-        const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
-
-        if (!session?.access_token || !apiBaseUrl) {
-          router.replace("/register");
-          return;
-        }
-
-        const res = await fetch(`${apiBaseUrl}/user/profile`, {
-          headers: { Authorization: `Bearer ${session.access_token}` },
-        });
-
-        if (res.ok) {
-          const result = await res.json().catch(() => null);
-          if (result?.success && result?.data) {
+        try {
+          const profile = await userApi.getInfo();
+          if (profile) {
             router.replace("/home");
             return;
           }
+        } catch (apiError) {
+          // If profile fetch fails, we assume user needs to register
+          console.error("Profile fetch failed:", apiError);
         }
 
         router.replace("/register");
       } catch (cause) {
-        setError(cause instanceof Error ? cause.message : "Unable to complete sign-in.");
+        setError(
+          cause instanceof Error
+            ? cause.message
+            : "Unable to complete sign-in.",
+        );
       }
     };
 
@@ -63,7 +59,9 @@ export default function AuthCallbackPage() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-[var(--color-background)] px-6 text-center">
       <div className="max-w-sm space-y-3">
-        <h1 className="text-xl font-bold text-[var(--color-text)]">Signing you in...</h1>
+        <h1 className="text-xl font-bold text-[var(--color-text)]">
+          Signing you in...
+        </h1>
         {error ? (
           <>
             <p className="text-sm text-red-500">{error}</p>
@@ -75,7 +73,9 @@ export default function AuthCallbackPage() {
             </button>
           </>
         ) : (
-          <p className="text-xs text-[var(--color-muted)]">Please wait a moment...</p>
+          <p className="text-xs text-[var(--color-muted)]">
+            Please wait a moment...
+          </p>
         )}
       </div>
     </div>

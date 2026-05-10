@@ -3,8 +3,6 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { routes } from "@/lib/routes";
-import { useClientSearchParams } from "@/lib/useClientSearchParams";
 import TournamentHeroCard from "@/components/TournamentHeroCard";
 import {
   ArrowLeftIcon,
@@ -16,26 +14,49 @@ import {
   SearchIcon,
   TrashIcon,
 } from "@/components/Icons";
+import { EventData } from "@/lib/models";
 import { toQuery } from "@/lib/utils";
 
 type MainTab = "about" | "events";
-type EventKind = "singles" | "doubles" | "mixed";
 type PairStep = "idle" | "adding" | "invited" | "pairing" | "paired";
 
-type EventData = {
-  id: string;
-  name: string;
-  kind: EventKind;
-  startDate: string;
-  closeDate: string;
-  fee: number;
-  payment: "Online" | "Venue";
-};
-
 const events: EventData[] = [
-  { id: "single", name: "Men's Singles", kind: "singles", startDate: "25 Oct 2025", closeDate: "20 Oct 2025", fee: 1400, payment: "Online" },
-  { id: "double", name: "Men's Doubles", kind: "doubles", startDate: "25 Oct 2025", closeDate: "20 Oct 2025", fee: 1400, payment: "Venue" },
-  { id: "mixed", name: "Mixed Doubles", kind: "mixed", startDate: "25 Oct 2025", closeDate: "20 Oct 2025", fee: 0, payment: "Online" },
+  {
+    id: "single",
+    tournamentId: "1",
+    name: "Men's Singles",
+    eventFormatCode: "singles",
+    startDate: "25 Oct 2025",
+    dueDate: "20 Oct 2025",
+    amount: 1400,
+    paymentModeCode: "Online",
+    pointsPerSet: 11,
+    setsPerMatch: 3,
+  },
+  {
+    id: "double",
+    tournamentId: "1",
+    name: "Men's Doubles",
+    eventFormatCode: "doubles",
+    startDate: "25 Oct 2025",
+    dueDate: "20 Oct 2025",
+    amount: 1400,
+    paymentModeCode: "Venue",
+    pointsPerSet: 11,
+    setsPerMatch: 3,
+  },
+  {
+    id: "mixed",
+    tournamentId: "1",
+    name: "Mixed Doubles",
+    eventFormatCode: "mixed",
+    startDate: "25 Oct 2025",
+    dueDate: "20 Oct 2025",
+    amount: 0,
+    paymentModeCode: "Online",
+    pointsPerSet: 11,
+    setsPerMatch: 3,
+  },
 ];
 
 const contacts = [
@@ -72,8 +93,15 @@ function PersonChip({ name }: { name: string }) {
 }
 
 export default function TournamentDetailPage() {
-  const [searchParams, setSearchParams] = useState<URLSearchParams>(() => new URLSearchParams());
+  const [searchParams, setSearchParams] = useState<URLSearchParams>(
+    new URLSearchParams(),
+  );
   const router = useRouter();
+
+  useEffect(() => {
+    setSearchParams(new URLSearchParams(window.location.search));
+  }, []);
+
   const id = searchParams.get("id") || "1";
 
   const [tab, setTab] = useState<MainTab>("about");
@@ -81,25 +109,29 @@ export default function TournamentDetailPage() {
   const [pairState, setPairState] = useState<PairStep>("idle");
   const [partnerPhone, setPartnerPhone] = useState("");
 
-  const total = useMemo(() => events.filter((ev) => selected[ev.id]).reduce((sum, ev) => sum + ev.fee, 0), [selected]);
+  const total = useMemo(
+    () =>
+      events
+        .filter((ev) => ev.id && selected[ev.id])
+        .reduce((sum, ev) => sum + (ev.amount ?? 0), 0),
+    [selected],
+  );
 
   const toggleEvent = (ev: EventData) => {
+    if (!ev.id) return;
     const current = Boolean(selected[ev.id]);
     if (current) {
-      setSelected((prev) => ({ ...prev, [ev.id]: false }));
-      if (ev.kind === "doubles") {
+      setSelected((prev) => ({ ...prev, [ev.id!]: false }));
+      if (ev.eventFormatCode === "doubles") {
         setPairState("idle");
         setPartnerPhone("");
       }
       return;
     }
-    setSelected((prev) => ({ ...prev, [ev.id]: true }));
-    if (ev.kind === "doubles" && pairState === "idle") setPairState("adding");
+    setSelected((prev) => ({ ...prev, [ev.id!]: true }));
+    if (ev.eventFormatCode === "doubles" && pairState === "idle")
+      setPairState("adding");
   };
-
-  useEffect(() => {
-    setSearchParams(new URLSearchParams(window.location.search));
-  }, []);
 
   return (
     <div className="min-h-screen bg-[var(--color-background)] pb-24 text-[var(--color-text)]">
@@ -114,10 +146,16 @@ export default function TournamentDetailPage() {
       </div>
 
       <div className="sticky top-0 z-30 grid grid-cols-2 border-y border-[var(--color-border)] bg-[var(--color-surface)]">
-        <button onClick={() => setTab("about")} className={`h-10 text-[18px] font-semibold ${tab === "about" ? "border-b-2 border-primary text-primary" : "text-[var(--color-muted)]"}`}>
+        <button
+          onClick={() => setTab("about")}
+          className={`h-10 text-[18px] font-semibold ${tab === "about" ? "border-b-2 border-primary text-primary" : "text-[var(--color-muted)]"}`}
+        >
           About
         </button>
-        <button onClick={() => setTab("events")} className={`h-10 text-[18px] font-semibold ${tab === "events" ? "border-b-2 border-primary text-primary" : "text-[var(--color-muted)]"}`}>
+        <button
+          onClick={() => setTab("events")}
+          className={`h-10 text-[18px] font-semibold ${tab === "events" ? "border-b-2 border-primary text-primary" : "text-[var(--color-muted)]"}`}
+        >
           Events
         </button>
       </div>
@@ -129,23 +167,34 @@ export default function TournamentDetailPage() {
               <h2 className="text-[18px] font-semibold">Overview</h2>
               <div className="mt-2 grid grid-cols-2 gap-2">
                 <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-elevated)] p-2">
-                  <p className="text-[12px] text-[var(--color-muted)]">Start Date</p>
+                  <p className="text-[12px] text-[var(--color-muted)]">
+                    Start Date
+                  </p>
                   <p className="text-[14px]">31 Dec 2025, 24:00</p>
                 </div>
                 <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-elevated)] p-2">
-                  <p className="text-[12px] text-[var(--color-muted)]">End Date</p>
+                  <p className="text-[12px] text-[var(--color-muted)]">
+                    End Date
+                  </p>
                   <p className="text-[14px]">31 Dec 2025, 24:00</p>
                 </div>
               </div>
               <div className="mt-2 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-elevated)] p-2">
-                <p className="text-[12px] text-[var(--color-muted)]">Venue Details</p>
-                <p className="text-[14px]">Athlete's Club, 24 Sector, Mumbai, Maharashtra</p>
+                <p className="text-[12px] text-[var(--color-muted)]">
+                  Venue Details
+                </p>
+                <p className="text-[14px]">
+                  Athlete's Club, 24 Sector, Mumbai, Maharashtra
+                </p>
               </div>
             </section>
 
             <section className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-3">
               <h2 className="text-[18px] font-semibold">Description</h2>
-              <p className="mt-1 text-[14px] text-[var(--color-text-secondary)]">Join the biggest badminton tournament in the city! Open to all skill levels with exciting prizes.</p>
+              <p className="mt-1 text-[14px] text-[var(--color-text-secondary)]">
+                Join the biggest badminton tournament in the city! Open to all
+                skill levels with exciting prizes.
+              </p>
             </section>
 
             <section className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-3">
@@ -157,7 +206,9 @@ export default function TournamentDetailPage() {
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-3">
                         <div className="h-10 w-10 rounded-full bg-[radial-gradient(circle_at_30%_30%,#d1d1d1,#7b7b7b)]" />
-                        <p className="text-[16px] font-medium">{contact.name}</p>
+                        <p className="text-[16px] font-medium">
+                          {contact.name}
+                        </p>
                       </div>
 
                       <span className="rounded-full bg-primary px-3 py-0.5 text-[11px] font-semibold text-white">
@@ -189,22 +240,52 @@ export default function TournamentDetailPage() {
           </>
         ) : (
           events.map((ev) => {
+            if (!ev.id) return null;
             const isSelected = Boolean(selected[ev.id]);
-            const isDoubles = ev.kind === "doubles";
+            const isDoubles = ev.eventFormatCode === "doubles";
             return (
-              <section key={ev.id} className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-3">
+              <section
+                key={ev.id}
+                className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-3"
+              >
                 <h3 className="text-[18px] font-semibold">{ev.name}</h3>
                 <div className="mt-2 grid grid-cols-2 gap-2 text-[12px] text-[var(--color-text-secondary)]">
-                  <p className="flex items-center gap-1.5"><CalendarIcon size={12} className="text-primary" />Start Date: {ev.startDate}</p>
-                  <p className="flex items-center gap-1.5"><SearchIcon size={12} className="text-primary" />Reg. Closes: {ev.closeDate}</p>
+                  <p className="flex items-center gap-1.5">
+                    <CalendarIcon size={12} className="text-primary" />
+                    Start Date: {ev.startDate}
+                  </p>
+                  <p className="flex items-center gap-1.5">
+                    <SearchIcon size={12} className="text-primary" />
+                    Reg. Closes: {ev.dueDate}
+                  </p>
                 </div>
                 <div className="mt-2 flex items-end justify-between">
                   <div>
-                    <p className="text-[24px] font-semibold leading-7 text-primary">{ev.fee === 0 ? "Free Entry" : <><span className="currency-inr">&#8377;</span>{ev.fee}</>}</p>
-                    <p className="text-[14px] text-[var(--color-muted)]">Payment: {ev.payment}</p>
+                    <p className="text-[24px] font-semibold leading-7 text-primary">
+                      {ev.amount === 0 ? (
+                        "Free Entry"
+                      ) : (
+                        <>
+                          <span className="currency-inr">&#8377;</span>
+                          {ev.amount}
+                        </>
+                      )}
+                    </p>
+                    <p className="text-[14px] text-[var(--color-muted)]">
+                      Payment: {ev.paymentModeCode}
+                    </p>
                   </div>
-                  <button onClick={() => toggleEvent(ev)} className={`inline-flex h-9 min-w-[102px] items-center justify-center gap-1 rounded-full border px-4 text-[16px] font-semibold ${isSelected ? "border-primary bg-primary text-white" : "border-primary text-primary"}`}>
-                    {isSelected ? "Added" : <><PlusIcon size={12} /> Add</>}
+                  <button
+                    onClick={() => toggleEvent(ev)}
+                    className={`inline-flex h-9 min-w-[102px] items-center justify-center gap-1 rounded-full border px-4 text-[16px] font-semibold ${isSelected ? "border-primary bg-primary text-white" : "border-primary text-primary"}`}
+                  >
+                    {isSelected ? (
+                      "Added"
+                    ) : (
+                      <>
+                        <PlusIcon size={12} /> Add
+                      </>
+                    )}
                   </button>
                 </div>
 
@@ -212,34 +293,88 @@ export default function TournamentDetailPage() {
                   <div className="mt-3 rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface-elevated)] p-3">
                     {pairState === "adding" ? (
                       <>
-                        <p className="text-[18px] font-semibold">Add your partner</p>
-                        <input value={partnerPhone} onChange={(e) => setPartnerPhone(e.target.value)} placeholder="Enter partner's Phone No." className="mt-2 h-10 w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-3 text-[14px] outline-none" />
-                        <p className="mt-1 flex items-start gap-1 text-[11px] text-[var(--color-muted)]"><InfoIcon size={11} className="mt-0.5" />Your partner must be registered on the app to enroll.</p>
-                        <button onClick={() => setPairState("invited")} className="mt-2 h-9 w-full rounded-full border border-primary text-[16px] font-semibold text-primary">Add Partner</button>
+                        <p className="text-[18px] font-semibold">
+                          Add your partner
+                        </p>
+                        <input
+                          value={partnerPhone}
+                          onChange={(e) => setPartnerPhone(e.target.value)}
+                          placeholder="Enter partner's Phone No."
+                          className="mt-2 h-10 w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-3 text-[14px] outline-none"
+                        />
+                        <p className="mt-1 flex items-start gap-1 text-[11px] text-[var(--color-muted)]">
+                          <InfoIcon size={11} className="mt-0.5" />
+                          Your partner must be registered on the app to enroll.
+                        </p>
+                        <button
+                          onClick={() => setPairState("invited")}
+                          className="mt-2 h-9 w-full rounded-full border border-primary text-[16px] font-semibold text-primary"
+                        >
+                          Add Partner
+                        </button>
                       </>
                     ) : null}
 
                     {pairState === "invited" ? (
                       <>
-                        <p className="text-[18px] font-semibold">Add your partner</p>
+                        <p className="text-[18px] font-semibold">
+                          Add your partner
+                        </p>
                         <div className="mt-2 flex items-center justify-between rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-elevated)] p-2 text-[14px]">
-                          <div className="flex items-center gap-2"><div className="h-6 w-6 rounded-full bg-[radial-gradient(circle_at_30%_30%,#d1d1d1,#7b7b7b)]" /><span>Anil Kumar</span></div>
-                          <span className="rounded-md bg-[var(--color-chip)] px-2 py-0.5 text-[10px] text-primary">Invite Pending</span>
+                          <div className="flex items-center gap-2">
+                            <div className="h-6 w-6 rounded-full bg-[radial-gradient(circle_at_30%_30%,#d1d1d1,#7b7b7b)]" />
+                            <span>Anil Kumar</span>
+                          </div>
+                          <span className="rounded-md bg-[var(--color-chip)] px-2 py-0.5 text-[10px] text-primary">
+                            Invite Pending
+                          </span>
                         </div>
-                        <p className="mt-1 flex items-center gap-1 text-[11px] text-[var(--color-muted)]"><InfoIcon size={11} />Waiting for Anil Kumar to accept the invite.</p>
-                        <button onClick={() => setPairState("pairing")} className="mt-2 h-9 w-full rounded-full border border-primary text-[16px] font-semibold text-primary">Continue</button>
+                        <p className="mt-1 flex items-center gap-1 text-[11px] text-[var(--color-muted)]">
+                          <InfoIcon size={11} />
+                          Waiting for Anil Kumar to accept the invite.
+                        </p>
+                        <button
+                          onClick={() => setPairState("pairing")}
+                          className="mt-2 h-9 w-full rounded-full border border-primary text-[16px] font-semibold text-primary"
+                        >
+                          Continue
+                        </button>
                       </>
                     ) : null}
 
                     {pairState === "pairing" ? (
                       <>
-                        <div className="flex items-center gap-2"><ArrowLeftIcon size={14} /><p className="text-[18px] font-semibold">Create Your Pair</p></div>
-                        <div className="mt-2 grid grid-cols-2 gap-2"><PersonChip name="You" /><button onClick={() => setPairState("adding")} className="flex items-center justify-center gap-1 rounded-lg bg-[#ffd9d9] px-3 py-2 text-[15px] text-[#ef4444]"><TrashIcon size={12} />Remove</button></div>
-                        <button onClick={() => setPairState("paired")} className="mt-2 h-9 w-full rounded-full border border-primary text-[16px] font-semibold text-primary">Confirm Your Pair</button>
+                        <div className="flex items-center gap-2">
+                          <ArrowLeftIcon size={14} />
+                          <p className="text-[18px] font-semibold">
+                            Create Your Pair
+                          </p>
+                        </div>
+                        <div className="mt-2 grid grid-cols-2 gap-2">
+                          <PersonChip name="You" />
+                          <button
+                            onClick={() => setPairState("adding")}
+                            className="flex items-center justify-center gap-1 rounded-lg bg-[#ffd9d9] px-3 py-2 text-[15px] text-[#ef4444]"
+                          >
+                            <TrashIcon size={12} />
+                            Remove
+                          </button>
+                        </div>
+                        <button
+                          onClick={() => setPairState("paired")}
+                          className="mt-2 h-9 w-full rounded-full border border-primary text-[16px] font-semibold text-primary"
+                        >
+                          Confirm Your Pair
+                        </button>
                       </>
                     ) : null}
 
-                    {pairState === "paired" ? <div className="grid grid-cols-2 gap-2"><PersonChip name="You" /><PersonChip name="Anil Kumar" /></div> : null}
+                    {pairState === "paired" ? (
+                      <div className="grid grid-cols-2 gap-2">
+                        <PersonChip name="You" />
+                        <PersonChip name="Anil Kumar" />
+                      </div>
+                    ) : null}
                   </div>
                 ) : null}
               </section>
@@ -250,16 +385,31 @@ export default function TournamentDetailPage() {
 
       {tab === "about" ? (
         <div className="fixed bottom-0 left-0 right-0 z-40 border-t border-[var(--color-border)] bg-[var(--color-surface)] p-3 pb-[max(env(safe-area-inset-bottom),12px)]">
-          <button onClick={() => setTab("events")} className="h-11 w-full rounded-full bg-primary text-[18px] font-semibold text-white">Select Event</button>
+          <button
+            onClick={() => setTab("events")}
+            className="h-11 w-full rounded-full bg-primary text-[18px] font-semibold text-white"
+          >
+            Select Event
+          </button>
         </div>
       ) : total > 0 ? (
         <div className="fixed bottom-0 left-0 right-0 z-40 border-t border-[var(--color-border)] bg-[var(--color-surface)] p-3 pb-[max(env(safe-area-inset-bottom),12px)]">
           <div className="flex items-center gap-3">
             <div className="min-w-[110px]">
-              <p className="text-[14px] text-[var(--color-muted)]">Total Amount:</p>
-              <p className="text-[24px] font-bold leading-7 text-primary"><span className="currency-inr">&#8377;</span>{total}</p>
+              <p className="text-[14px] text-[var(--color-muted)]">
+                Total Amount:
+              </p>
+              <p className="text-[24px] font-bold leading-7 text-primary">
+                <span className="currency-inr">&#8377;</span>
+                {total}
+              </p>
             </div>
-            <Link href={`/tournaments/checkout${toQuery({ id })}`} className="grid h-11 flex-1 place-content-center rounded-full bg-primary text-[18px] font-semibold text-white">Claim Spot</Link>
+            <Link
+              href={`/tournaments/checkout${toQuery({ id })}`}
+              className="grid h-11 flex-1 place-content-center rounded-full bg-primary text-[18px] font-semibold text-white"
+            >
+              Claim Spot
+            </Link>
           </div>
         </div>
       ) : null}
@@ -268,4 +418,3 @@ export default function TournamentDetailPage() {
     </div>
   );
 }
-

@@ -10,12 +10,12 @@ export const registrationSchema = z
       .trim(),
     contactNumber: z
       .string()
-      .regex(/^[0-9+\-\s()]*$/, "Invalid phone number format")
-      .min(10, "Phone number must be at least 10 digits")
-      .max(15, "Phone number is too long")
-      .or(z.literal("")),
-    gender: z.enum(["male", "female"]).or(literal("")),
-    dob: z.string().or(z.literal("")),
+      .regex(
+        /^[6-9]\d{9}$/,
+        "Invalid phone number (10 digits starting with 6-9)",
+      ),
+    gender: z.enum(["male", "female"]),
+    dob: z.string().min(1, "Date of birth is required"),
     playingHand: z.enum(["right", "left"]).optional(),
     primarySport: z.string().max(30, "Sport name is too long").optional(),
   })

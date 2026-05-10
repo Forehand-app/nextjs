@@ -1,32 +1,56 @@
 "use client";
 
-import React, { useCallback, useMemo, useState } from "react";
+import React, { useCallback, useMemo, useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import LiveMatchReplica from "@/components/QuickMatch/LiveMatchReplica";
 import { appendScoreLog, pushOfflineQueue } from "@/lib/storage";
-import type { LiveMatchState, MatchConfig, ScoreEvent } from "@/types/models";
-import { applyFault, applyRally, createInitialLiveState, maybeAdvanceSet } from "@/lib/matchEngine";
-import { useClientSearchParams } from "@/lib/useClientSearchParams";
+import type {
+  LiveMatchStateData,
+  MatchConfigData,
+  ScoreEventData,
+} from "@/lib/models";
+import {
+  applyFault,
+  applyRally,
+  createInitialLiveState,
+  maybeAdvanceSet,
+} from "@/lib/matchEngine";
 
-function parseConfig(params: URLSearchParams): MatchConfig {
+function parseConfig(params: URLSearchParams): MatchConfigData {
   const scoringSystem = params.get("scoring") === "rally" ? "rally" : "sideout";
   const format = params.get("format") === "doubles" ? "doubles" : "singles";
   const bestOf = Number(params.get("bestOf") ?? "3") || 3;
   const pointsToWin = Number(params.get("points") ?? "11") || 11;
   const winByTwo = params.get("winByTwo") !== "false";
   const initialServer = params.get("server") === "2" ? 2 : 1;
-  return { scoringSystem, format, bestOf, pointsToWin, winByTwo, initialServer };
+  return {
+    scoringSystem,
+    format,
+    bestOf,
+    pointsToWin,
+    winByTwo,
+    initialServer,
+  };
 }
 
 export default function LiveMatchPage() {
   const router = useRouter();
-  const searchParams = useClientSearchParams();
+  const [searchParams, setSearchParams] = useState<URLSearchParams>(
+    new URLSearchParams(),
+  );
+
+  useEffect(() => {
+    setSearchParams(new URLSearchParams(window.location.search));
+  }, []);
+
   const matchId = searchParams.get("matchId") || "demo";
 
   const config = useMemo(() => parseConfig(searchParams), [searchParams]);
 
-  const [state, setState] = useState<LiveMatchState>(() => createInitialLiveState(matchId, config));
-  const [history, setHistory] = useState<LiveMatchState[]>([]);
+  const [state, setState] = useState<LiveMatchStateData>(() =>
+    createInitialLiveState(matchId, config),
+  );
+  const [history, setHistory] = useState<LiveMatchStateData[]>([]);
   const [seq, setSeq] = useState(0);
   const [showSwitchServe, setShowSwitchServe] = useState(false);
   const [matchWinner, setMatchWinner] = useState<0 | 1 | null>(null);
@@ -36,8 +60,8 @@ export default function LiveMatchPage() {
   const playerBName = searchParams.get("p2") || "Anil Kumar";
 
   const emit = useCallback(
-    (type: ScoreEvent["type"], details: Record<string, unknown>) => {
-      const event: ScoreEvent = {
+    (type: ScoreEventData["type"], details: Record<string, unknown>) => {
+      const event: ScoreEventData = {
         seq: seq + 1,
         timestamp: Date.now(),
         actorId: "user",
@@ -47,7 +71,7 @@ export default function LiveMatchPage() {
       setSeq((current) => current + 1);
       appendScoreLog(matchId, event).catch(() => pushOfflineQueue(event));
     },
-    [matchId, seq]
+    [matchId, seq],
   );
 
   const applyRallyAction = useCallback(
@@ -61,7 +85,7 @@ export default function LiveMatchPage() {
         return advanced.state;
       });
     },
-    [config, emit]
+    [config, emit],
   );
 
   const lastSetRef = React.useRef(state.currentSet);
@@ -75,7 +99,8 @@ export default function LiveMatchPage() {
     }
     // Server changed -> Switch Serve
     const currentScore = state.setScores[state.currentSet] || [0, 0];
-    const isFirstServe = currentScore[0] === 0 && currentScore[1] === 0 && state.currentSet === 0;
+    const isFirstServe =
+      currentScore[0] === 0 && currentScore[1] === 0 && state.currentSet === 0;
 
     if (state.serverSide !== lastServerRef.current && !isFirstServe) {
       setShowSwitchServe(true);
@@ -94,7 +119,7 @@ export default function LiveMatchPage() {
         return advanced.state;
       });
     },
-    [config, emit]
+    [config, emit],
   );
 
   const undo = useCallback(() => {
@@ -113,7 +138,9 @@ export default function LiveMatchPage() {
     state.setScores[state.currentSet]?.[0] ?? 0,
     state.setScores[state.currentSet]?.[1] ?? 0,
   ];
-  const setScores: Array<[number | null, number | null]> = Array.from({ length: config.bestOf }).map((_, index) => [
+  const setScores: Array<[number | null, number | null]> = Array.from({
+    length: config.bestOf,
+  }).map((_, index) => [
     state.setScores[index]?.[0] ?? (index === 0 ? 0 : null),
     state.setScores[index]?.[1] ?? (index === 0 ? 0 : null),
   ]);
@@ -126,7 +153,11 @@ export default function LiveMatchPage() {
       sideBScore={currentSet[1] ?? 0}
       setScores={setScores}
       bestOf={config.bestOf}
-      scoringLabel={config.scoringSystem === "sideout" ? "Side-Out Scoring" : "Rally Scoring"}
+      scoringLabel={
+        config.scoringSystem === "sideout"
+          ? "Side-Out Scoring"
+          : "Rally Scoring"
+      }
       sideAServing={state.serverSide === 0}
       sideBServing={state.serverSide === 1}
       sideALabel={playerAName}
@@ -141,6 +172,7 @@ export default function LiveMatchPage() {
       onUndo={undo}
       onSideARally={() => applyRallyAction(0)}
       onSideBRally={() => applyRallyAction(1)}
+      onSideAFault={() => applyFaultAction(0)}
       onSideBFault={() => applyFaultAction(1)}
       onCloseSwitch={() => {
         setShowSwitchServe(false);
@@ -152,7 +184,7 @@ export default function LiveMatchPage() {
       }}
       onConfirmWinner={() =>
         router.push(
-          `/match/winner?winner=${encodeURIComponent(matchWinner === 1 ? playerBName : playerAName)}&score=${encodeURIComponent(winnerScore)}&player_a=${encodeURIComponent(playerAName)}&player_b=${encodeURIComponent(playerBName)}`
+          `/match/winner?winner=${encodeURIComponent(matchWinner === 1 ? playerBName : playerAName)}&score=${encodeURIComponent(winnerScore)}&player_a=${encodeURIComponent(playerAName)}&player_b=${encodeURIComponent(playerBName)}`,
         )
       }
       winnerName={matchWinner === 1 ? playerBName : playerAName}
@@ -160,6 +192,3 @@ export default function LiveMatchPage() {
     />
   );
 }
-
-
-

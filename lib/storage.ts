@@ -40,25 +40,29 @@ export function removeItem(key: string): void {
 }
 
 /** Append an entry to a JSON array stored at `key`. */
-export function appendScoreLog<T>(key: string, entry: T): void {
+export async function appendScoreLog<T>(key: string, entry: T): Promise<void> {
   const current = getItem<T[]>(key) ?? [];
   current.push(entry);
   setItem(key, current);
 }
 
 /** Push an item onto the offline action queue. */
-export function pushOfflineQueue<T>(entry: T): void {
-  appendScoreLog<T>("offline_queue", entry);
+export async function pushOfflineQueue<T>(entry: T): Promise<void> {
+  await appendScoreLog<T>("offline_queue", entry);
 }
 
 // ─── Session helpers ──────────────────────────────────────────────────────────
 
 const SESSION_KEY = "app_session";
 
-export function getSession<T>(): T | null {
-  return getItem<T>(SESSION_KEY);
+export function getSession<T>(key: string = SESSION_KEY): T | null {
+  return getItem<T>(key);
 }
 
-export function saveSession<T>(session: T): void {
-  setItem(SESSION_KEY, session);
+export function saveSession<T>(...args: [T] | [string, T]): void {
+  if (args.length === 2) {
+    setItem(args[0], args[1]);
+  } else {
+    setItem(SESSION_KEY, args[0]);
+  }
 }

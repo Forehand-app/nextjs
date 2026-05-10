@@ -2,7 +2,7 @@
 
 import React from "react";
 import Link from "next/link";
-import { routes } from "@/lib/routes";
+import { toQuery } from "@/lib/utils";
 
 type Player = {
   name: string;
@@ -42,8 +42,8 @@ export default function MatchCard({
   progress = 50,
   href,
 }: MatchCardProps) {
-  const url = href ?? routes.matchLive({ matchId: id });
-  
+  const url = href ?? "/match/live" + toQuery({ matchId: id });
+
   const statusConfig = {
     live: {
       bg: "var(--badge-live-bg)",
@@ -168,9 +168,7 @@ export default function MatchCard({
               className="w-1.5 h-1.5 rounded-full"
               style={{
                 background:
-                  dot === 1
-                    ? "var(--color-primary)"
-                    : "var(--color-border)",
+                  dot === 1 ? "var(--color-primary)" : "var(--color-border)",
               }}
             />
           ))}
@@ -194,4 +192,3 @@ export default function MatchCard({
     </div>
   );
 }
-

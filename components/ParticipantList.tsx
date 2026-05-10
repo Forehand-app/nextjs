@@ -1,10 +1,10 @@
 "use client";
 
 import React, { useState } from "react";
-import type { Participant } from "@/types/models";
+import { ParticipantData } from "@/lib/models";
 
 type ParticipantListProps = {
-  participants: Participant[];
+  participants: ParticipantData[];
   eventName: string;
   pendingCount?: number;
   onAccept: (id: string) => void;
@@ -24,7 +24,8 @@ export default function ParticipantList({
 }: ParticipantListProps) {
   const [search, setSearch] = useState("");
   const filtered = participants.filter(
-    (p) => !search.trim() || p.name.toLowerCase().includes(search.toLowerCase())
+    (p) =>
+      !search.trim() || p.name.toLowerCase().includes(search.toLowerCase()),
   );
 
   return (
@@ -32,7 +33,9 @@ export default function ParticipantList({
       <div>
         <h2 className="text-lg font-semibold">{eventName}</h2>
         {pendingCount > 0 && (
-          <p className="text-sm text-[var(--color-muted)]">{pendingCount} registration pending</p>
+          <p className="text-sm text-[var(--color-muted)]">
+            {pendingCount} registration pending
+          </p>
         )}
       </div>
       <input
@@ -52,11 +55,13 @@ export default function ParticipantList({
             <div className="min-w-0">
               <span className="font-medium">{p.name}</span>
               {p.ageCategory && (
-                <span className="ml-2 text-sm text-[var(--color-muted)]">{p.ageCategory}</span>
+                <span className="ml-2 text-sm text-[var(--color-muted)]">
+                  {p.ageCategory}
+                </span>
               )}
-                <span
-                  className={`ml-2 text-xs px-2 py-0.5 rounded-full ${
-                    p.status === "confirmed"
+              <span
+                className={`ml-2 text-xs px-2 py-0.5 rounded-full ${
+                  p.status === "confirmed"
                     ? "bg-[var(--color-success)]/20 text-[var(--color-success)]"
                     : p.status === "pending"
                       ? "bg-primary/20 text-primary"
@@ -101,4 +106,3 @@ export default function ParticipantList({
     </div>
   );
 }
-

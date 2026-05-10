@@ -2,22 +2,28 @@
 
 import React from "react";
 import Link from "next/link";
-import type { TournamentSummary } from "@/types/models";
+import { TournamentData } from "@/lib/models";
 import { ChevronRightIcon } from "@/components/Icons";
-import { routes } from "@/lib/routes";
+import { toQuery } from "@/lib/utils";
 
 type TournamentCardProps = {
-  tournament: TournamentSummary;
+  tournament: TournamentData;
   cta?: "Register" | "View" | "Manage";
   href?: string;
 };
 
-export default function TournamentCard({ tournament, cta = "View", href }: TournamentCardProps) {
-  const url = href ?? routes.tournamentDetail(tournament.id);
+export default function TournamentCard({
+  tournament,
+  cta = "View",
+  href,
+}: TournamentCardProps) {
+  const url =
+    href ?? "/tournaments/detail" + toQuery({ id: tournament.id || "" });
   const statusColor =
-    tournament.status === "live"
+    tournament.tournamentState === "published" ||
+    tournament.tournamentState === "in_progress"
       ? "bg-primary/20 text-primary"
-      : tournament.status === "upcoming"
+      : tournament.tournamentState === "drafted"
         ? "bg-[var(--color-success)]/20 text-[var(--color-success)]"
         : "bg-[var(--color-muted)]/20 text-[var(--color-muted)]";
 
@@ -33,17 +39,13 @@ export default function TournamentCard({ tournament, cta = "View", href }: Tourn
         <div className="min-w-0 flex-1">
           <h3 className="font-semibold truncate">{tournament.name}</h3>
           <p className="text-sm text-[var(--color-muted)]">
-            {tournament.location ?? tournament.venue ?? "—"} · {tournament.startDate}
+            {tournament.venueCity || tournament.venueName || "—"} ·{" "}
+            {tournament.startDate}
           </p>
           <div className="flex flex-wrap gap-2 mt-2">
             <span className={`text-xs px-2 py-0.5 rounded-full ${statusColor}`}>
-              {tournament.status}
+              {tournament.tournamentState}
             </span>
-            {tournament.registeredCount != null && (
-              <span className="text-xs text-[var(--color-muted)]">
-                {tournament.registeredCount} registered
-              </span>
-            )}
           </div>
         </div>
         <span className="self-center text-primary font-medium text-sm shrink-0 inline-flex items-center gap-1">
@@ -54,4 +56,3 @@ export default function TournamentCard({ tournament, cta = "View", href }: Tourn
     </Link>
   );
 }
-

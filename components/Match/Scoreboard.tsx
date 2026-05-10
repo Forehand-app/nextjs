@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import type { LiveMatchState } from "@/types/models";
+import { LiveMatchStateData } from "@/lib/models";
 
 type SidePlayer = {
   name: string;
@@ -9,7 +9,7 @@ type SidePlayer = {
 };
 
 type ScoreboardProps = {
-  state: LiveMatchState;
+  state: LiveMatchStateData;
   player1Name: string;
   player2Name: string;
   player1Initials?: string;
@@ -44,7 +44,8 @@ export default function Scoreboard({
       aria-label="Match scoreboard"
     >
       <div className="text-center text-sm text-[var(--color-muted)] mb-3">
-        Current Set: {state.currentSet + 1} · {scoringMode === "sideout" ? "Side-out" : "Rally"} · {format}
+        Current Set: {state.currentSet + 1} ·{" "}
+        {scoringMode === "sideout" ? "Side-out" : "Rally"} · {format}
       </div>
 
       {format === "doubles" && side0Players && side1Players ? (
@@ -62,7 +63,9 @@ export default function Scoreboard({
           <div className="grid grid-cols-2 gap-3">
             <div className="rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-elevated)] p-3">
               <div className="flex items-center justify-between mb-2">
-                <p className="text-xs font-medium text-[var(--color-muted)]">Pair A</p>
+                <p className="text-xs font-medium text-[var(--color-muted)]">
+                  Pair A
+                </p>
                 {servingSide === 0 && (
                   <span className="text-[10px] px-2 py-0.5 rounded-full bg-primary/15 text-primary">
                     Serving
@@ -71,14 +74,17 @@ export default function Scoreboard({
               </div>
               <div className="grid grid-cols-2 gap-2">
                 {side0Players.map((p, idx) => {
-                  const isServer = servingSide === 0 && (state.serverPlayerIndex ?? 0) === idx;
+                  const isServer =
+                    servingSide === 0 && (state.serverPlayerIndex ?? 0) === idx;
                   return (
                     <div
                       key={p.initials + idx}
                       className={`rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] p-2 text-center ${isServer ? "ring-2 ring-primary" : ""}`}
                     >
                       <div className="text-lg font-semibold">{p.initials}</div>
-                      <div className="text-[11px] text-[var(--color-muted)] truncate">{p.name}</div>
+                      <div className="text-[11px] text-[var(--color-muted)] truncate">
+                        {p.name}
+                      </div>
                     </div>
                   );
                 })}
@@ -87,7 +93,9 @@ export default function Scoreboard({
 
             <div className="rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-elevated)] p-3">
               <div className="flex items-center justify-between mb-2">
-                <p className="text-xs font-medium text-[var(--color-muted)]">Pair B</p>
+                <p className="text-xs font-medium text-[var(--color-muted)]">
+                  Pair B
+                </p>
                 {servingSide === 1 && (
                   <span className="text-[10px] px-2 py-0.5 rounded-full bg-primary/15 text-primary">
                     Serving
@@ -96,14 +104,17 @@ export default function Scoreboard({
               </div>
               <div className="grid grid-cols-2 gap-2">
                 {side1Players.map((p, idx) => {
-                  const isServer = servingSide === 1 && (state.serverPlayerIndex ?? 0) === idx;
+                  const isServer =
+                    servingSide === 1 && (state.serverPlayerIndex ?? 0) === idx;
                   return (
                     <div
                       key={p.initials + idx}
                       className={`rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] p-2 text-center ${isServer ? "ring-2 ring-primary" : ""}`}
                     >
                       <div className="text-lg font-semibold">{p.initials}</div>
-                      <div className="text-[11px] text-[var(--color-muted)] truncate">{p.name}</div>
+                      <div className="text-[11px] text-[var(--color-muted)] truncate">
+                        {p.name}
+                      </div>
                     </div>
                   );
                 })}
@@ -113,21 +124,43 @@ export default function Scoreboard({
         </div>
       ) : (
         <div className="flex items-center justify-between gap-4">
-          <div className={`flex-1 text-center p-3 rounded-lg ${servingSide === 0 ? "ring-2 ring-primary" : ""}`}>
-            <div className="text-2xl font-bold" aria-label={`${player1Name} score`}>{score0}</div>
+          <div
+            className={`flex-1 text-center p-3 rounded-lg ${servingSide === 0 ? "ring-2 ring-primary" : ""}`}
+          >
+            <div
+              className="text-2xl font-bold"
+              aria-label={`${player1Name} score`}
+            >
+              {score0}
+            </div>
             <div className="text-sm font-medium">{player1Initials}</div>
-            <div className="text-xs text-[var(--color-muted)] truncate">{player1Name}</div>
+            <div className="text-xs text-[var(--color-muted)] truncate">
+              {player1Name}
+            </div>
             {servingSide === 0 && (
-              <span className="inline-block mt-1 text-xs px-2 py-0.5 rounded bg-primary/20 text-primary">Serving</span>
+              <span className="inline-block mt-1 text-xs px-2 py-0.5 rounded bg-primary/20 text-primary">
+                Serving
+              </span>
             )}
           </div>
           <div className="text-[var(--color-muted)] font-medium">Vs</div>
-          <div className={`flex-1 text-center p-3 rounded-lg ${servingSide === 1 ? "ring-2 ring-primary" : ""}`}>
-            <div className="text-2xl font-bold" aria-label={`${player2Name} score`}>{score1}</div>
+          <div
+            className={`flex-1 text-center p-3 rounded-lg ${servingSide === 1 ? "ring-2 ring-primary" : ""}`}
+          >
+            <div
+              className="text-2xl font-bold"
+              aria-label={`${player2Name} score`}
+            >
+              {score1}
+            </div>
             <div className="text-sm font-medium">{player2Initials}</div>
-            <div className="text-xs text-[var(--color-muted)] truncate">{player2Name}</div>
+            <div className="text-xs text-[var(--color-muted)] truncate">
+              {player2Name}
+            </div>
             {servingSide === 1 && (
-              <span className="inline-block mt-1 text-xs px-2 py-0.5 rounded bg-primary/20 text-primary">Serving</span>
+              <span className="inline-block mt-1 text-xs px-2 py-0.5 rounded bg-primary/20 text-primary">
+                Serving
+              </span>
             )}
           </div>
         </div>
@@ -135,11 +168,12 @@ export default function Scoreboard({
       {state.setScores.length > 0 && (
         <div className="mt-3 flex justify-center gap-4 text-sm text-[var(--color-muted)]">
           {state.setScores.map((s, i) => (
-            <span key={i}>Set {i + 1}: {s[0]}-{s[1]}</span>
+            <span key={i}>
+              Set {i + 1}: {s[0]}-{s[1]}
+            </span>
           ))}
         </div>
       )}
     </div>
   );
 }
-
