@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import Layout from "@/components/Layout";
 import { useApp } from "@/components/AppProvider";
 import { ArrowLeftIcon, CameraIcon } from "@/components/Icons";
-import { organizationApi } from "@/lib/api/orgaizationApi";
+import { organizationApi } from "@/lib/api/organizationApi";
 import { storageApi } from "@/lib/api/storageApi";
 import { organizationSchema } from "@/lib/validators/organizationSchema";
 import { OrganizationData } from "@/lib/models";

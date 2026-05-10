@@ -121,7 +121,12 @@ export interface EventData {
   teams?: TeamData[] | null;
 }
 
-export type TeamStatus = "registered"; // Add more statuses as needed
+export type TeamStatus =
+  | "created"
+  | "registered"
+  | "participating"
+  | "rejected"
+  | "disqualified";
 
 export interface TeamData {
   id?: string | null;

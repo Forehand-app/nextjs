@@ -62,6 +62,9 @@ export default function TournamentDetailPage() {
   );
   const router = useRouter();
   const [tournament, setTournament] = useState<TournamentData | null>(null);
+  const [joinedTournaments, setJoinedTournaments] = useState<TournamentData[]>(
+    [],
+  );
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -79,9 +82,13 @@ export default function TournamentDetailPage() {
       try {
         setIsLoading(true);
         setError("");
-        const data = await tournamentApi.getInfo(id);
+        const [data, joined] = await Promise.all([
+          tournamentApi.getInfo(id),
+          tournamentApi.getJoinedTournaments(),
+        ]);
         if (active) {
           setTournament(data);
+          setJoinedTournaments(joined);
         }
       } catch (err) {
         console.error("Failed to load tournament info", err);
@@ -102,6 +109,12 @@ export default function TournamentDetailPage() {
   const [pairState, setPairState] = useState<PairStep>("idle");
   const [partnerPhone, setPartnerPhone] = useState("");
 
+  const isAlreadyRegistered = (eventId: string) => {
+    return joinedTournaments.some((jt) =>
+      jt.events?.some((e) => e.id === eventId),
+    );
+  };
+
   const total = useMemo(() => {
     if (!tournament?.events) return 0;
     return tournament.events
@@ -110,7 +123,7 @@ export default function TournamentDetailPage() {
   }, [selected, tournament]);
 
   const toggleEvent = (ev: EventData) => {
-    if (!ev.id) return;
+    if (!ev.id || isAlreadyRegistered(ev.id)) return;
     const current = Boolean(selected[ev.id]);
     const isDoubles =
       ev.teamTypeCode?.toLowerCase().includes("double") ||
@@ -173,14 +186,18 @@ export default function TournamentDetailPage() {
           className={`relative flex h-12 flex-1 items-center justify-center text-[16px] font-bold transition-all ${tab === "about" ? "text-[var(--color-text)]" : "text-[var(--color-text-secondary)] opacity-50"}`}
         >
           About
-          <div className={`absolute bottom-0 h-[2px] w-full ${tab === "about" ? "bg-[#ff7a1a]" : "bg-[var(--color-border)]"}`} />
+          <div
+            className={`absolute bottom-0 h-[2px] w-full ${tab === "about" ? "bg-[#ff7a1a]" : "bg-[var(--color-border)]"}`}
+          />
         </button>
         <button
           onClick={() => setTab("events")}
           className={`relative flex h-12 flex-1 items-center justify-center text-[16px] font-bold transition-all ${tab === "events" ? "text-[var(--color-text)]" : "text-[var(--color-text-secondary)] opacity-50"}`}
         >
           Events
-          <div className={`absolute bottom-0 h-[2px] w-full ${tab === "events" ? "bg-[#ff7a1a]" : "bg-[var(--color-border)]"}`} />
+          <div
+            className={`absolute bottom-0 h-[2px] w-full ${tab === "events" ? "bg-[#ff7a1a]" : "bg-[var(--color-border)]"}`}
+          />
         </button>
       </div>
 
@@ -188,12 +205,16 @@ export default function TournamentDetailPage() {
         {tab === "about" ? (
           <>
             <section className="rounded-[28px] border border-[var(--color-border)] bg-[var(--color-surface)] p-4 shadow-sm">
-              <h2 className="text-[22px] font-bold text-[var(--color-text)]">Overview</h2>
+              <h2 className="text-[22px] font-bold text-[var(--color-text)]">
+                Overview
+              </h2>
               <div className="mt-4 grid grid-cols-2 gap-3">
                 <div className="flex flex-col gap-2 rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface-elevated)] p-3">
                   <div className="flex items-center gap-2 text-[var(--color-text-secondary)] opacity-60">
                     <TimerIcon size={12} />
-                    <span className="text-[11px] font-medium uppercase tracking-wider">Start Date</span>
+                    <span className="text-[11px] font-medium uppercase tracking-wider">
+                      Start Date
+                    </span>
                   </div>
                   <p className="text-[13px] font-bold text-[var(--color-text)]">
                     {formatDateTime(tournament.startDate)}
@@ -202,7 +223,9 @@ export default function TournamentDetailPage() {
                 <div className="flex flex-col gap-2 rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface-elevated)] p-3">
                   <div className="flex items-center gap-2 text-[var(--color-text-secondary)] opacity-60">
                     <TimerIcon size={12} />
-                    <span className="text-[11px] font-medium uppercase tracking-wider">End Date</span>
+                    <span className="text-[11px] font-medium uppercase tracking-wider">
+                      End Date
+                    </span>
                   </div>
                   <p className="text-[13px] font-bold text-[var(--color-text)]">
                     {formatDateTime(tournament.endDate)}
@@ -212,7 +235,9 @@ export default function TournamentDetailPage() {
               <div className="mt-3 flex flex-col gap-2 rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface-elevated)] p-3">
                 <div className="flex items-center gap-2 text-[var(--color-text-secondary)] opacity-60">
                   <MapPinIcon size={12} />
-                  <span className="text-[11px] font-medium uppercase tracking-wider">Venue Details</span>
+                  <span className="text-[11px] font-medium uppercase tracking-wider">
+                    Venue Details
+                  </span>
                 </div>
                 <p className="text-[13px] font-bold leading-relaxed text-[var(--color-text)]">
                   {tournament.venueName}, {tournament.venueAddress},{" "}
@@ -222,23 +247,31 @@ export default function TournamentDetailPage() {
             </section>
 
             <section className="rounded-[28px] border border-[var(--color-border)] bg-[var(--color-surface)] p-4 shadow-sm">
-              <h2 className="text-[22px] font-bold text-[var(--color-text)]">Description</h2>
+              <h2 className="text-[22px] font-bold text-[var(--color-text)]">
+                Description
+              </h2>
               <p className="mt-3 text-[13px] leading-relaxed text-[var(--color-text-secondary)]">
-                {tournament.description || "Join the biggest badminton tournament in the city! Open to all skill levels with exciting prizes."}
+                {tournament.description ||
+                  "Join the biggest badminton tournament in the city! Open to all skill levels with exciting prizes."}
               </p>
             </section>
 
             <section className="rounded-[28px] border border-[var(--color-border)] bg-[var(--color-surface)] p-4 shadow-sm">
-              <h2 className="text-[22px] font-bold text-[var(--color-text)] mb-6">Contact Information</h2>
+              <h2 className="text-[22px] font-bold text-[var(--color-text)] mb-6">
+                Contact Information
+              </h2>
 
               <div className="space-y-6">
                 <div className="pt-0">
                   <div className="flex items-center justify-between mb-4">
                     <div className="flex items-center gap-4">
                       <div className="h-14 w-14 overflow-hidden rounded-full border border-[var(--color-border)] shadow-md">
-                        <img 
-                          src={tournament.organization?.logoUrl || "https://images.unsplash.com/photo-1531427186611-ecfd6d936c79?auto=format&fit=crop&q=80&w=100&h=100"} 
-                          alt="Contact" 
+                        <img
+                          src={
+                            tournament.organization?.logoUrl ||
+                            "https://images.unsplash.com/photo-1531427186611-ecfd6d936c79?auto=format&fit=crop&q=80&w=100&h=100"
+                          }
+                          alt="Contact"
                           className="h-full w-full object-cover"
                         />
                       </div>
@@ -276,15 +309,18 @@ export default function TournamentDetailPage() {
           tournament.events?.map((ev) => {
             if (!ev.id) return null;
             const isSelected = Boolean(selected[ev.id]);
+            const registered = isAlreadyRegistered(ev.id);
             const isDoubles =
               ev.teamTypeCode?.toLowerCase().includes("double") ||
               ev.teamType?.label?.toLowerCase().includes("double");
             return (
               <section
                 key={ev.id}
-                className={`rounded-3xl border p-5 shadow-lg ${isSelected ? "border-[#ff7a1a] bg-[#ff7a1a]/5" : "border-[var(--color-border)] bg-[var(--color-surface-elevated)]"}`}
+                className={`rounded-3xl border p-5 shadow-lg ${isSelected ? "border-[#ff7a1a] bg-[#ff7a1a]/5" : registered ? "border-green-500 bg-green-500/5" : "border-[var(--color-border)] bg-[var(--color-surface-elevated)]"}`}
               >
-                <h3 className="text-[20px] font-bold text-[var(--color-text)]">{ev.name}</h3>
+                <h3 className="text-[20px] font-bold text-[var(--color-text)]">
+                  {ev.name}
+                </h3>
                 <div className="mt-4 grid grid-cols-2 gap-3">
                   <div className="flex items-center gap-2 text-[13px] text-[var(--color-text-secondary)] opacity-60">
                     <CalendarIcon size={14} className="text-[#ff7a1a]" />
@@ -307,16 +343,21 @@ export default function TournamentDetailPage() {
                         </>
                       )}
                     </p>
-                    <p className="mt-1 text-[12px] font-medium text-[var(--color-text-secondary)] opacity-60 uppercase tracking-wider">
-                      {ev.paymentMode?.label || ev.paymentModeCode || "N/A"}
-                    </p>
+                    {ev.amount > 0 && ev.paymentMode !== undefined && (
+                      <p className="mt-1 text-[12px] font-medium text-[var(--color-text-secondary)] opacity-60 uppercase tracking-wider">
+                        {ev.paymentMode?.label || ev.paymentModeCode || "N/A"}
+                      </p>
+                    )}
                   </div>
                   <button
                     onClick={() => toggleEvent(ev)}
-                    className={`inline-flex h-11 min-w-[120px] items-center justify-center gap-2 rounded-full border-2 px-6 text-[16px] font-bold transition-all active:scale-95 ${isSelected ? "border-[#ff7a1a] bg-[#ff7a1a] text-white shadow-lg shadow-orange-500/20" : "border-[var(--color-border)] bg-[var(--color-surface-elevated)] text-[var(--color-text)] hover:border-gray-400"}`}
+                    disabled={registered}
+                    className={`inline-flex h-11 min-w-[120px] items-center justify-center gap-2 rounded-full border-2 px-6 text-[16px] font-bold transition-all active:scale-95 ${isSelected ? "border-[#ff7a1a] bg-[#ff7a1a] text-white shadow-lg shadow-orange-500/20" : registered ? "border-green-500 bg-green-500 text-white cursor-default" : "border-[var(--color-border)] bg-[var(--color-surface-elevated)] text-[var(--color-text)] hover:border-gray-400"}`}
                   >
                     {isSelected ? (
                       "Added"
+                    ) : registered ? (
+                      "Registered"
                     ) : (
                       <>
                         <PlusIcon size={14} /> Add
@@ -339,8 +380,14 @@ export default function TournamentDetailPage() {
                           className="mt-3 h-12 w-full rounded-xl border border-[var(--color-border)] bg-[var(--color-background)] px-4 text-[15px] text-[var(--color-text)] outline-none focus:border-[#ff7a1a]/50"
                         />
                         <div className="mt-3 flex items-start gap-2 text-[12px] text-[var(--color-text-secondary)]">
-                          <InfoIcon size={14} className="mt-0.5 text-[#ff7a1a]" />
-                          <p>Your partner must be registered on the app to enroll.</p>
+                          <InfoIcon
+                            size={14}
+                            className="mt-0.5 text-[#ff7a1a]"
+                          />
+                          <p>
+                            Your partner must be registered on the app to
+                            enroll.
+                          </p>
                         </div>
                         <button
                           onClick={() => setPairState("invited")}
@@ -359,7 +406,9 @@ export default function TournamentDetailPage() {
                         <div className="mt-3 flex items-center justify-between rounded-xl border border-white/10 bg-white/5 p-3 text-[15px]">
                           <div className="flex items-center gap-3">
                             <div className="h-8 w-8 rounded-full bg-gradient-to-br from-gray-400 to-gray-600" />
-                            <span className="font-medium text-white">Anil Kumar</span>
+                            <span className="font-medium text-white">
+                              Anil Kumar
+                            </span>
                           </div>
                           <span className="rounded-lg bg-[#ff7a1a]/20 px-2.5 py-1 text-[11px] font-bold text-[#ff7a1a]">
                             Invite Pending
@@ -381,7 +430,10 @@ export default function TournamentDetailPage() {
                     {pairState === "pairing" ? (
                       <>
                         <div className="flex items-center gap-2">
-                          <button onClick={() => setPairState("adding")} className="text-white/60 hover:text-white">
+                          <button
+                            onClick={() => setPairState("adding")}
+                            className="text-white/60 hover:text-white"
+                          >
                             <ArrowLeftIcon size={18} />
                           </button>
                           <p className="text-[18px] font-bold text-white">
@@ -433,7 +485,7 @@ export default function TournamentDetailPage() {
       ) : (
         <div className="fixed bottom-0 left-0 right-0 z-40 border-t border-[var(--color-border)] bg-[var(--color-background)] p-5 pb-[max(env(safe-area-inset-bottom),20px)] transition-transform">
           <div className="flex items-center gap-4">
-            {Object.values(selected).some(v => v) ? (
+            {Object.values(selected).some((v) => v) ? (
               <>
                 <div className="flex-1">
                   <p className="text-[12px] font-medium text-[var(--color-text-secondary)] uppercase tracking-widest opacity-60">
@@ -445,9 +497,11 @@ export default function TournamentDetailPage() {
                   </p>
                 </div>
                 <Link
-                  href={`/tournaments/checkout${toQuery({ 
-                    id, 
-                    selected: Object.keys(selected).filter(k => selected[k]).join(",") 
+                  href={`/tournaments/checkout${toQuery({
+                    id,
+                    selected: Object.keys(selected)
+                      .filter((k) => selected[k])
+                      .join(","),
                   })}`}
                   className="flex h-16 min-w-[180px] items-center justify-center rounded-full bg-[#ff811f] text-[20px] font-bold text-white shadow-lg active:scale-[0.98] transition-transform"
                 >

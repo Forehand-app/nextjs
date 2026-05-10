@@ -32,13 +32,23 @@ export const viewport: Viewport = {
   viewportFit: "cover",
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
-        <link rel="stylesheet" href="https://fonts.cdnfonts.com/css/zalando-sans" />
+        <link
+          rel="stylesheet"
+          href="https://fonts.cdnfonts.com/css/zalando-sans"
+        />
       </head>
-      <body className={`${dmSans.variable} subpixel-antialiased`}>
+      <body
+        className={`${dmSans.variable} subpixel-antialiased`}
+        suppressHydrationWarning
+      >
         <Script
           id="theme-init"
           strategy="beforeInteractive"
@@ -56,4 +66,3 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     </html>
   );
 }
-

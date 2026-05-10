@@ -95,7 +95,7 @@ export const fetchApi = async (
         throw new Error(result.message || "Call completed unsuccessfully");
       }
       return {
-        data: result.data,
+        data: result.data !== undefined ? result.data : result,
       };
     }
 

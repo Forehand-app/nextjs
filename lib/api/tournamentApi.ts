@@ -75,6 +75,37 @@ export const tournamentApi = {
     return data as TournamentData[];
   },
 
+  getTournamentParticipants: async (tournamentId: string) => {
+    const { data, error } = await fetchApi(
+      getApiUrl({ path: "/tournament/participants", param: tournamentId }),
+    );
+    if (error) throw error;
+    return data;
+  },
+
+  getEventParticipants: async (eventId: string) => {
+    const { data, error } = await fetchApi(
+      getApiUrl({ path: "/tournament/events/participants", param: eventId }),
+    );
+    if (error) throw error;
+    return data;
+  },
+
+  updateTournamentState: async (
+    tournamentId: string,
+    state: "drafted" | "published" | "in_progress" | "completed" | "cancelled",
+  ) => {
+    const { error } = await fetchApi(
+      getApiUrl({ path: "/tournament/update-state", param: tournamentId }),
+      {
+        method: "POST",
+        contentType: "json",
+        body: { state },
+      },
+    );
+    if (error) throw error;
+  },
+
   publishTournament: async (tournamentId: string) => {
     const { error } = await fetchApi(
       getApiUrl({ path: "/tournament/publish", param: tournamentId }),
@@ -90,6 +121,39 @@ export const tournamentApi = {
       getApiUrl({ path: "/tournament/delete", param: tournamentId }),
       {
         method: "DELETE",
+      },
+    );
+    if (error) throw error;
+  },
+
+  deleteEvent: async (eventId: string) => {
+    const { error } = await fetchApi(
+      getApiUrl({ path: "/tournament/events", param: eventId }),
+      {
+        method: "DELETE",
+      },
+    );
+    if (error) throw error;
+  },
+
+  updateEventState: async (
+    eventId: string,
+    state:
+      | "created"
+      | "registration_closed"
+      | "participants_finalized"
+      | "scheduled"
+      | "in_progress"
+      | "round_over"
+      | "completed"
+      | "cancelled",
+  ) => {
+    const { error } = await fetchApi(
+      getApiUrl({ path: "/tournament/events/update-state", param: eventId }),
+      {
+        method: "POST",
+        contentType: "json",
+        body: { state },
       },
     );
     if (error) throw error;

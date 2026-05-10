@@ -105,4 +105,21 @@ export const inviteApi = {
     );
     if (error) throw error;
   },
+
+  sendEventTeamInvite: async (payload: {
+    phone: string;
+    eventId: string;
+    teamId?: string | null;
+  }) => {
+    const { data, error } = await fetchApi(
+      getApiUrl({ path: "/invite/event/team/create" }),
+      {
+        method: "POST",
+        contentType: "json",
+        body: payload,
+      },
+    );
+    if (error) throw error;
+    return data;
+  },
 };

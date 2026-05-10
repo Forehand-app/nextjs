@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useMemo, useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import {
   ArrowLeftIcon,
@@ -10,6 +10,11 @@ import {
   TrophyIcon,
 } from "@/components/Icons";
 import { toQuery } from "@/lib/utils";
+import TeamLogo from "@/components/TeamLogo";
+import { tournamentApi } from "@/lib/api/tournamentApi";
+import { matchApi } from "@/lib/api/matchApi";
+import { teamApi } from "@/lib/api/teamApi";
+import { TournamentData, EventData } from "@/lib/models";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -21,79 +26,19 @@ type MatchRow = {
   label: string;
   scheduledDate: string;
   scheduledTime: string;
-  sideA: { initials: string; name: string };
-  sideB: { initials: string; name: string };
+  sideA: any;
+  sideB: any;
   setsWonA: number;
   setsWonB: number;
   sets: SetScore[];
   winner?: "a" | "b";
   court?: string;
   scorer?: string;
+  roundNumber: number;
 };
 
 type FilterId = "all" | "upcoming" | "past" | "ongoing";
 
-// ─── Mock Data ────────────────────────────────────────────────────────────────
-
-const DUMMY_MATCHES: MatchRow[] = [
-  {
-    id: "m-1",
-    status: "live",
-    label: "Match 1",
-    scheduledDate: "01 May 25",
-    scheduledTime: "05:00 AM",
-    sideA: { initials: "KV", name: "Team A" },
-    sideB: { initials: "KV", name: "Team B" },
-    setsWonA: 1,
-    setsWonB: 0,
-    sets: [
-      { a: "02", b: "04" },
-      { a: "04", b: "03" },
-      { a: "--", b: "--" },
-    ],
-    court: "Court 1",
-    scorer: "Scorer 3",
-  },
-  {
-    id: "m-2",
-    status: "ended",
-    label: "Match 1",
-    scheduledDate: "01 May 25",
-    scheduledTime: "05:00 AM",
-    sideA: { initials: "KV", name: "Kunal Verma" },
-    sideB: { initials: "AK", name: "Anil Kumar" },
-    setsWonA: 3,
-    setsWonB: 0,
-    sets: [
-      { a: "20", b: "18" },
-      { a: "18", b: "14" },
-      { a: "12", b: "08" },
-    ],
-    winner: "a",
-    court: "Court 1",
-    scorer: "Scorer 3",
-  },
-  {
-    id: "m-3",
-    status: "upcoming",
-    label: "Match 1",
-    scheduledDate: "DD/MM",
-    scheduledTime: "--:--",
-    sideA: { initials: "", name: "Team A" },
-    sideB: { initials: "", name: "Team B" },
-    setsWonA: 0,
-    setsWonB: 0,
-    sets: [
-      { a: "--", b: "--" },
-      { a: "--", b: "--" },
-      { a: "--", b: "--" },
-    ],
-    court: "Select Court",
-    scorer: "Select Scorer",
-  },
-];
-
-const ROUNDS = ["Round 1", "Round 2", "Round 3"];
 const FILTERS: { id: FilterId; label: string }[] = [
   { id: "all", label: "All" },
   { id: "upcoming", label: "Upcoming" },
@@ -101,37 +46,44 @@ const FILTERS: { id: FilterId; label: string }[] = [
   { id: "ongoing", label: "Ongoing" },
 ];
 
-// ─── Sub-components ───────────────────────────────────────────────────────────
-
-function PlayerAvatar({
-  initials,
-  status,
-}: {
-  initials: string;
-  status?: "live" | "ended";
-}) {
-  return (
-    <div className="flex flex-col items-center gap-1">
-      <div className="w-12 h-12 rounded-full border-2 border-[var(--color-border)] bg-[var(--color-surface-elevated)] flex items-center justify-center text-sm font-bold text-[var(--color-text)]">
-        {initials || (
-          <span className="text-[var(--color-muted)] text-lg">+</span>
-        )}
-      </div>
-      {status === "live" && (
-        <span className="flex items-center gap-1 text-[10px] font-semibold text-green-600">
-          <span className="w-1.5 h-1.5 rounded-full bg-green-500 inline-block" />
-          Live
-        </span>
-      )}
-      {status === "ended" && (
-        <span className="flex items-center gap-1 text-[10px] font-semibold text-[var(--color-muted)]">
-          <span className="w-1.5 h-1.5 rounded-full bg-[var(--color-muted)] inline-block" />
-          Ended
-        </span>
-      )}
-    </div>
-  );
+function formatDate(value?: string | null) {
+  if (!value) return "TBA";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  return date.toLocaleDateString("en-IN", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  });
 }
+
+const getTeamName = (t: any) => {
+  if (!t) return "Empty Slot";
+
+  const participants = t.participants || [];
+
+  // If no participants, but we have a name, use it
+  if (participants.length === 0) return t.name || "Unknown Team";
+
+  if (participants.length === 1) {
+    // Singles: User name of the player
+    return participants[0].user?.name || t.name || "Player";
+  }
+
+  // Doubles: Mix of both players initials (e.g., "AB & CD")
+  return participants
+    .map((p: any) => {
+      const name = p.user?.name || "P";
+      return name
+        .split(" ")
+        .map((n: string) => n[0])
+        .join("")
+        .toUpperCase();
+    })
+    .join(" & ");
+};
+
+// ─── Sub-components ───────────────────────────────────────────────────────────
 
 function SetScoreGrid({ sets }: { sets: SetScore[] }) {
   return (
@@ -214,18 +166,23 @@ function MatchCard({
         <div className="flex items-center justify-between gap-2">
           {/* Side A */}
           <div className="flex flex-col items-center gap-1 flex-1">
-            <PlayerAvatar
-              initials={match.sideA.initials}
-              status={
-                match.status === "live"
-                  ? "live"
-                  : match.status === "ended"
-                    ? "ended"
-                    : undefined
-              }
-            />
-            <span className="text-xs font-medium text-[var(--color-text)] text-center leading-tight">
-              {match.sideA.name}
+            <div className="flex flex-col items-center gap-1">
+              <TeamLogo team={match.sideA} size="md" />
+              {match.status === "live" && (
+                <span className="flex items-center gap-1 text-[10px] font-semibold text-green-600">
+                  <span className="w-1.5 h-1.5 rounded-full bg-green-500 inline-block" />
+                  Live
+                </span>
+              )}
+              {match.status === "ended" && (
+                <span className="flex items-center gap-1 text-[10px] font-semibold text-[var(--color-muted)]">
+                  <span className="w-1.5 h-1.5 rounded-full bg-[var(--color-muted)] inline-block" />
+                  Ended
+                </span>
+              )}
+            </div>
+            <span className="text-xs font-bold text-[var(--color-text)] text-center leading-tight">
+              {getTeamName(match.sideA)}
             </span>
           </div>
 
@@ -249,9 +206,11 @@ function MatchCard({
 
           {/* Side B */}
           <div className="flex flex-col items-center gap-1 flex-1">
-            <PlayerAvatar initials={match.sideB.initials} />
-            <span className="text-xs font-medium text-[var(--color-text)] text-center leading-tight">
-              {match.sideB.name}
+            <div className="flex flex-col items-center gap-1">
+              <TeamLogo team={match.sideB} size="md" />
+            </div>
+            <span className="text-xs font-bold text-[var(--color-text)] text-center leading-tight">
+              {getTeamName(match.sideB)}
             </span>
           </div>
         </div>
@@ -274,7 +233,9 @@ function MatchCard({
           <div className="flex items-center justify-center gap-1.5 pt-1">
             <TrophyIcon size={14} className="text-orange-500" />
             <span className="text-sm font-semibold text-[var(--color-text)]">
-              {match.winner === "a" ? match.sideA.name : match.sideB.name}
+              {match.winner === "a"
+                ? getTeamName(match.sideA)
+                : getTeamName(match.sideB)}
             </span>
           </div>
         )}
@@ -301,29 +262,187 @@ function MatchCard({
 
 export default function OrgManageMatchesPage() {
   const router = useRouter();
-  const [searchParams, setSearchParams] = useState<URLSearchParams>(
-    new URLSearchParams(),
-  );
+  const searchParams = useSearchParams();
 
-  useEffect(() => {
-    setSearchParams(new URLSearchParams(window.location.search));
-  }, []);
+  const tournamentId = searchParams.get("tournamentId") || "";
+  const eventId = searchParams.get("eventId") || "";
 
-  const tournamentId = searchParams.get("tournamentId") || "1";
-  const eventId = searchParams.get("eventId") || "1";
-
+  const [tournament, setTournament] = useState<TournamentData | null>(null);
+  const [event, setEvent] = useState<EventData | null>(null);
+  const [matches, setMatches] = useState<MatchRow[]>([]);
+  const [teams, setTeams] = useState<Record<string, any>>({});
+  const [isLoading, setIsLoading] = useState(true);
+  const [isMatchesLoading, setIsMatchesLoading] = useState(false);
   const [activeFilter, setActiveFilter] = useState<FilterId>("all");
-  const [activeRound, setActiveRound] = useState("Round 1");
+  const [activeRound, setActiveRound] = useState<number>(1);
+
+  // 1. Load Tournament, Event and Teams Info
+  useEffect(() => {
+    if (!eventId || !tournamentId) return;
+
+    const loadCoreData = async () => {
+      try {
+        setIsLoading(true);
+        const [tData, teamsData] = await Promise.all([
+          tournamentApi.getInfo(tournamentId),
+          teamApi.getTeamsByEvent(eventId),
+        ]);
+
+        setTournament(tData);
+        const foundEvent = tData.events?.find((e) => e.id === eventId) || null;
+        setEvent(foundEvent);
+
+        if (foundEvent?.activeRound) {
+          setActiveRound(foundEvent.activeRound);
+        }
+
+        // Create a teams lookup map
+        if (Array.isArray(teamsData)) {
+          const map: Record<string, any> = {};
+          teamsData.forEach((t) => {
+            map[t.id] = t;
+          });
+          setTeams(map);
+        }
+      } catch (error) {
+        console.error("Failed to load core data", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    void loadCoreData();
+  }, [eventId, tournamentId]);
+
+  // 2. Load Matches for the Active Round
+  useEffect(() => {
+    if (!eventId || !activeRound) return;
+
+    const loadRoundMatches = async () => {
+      try {
+        setIsMatchesLoading(true);
+        const mData = await matchApi.getMatchesByEventAndRound(
+          eventId,
+          activeRound,
+        );
+
+        if (Array.isArray(mData)) {
+          const mapped: MatchRow[] = mData.map((m: any) => {
+            let swA = 0;
+            let swB = 0;
+            const setScores = (m.sets || []).map((s: any) => {
+              if (s.setStatus === "completed") {
+                if (s.teamAScore > s.teamBScore) swA++;
+                else if (s.teamBScore > s.teamAScore) swB++;
+              }
+              return {
+                a:
+                  s.setStatus === "not_started"
+                    ? "--"
+                    : String(s.teamAScore).padStart(2, "0"),
+                b:
+                  s.setStatus === "not_started"
+                    ? "--"
+                    : String(s.teamBScore).padStart(2, "0"),
+              };
+            });
+
+            while (setScores.length < 3) {
+              setScores.push({ a: "--", b: "--" });
+            }
+
+            let status: "upcoming" | "live" | "ended" = "upcoming";
+            if (m.matchState === "completed") status = "ended";
+            else if (m.matchState === "in_progress") status = "live";
+
+            // Robust team enrichment
+            // Check all common property names for team IDs, including if teamA/teamB are direct strings
+            const tAId =
+              (typeof m.teamA === "string" ? m.teamA : null) ||
+              m.teamAId ||
+              m.team_a_id ||
+              m.team1Id ||
+              m.team1_id ||
+              m.teamA?.id;
+            const tBId =
+              (typeof m.teamB === "string" ? m.teamB : null) ||
+              m.teamBId ||
+              m.team_b_id ||
+              m.team2Id ||
+              m.team2_id ||
+              m.teamB?.id;
+
+            const teamA = tAId && teams[tAId] ? teams[tAId] : m.teamA;
+            const teamB = tBId && teams[tBId] ? teams[tBId] : m.teamB;
+
+            return {
+              id: m.id,
+              status,
+              label: `Match ${m.slotIndex || ""}`,
+              scheduledDate: m.scheduledAt ? formatDate(m.scheduledAt) : "TBA",
+              scheduledTime: m.scheduledAt
+                ? new Date(m.scheduledAt).toLocaleTimeString("en-IN", {
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  })
+                : "--:--",
+              sideA: teamA,
+              sideB: teamB,
+              setsWonA: swA,
+              setsWonB: swB,
+              sets: setScores.slice(0, 3),
+              winner:
+                m.winnerId === teamA?.id
+                  ? "a"
+                  : m.winnerId === teamB?.id
+                    ? "b"
+                    : undefined,
+              court: m.courtName || "Select Court",
+              scorer: m.scorerName || "Select Scorer",
+              roundNumber: m.roundNumber || activeRound,
+            };
+          });
+          setMatches(mapped);
+        } else {
+          setMatches([]);
+        }
+      } catch (error) {
+        console.error("Failed to load round matches", error);
+        setMatches([]);
+      } finally {
+        setIsMatchesLoading(false);
+      }
+    };
+
+    void loadRoundMatches();
+  }, [eventId, activeRound, teams]);
+
+  const rounds = useMemo(() => {
+    const maxRound = event?.activeRound || 1;
+    const list = [];
+    for (let i = 1; i <= maxRound; i++) {
+      list.push(i);
+    }
+    return list;
+  }, [event?.activeRound]);
 
   const filtered = useMemo(() => {
-    return DUMMY_MATCHES.filter((m) => {
+    return matches.filter((m) => {
       if (activeFilter === "all") return true;
       if (activeFilter === "upcoming") return m.status === "upcoming";
       if (activeFilter === "past") return m.status === "ended";
       if (activeFilter === "ongoing") return m.status === "live";
       return true;
     });
-  }, [activeFilter]);
+  }, [matches, activeFilter]);
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-[var(--color-background)] flex items-center justify-center">
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent"></div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[var(--color-background)] flex flex-col">
@@ -348,10 +467,10 @@ export default function OrgManageMatchesPage() {
           </div>
           <div className="min-w-0">
             <p className="font-bold text-[var(--color-text)] text-sm truncate">
-              Mumbai Men&apos;s 2025
+              {tournament?.name || "Loading..."}
             </p>
             <p className="text-xs text-[var(--color-muted)] truncate">
-              Andheri West Organization
+              {tournament?.organization?.name || ""}
             </p>
           </div>
         </div>
@@ -361,10 +480,11 @@ export default function OrgManageMatchesPage() {
           <div className="flex items-start justify-between">
             <div>
               <h2 className="font-bold text-base text-[var(--color-text)]">
-                Pickle Ball Men&apos;s 2025
+                {event?.name || "Loading Event..."}
               </h2>
               <p className="text-sm text-[var(--color-muted)] mt-0.5">
-                Under 20 | 24 Dec 2025, 9:00 AM
+                {event?.teamType?.label || "Open"} |{" "}
+                {event?.startDate ? formatDate(event.startDate) : "TBA"}
               </p>
             </div>
             <button className="text-[var(--color-muted)] p-1">
@@ -372,7 +492,7 @@ export default function OrgManageMatchesPage() {
             </button>
           </div>
           <p className="text-xs font-semibold text-orange-500 mt-2">
-            Round of 64 ongoing
+            Round {activeRound} active
           </p>
         </div>
 
@@ -394,21 +514,21 @@ export default function OrgManageMatchesPage() {
         </div>
 
         {/* ── Round Navigator ── */}
-        <div className="flex items-center gap-2">
-          {ROUNDS.map((round, i) => (
-            <React.Fragment key={round}>
+        <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-hide">
+          {rounds.map((roundNum, i) => (
+            <React.Fragment key={roundNum}>
               <button
-                onClick={() => setActiveRound(round)}
+                onClick={() => setActiveRound(roundNum)}
                 className={`shrink-0 px-4 py-1.5 rounded-full text-sm font-semibold transition-colors ${
-                  activeRound === round
+                  activeRound === roundNum
                     ? "bg-orange-500 text-white shadow-sm shadow-orange-200"
                     : "bg-[var(--color-surface)] border border-[var(--color-border)] text-[var(--color-muted)]"
                 }`}
               >
-                {round}
+                Round {roundNum}
               </button>
-              {i < ROUNDS.length - 1 && (
-                <div className="flex-1 border-t-2 border-dashed border-[var(--color-border)]" />
+              {i < rounds.length - 1 && (
+                <div className="min-w-[20px] flex-1 border-t-2 border-dashed border-[var(--color-border)]" />
               )}
             </React.Fragment>
           ))}
@@ -416,9 +536,16 @@ export default function OrgManageMatchesPage() {
 
         {/* ── Match Cards ── */}
         <div className="space-y-5">
-          {filtered.length === 0 ? (
+          {isMatchesLoading ? (
+            <div className="flex flex-col items-center justify-center py-12">
+              <div className="h-6 w-6 animate-spin rounded-full border-4 border-primary border-t-transparent"></div>
+              <p className="mt-3 text-sm text-[var(--color-text-secondary)]">
+                Fetching matches...
+              </p>
+            </div>
+          ) : filtered.length === 0 ? (
             <div className="bg-[var(--color-surface)] rounded-2xl border border-[var(--color-border)] p-8 text-center text-sm text-[var(--color-muted)]">
-              No matches found.
+              No matches found for Round {activeRound}.
             </div>
           ) : (
             filtered.map((m) => (

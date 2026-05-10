@@ -67,7 +67,7 @@ export default function CreateTournamentPage() {
       }
 
       if (state === "created") {
-        await tournamentApi.publishTournament(tournamentId);
+        await tournamentApi.updateTournamentState(tournamentId, "published");
       }
 
       router.push("/org/tournaments");

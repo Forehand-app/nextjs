@@ -120,7 +120,7 @@ export default function OrgTournamentsPage() {
 
   const handlePublish = async (tournamentId: string) => {
     try {
-      await tournamentApi.publishTournament(tournamentId);
+      await tournamentApi.updateTournamentState(tournamentId, "published");
       await loadTournaments();
       setActiveTab("upcoming");
     } catch (error) {

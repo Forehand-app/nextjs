@@ -15,7 +15,7 @@ import { Capacitor } from "@capacitor/core";
 import type { Session, User } from "@supabase/supabase-js";
 import { getSupabaseBrowserClient } from "@/lib/supabase";
 import { OrganizationData, ProfileData } from "@/lib/models";
-import { organizationApi } from "@/lib/api/orgaizationApi";
+import { organizationApi } from "@/lib/api/organizationApi";
 import { userApi } from "@/lib/api/userApi";
 
 type AppContextValue = {

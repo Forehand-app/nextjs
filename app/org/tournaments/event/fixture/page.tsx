@@ -1,216 +1,334 @@
 "use client";
 
-import React, { useState } from "react";
-import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { 
-  ArrowLeftIcon, 
-  EllipsisIcon, 
-  SearchIcon, 
-  PlusIcon, 
-  ChevronDownIcon, 
-  XIcon, 
+import React, { useState, useEffect, useMemo, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import {
+  ArrowLeftIcon,
+  SearchIcon,
+  PlusIcon,
+  ChevronDownIcon,
+  XIcon,
   CheckIcon,
   TrophyIcon,
-  TrashIcon
+  TrashIcon,
 } from "@/components/Icons";
-import { useSearchParams } from "next/navigation";
+import { toQuery } from "@/lib/utils";
+import { tournamentApi } from "@/lib/api/tournamentApi";
+import { teamApi } from "@/lib/api/teamApi";
+import { matchApi, CreateMatchPayload } from "@/lib/api/matchApi";
+import { TournamentData, EventData } from "@/lib/models";
+import TeamLogo from "@/components/TeamLogo";
 
-// --- INITIAL MOCK STATE ---
-const initialUnassigned = [
-  { id: "p1", name: "Anil Kumar", avatar: "AK", hasBye: false },
-  { id: "p2", name: "Rahul Singh", avatar: "RS", hasBye: true },
-  { id: "p3", name: "Priya Patel", avatar: "PP", hasBye: false },
-  { id: "p4", name: "John Doe", avatar: "JD", hasBye: false },
-  { id: "p5", name: "Emily Chen", avatar: "EC", hasBye: false },
-];
-
-const initialMatches = {
-  "Round 1": [
-    { id: "m1", state: "upcoming", date: "12 Oct, 10:00 AM", p1: { id: "a1", name: "Anil Kumar" }, p2: { id: "a2", name: "Rajesh V." } },
-    { id: "m2", state: "upcoming", date: "12 Oct, 11:30 AM", p1: { id: "a3", name: "Sarah Lee" }, p2: { id: "a4", name: "Mike Ross" } },
-    { id: "m3", state: "empty", date: "TBD", p1: null, p2: null },
-  ],
-  "Round 2": [
-    { id: "m4", state: "empty", date: "TBD", p1: null, p2: null },
-    { id: "m5", state: "empty", date: "TBD", p1: null, p2: null },
-  ],
-  "Round 3": [
-    { id: "m6", state: "empty", date: "TBD", p1: null, p2: null },
-  ]
-};
-
-export default function FixtureSetupPage() {
+function FixtureSetupContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
-  const tournamentId = searchParams.get("tournamentId") || "1";
-  const eventId = searchParams.get("eventId") || "1";
-  
-  // Interactive States
-  const [matches, setMatches] = useState<Record<string, any[]>>(initialMatches);
-  const [unassigned, setUnassigned] = useState(initialUnassigned);
-  
-  const [activeRound, setActiveRound] = useState("Round 1");
+  const tournamentId = searchParams.get("tournamentId") || "";
+  const eventId = searchParams.get("eventId") || "";
+
+  const [tournament, setTournament] = useState<TournamentData | null>(null);
+  const [event, setEvent] = useState<EventData | null>(null);
+  const [teams, setTeams] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Fixture State
+  const [matches, setMatches] = useState<any[]>([]);
+  const [unassigned, setUnassigned] = useState<any[]>([]);
+
   const [isRemainingOpen, setIsRemainingOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
-  const [showModal, setShowModal] = useState(false);
-  
+  const [showByeModal, setShowByeModal] = useState(false);
+  const [isPublishing, setIsPublishing] = useState(false);
+
   // Selection State for Assignment
-  const [selectedSlot, setSelectedSlot] = useState<{ matchId: string; position: 'p1' | 'p2' } | null>(null);
+  const [selectedSlot, setSelectedSlot] = useState<{
+    matchId: string;
+    position: "teamA" | "teamB";
+  } | null>(null);
 
-  // Derived
-  const rounds = Object.keys(matches);
-  const currentMatches = matches[activeRound] || [];
+  useEffect(() => {
+    if (!eventId || !tournamentId) return;
 
-  // --- ACTIONS ---
+    const loadData = async () => {
+      try {
+        setIsLoading(true);
+        const [tournamentData, teamsData] = await Promise.all([
+          tournamentApi.getInfo(tournamentId),
+          teamApi.getTeamsByEvent(eventId),
+        ]);
 
-  // 1. Reset Bracket
+        setTournament(tournamentData);
+        const foundEvent = tournamentData.events?.find((e) => e.id === eventId);
+        setEvent(foundEvent || null);
+
+        const participatingTeams = Array.isArray(teamsData)
+          ? teamsData.filter(
+              (t) =>
+                t.teamStatus === "participating" ||
+                t.teamStatus === "confirmed",
+            )
+          : [];
+
+        setTeams(participatingTeams);
+        autoPair(participatingTeams);
+      } catch (error) {
+        console.error("Failed to load data", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    void loadData();
+  }, [eventId, tournamentId]);
+
+  const autoPair = (teamList: any[]) => {
+    if (teamList.length < 2) {
+      setUnassigned(teamList);
+      setMatches([]);
+      return;
+    }
+
+    const shuffled = [...teamList].sort(() => Math.random() - 0.5);
+    const N = shuffled.length;
+    const matchCount = N - 1;
+
+    const newMatches = [];
+    // We can only pair N/2 matches initially
+    const initialPairCount = Math.floor(N / 2);
+
+    for (let i = 0; i < matchCount; i++) {
+      if (i < initialPairCount) {
+        newMatches.push({
+          id: `m-${Date.now()}-${i}`,
+          teamA: shuffled.pop(),
+          teamB: shuffled.pop(),
+          state: "upcoming",
+        });
+      } else {
+        newMatches.push({
+          id: `m-${Date.now()}-${i}`,
+          teamA: null,
+          teamB: null,
+          state: "empty",
+        });
+      }
+    }
+
+    setMatches(newMatches);
+    setUnassigned(shuffled); // Remaining teams (if N was odd)
+  };
+
   const handleResetBrackets = () => {
-    if (confirm("Reset brackets? All assigned players will return to the unassigned list.")) {
-      setMatches({
-        "Round 1": [{ id: "m1", state: "empty", date: "TBD", p1: null, p2: null }, { id: "m2", state: "empty", date: "TBD", p1: null, p2: null }],
-        "Round 2": [{ id: "m3", state: "empty", date: "TBD", p1: null, p2: null }],
-        "Round 3": []
-      });
-      setUnassigned([
-        { id: "p1", name: "Anil Kumar", avatar: "AK", hasBye: false },
-        { id: "p2", name: "Rahul Singh", avatar: "RS", hasBye: true },
-        { id: "p3", name: "Priya Patel", avatar: "PP", hasBye: false },
-        { id: "p4", name: "John Doe", avatar: "JD", hasBye: false },
-        { id: "p5", name: "Rajesh V.", avatar: "RV", hasBye: false },
-        { id: "p6", name: "Sarah Lee", avatar: "SL", hasBye: false },
-        { id: "p7", name: "Mike Ross", avatar: "MR", hasBye: false },
-        { id: "p8", name: "Emily Chen", avatar: "EC", hasBye: false },
-      ]);
+    if (confirm("Reset fixtures? All teams will be shuffled and re-paired.")) {
+      autoPair(teams);
       setSelectedSlot(null);
     }
   };
 
-  // 2. Add empty fixture
-  const handleAddFixture = () => {
-    setMatches(prev => ({
-      ...prev,
-      [activeRound]: [
-        ...prev[activeRound],
-        { id: `new-${Date.now()}`, state: "empty", date: "TBD", p1: null, p2: null }
-      ]
-    }));
+  const handleRemoveFixture = (matchId: string) => {
+    const match = matches.find((m) => m.id === matchId);
+    if (!match) return;
+
+    const returnedTeams: any[] = [];
+    if (match.teamA) returnedTeams.push(match.teamA);
+    if (match.teamB) returnedTeams.push(match.teamB);
+
+    setUnassigned((prev) => [...prev, ...returnedTeams]);
+    setMatches((prev) => prev.filter((m) => m.id !== matchId));
+    if (selectedSlot?.matchId === matchId) setSelectedSlot(null);
   };
 
-  // 3. Remove fixture (returns players to list)
-  const handleRemoveFixture = (matchToRemove: any) => {
-    const playersToReturn: Array<{ id: string; name: string; avatar: string; hasBye: boolean }> = [];
-    
-    if (matchToRemove.p1) playersToReturn.push({ id: matchToRemove.p1.id, name: matchToRemove.p1.name, avatar: matchToRemove.p1.name.substring(0,2).toUpperCase(), hasBye: false });
-    if (matchToRemove.p2) playersToReturn.push({ id: matchToRemove.p2.id, name: matchToRemove.p2.name, avatar: matchToRemove.p2.name.substring(0,2).toUpperCase(), hasBye: false });
-
-    if (playersToReturn.length > 0) {
-      setUnassigned(prev => [...prev, ...playersToReturn]);
-    }
-
-    setMatches(prev => ({
-      ...prev,
-      [activeRound]: prev[activeRound].filter(m => m.id !== matchToRemove.id)
-    }));
-    
-    if (selectedSlot?.matchId === matchToRemove.id) setSelectedSlot(null);
-  };
-
-  // 4. Click an empty slot to select it, or click an assigned player to unassign them
-  const handleSlotClick = (matchId: string, position: 'p1' | 'p2', currentPlayer: any) => {
-    if (currentPlayer) {
-      // Unassign this player
-      setUnassigned(prev => [...prev, { id: currentPlayer.id, name: currentPlayer.name, avatar: currentPlayer.name.substring(0,2).toUpperCase(), hasBye: false }]);
-      setMatches(prev => {
-        const roundMatches = [...prev[activeRound]];
-        const matchIndex = roundMatches.findIndex(m => m.id === matchId);
-        const updatedMatch = { ...roundMatches[matchIndex], [position]: null, state: "empty" }; // Revert to empty state
-        roundMatches[matchIndex] = updatedMatch;
-        return { ...prev, [activeRound]: roundMatches };
-      });
-      if (selectedSlot?.matchId === matchId && selectedSlot?.position === position) setSelectedSlot(null);
+  const handleSlotClick = (
+    matchId: string,
+    position: "teamA" | "teamB",
+    currentTeam: any,
+  ) => {
+    if (currentTeam) {
+      // Unassign
+      setUnassigned((prev) => [...prev, currentTeam]);
+      setMatches((prev) =>
+        prev.map((m) =>
+          m.id === matchId ? { ...m, [position]: null, state: "empty" } : m,
+        ),
+      );
     } else {
-      // Select slot for assignment
+      // Select for assignment
       setSelectedSlot({ matchId, position });
-      setIsRemainingOpen(true); // Auto-open the player drawer
+      setIsRemainingOpen(true);
     }
   };
 
-  // 5. Assign player from list
-  const handleAssignClick = (player: any) => {
-    let targetMatchId = selectedSlot?.matchId;
-    let targetPosition = selectedSlot?.position;
+  const handleAssignClick = (team: any) => {
+    if (!selectedSlot) return;
 
-    // Auto-find slot if none selected manually
-    if (!targetMatchId || !targetPosition) {
-      const firstEmptyMatch = currentMatches.find(m => !m.p1 || !m.p2);
-      if (!firstEmptyMatch) {
-        alert("No empty slots available in this round. Add a match first.");
-        return;
-      }
-      targetMatchId = firstEmptyMatch.id;
-      targetPosition = !firstEmptyMatch.p1 ? 'p1' : 'p2';
-    }
-
-    // 1. Remove from unassigned
-    setUnassigned(prev => prev.filter(p => p.id !== player.id));
-    
-    // 2. Assign to match
-    setMatches(prev => {
-      const roundMatches = [...prev[activeRound]];
-      const matchIndex = roundMatches.findIndex(m => m.id === targetMatchId);
-      const updatedMatch = { ...roundMatches[matchIndex] };
-      
-      updatedMatch[targetPosition!] = { id: player.id, name: player.name };
-      
-      // If both are filled, transform to "upcoming" match
-      if (updatedMatch.p1 && updatedMatch.p2) {
-        updatedMatch.state = "upcoming";
-      }
-
-      roundMatches[matchIndex] = updatedMatch;
-      return { ...prev, [activeRound]: roundMatches };
-    });
-
-    // Reset selection
+    setUnassigned((prev) => prev.filter((t) => t.id !== team.id));
+    setMatches((prev) =>
+      prev.map((m) => {
+        if (m.id === selectedSlot.matchId) {
+          const updated = { ...m, [selectedSlot.position]: team };
+          if (updated.teamA && updated.teamB) updated.state = "upcoming";
+          return updated;
+        }
+        return m;
+      }),
+    );
     setSelectedSlot(null);
   };
 
-  // Filter unassigned players
-  const filteredUnassigned = unassigned.filter(p => p.name.toLowerCase().includes(searchQuery.toLowerCase()));
+  const handleAddFixture = () => {
+    setMatches((prev) => [
+      ...prev,
+      {
+        id: `m-manual-${Date.now()}`,
+        teamA: null,
+        teamB: null,
+        state: "empty",
+      },
+    ]);
+  };
+
+  const handlePublishClick = () => {
+    if (matches.length === 0) {
+      alert("Please create at least one match for this round.");
+      return;
+    }
+
+    const incomplete = matches.some((m) => !m.teamA || !m.teamB);
+    if (incomplete) {
+      alert(
+        "Some matches are not filled properly. Please fill or remove them.",
+      );
+      return;
+    }
+
+    setShowByeModal(true);
+  };
+
+  const handleConfirmPublish = async () => {
+    try {
+      setIsPublishing(true);
+
+      const payload: CreateMatchPayload[] = matches
+        .filter((m) => m.teamA && m.teamB)
+        .map((m) => ({
+          eventId: eventId,
+          roundNumber: 1, // Round 1 for setup
+          teamA: m.teamA.id,
+          teamB: m.teamB.id,
+          matchState: "scheduled",
+          pointsPerSet: event?.pointsPerSet || 11,
+          setsPerMatch: event?.setsPerMatch || 1,
+        }));
+
+      if (payload.length > 0) {
+        await matchApi.createMatches(payload);
+      }
+
+      // Update event state to scheduled
+      await tournamentApi.updateEventState(eventId, "scheduled");
+
+      // Check if all events in the tournament are now beyond 'created'
+      const updatedTournament = await tournamentApi.getInfo(tournamentId);
+      const allEventsFinalized = (updatedTournament.events || []).every(
+        (e) => e.eventState !== "created",
+      );
+
+      if (allEventsFinalized) {
+        await tournamentApi.updateTournamentState(tournamentId, "in_progress");
+      }
+
+      router.push(`/org/tournaments/detail${toQuery({ t: tournamentId })}`);
+    } catch (error) {
+      console.error("Failed to publish matches", error);
+      alert("Failed to publish fixtures. Please try again.");
+    } finally {
+      setIsPublishing(false);
+      setShowByeModal(false);
+    }
+  };
+
+  const filteredUnassigned = unassigned.filter((t) => {
+    const teamName =
+      t.name || t.participants?.map((p: any) => p.user?.name).join(" & ") || "";
+    return teamName.toLowerCase().includes(searchQuery.toLowerCase());
+  });
+
+  const getTeamName = (t: any) => {
+    const participants = t.participants || [];
+    if (participants.length === 0) return t.name || "Unknown Team";
+
+    if (participants.length === 1) {
+      // Singles: User name of the player
+      return participants[0].user?.name || t.name || "Player";
+    }
+
+    // Doubles: Mix of both players initials (e.g., "AB & CD")
+    return participants
+      .map((p: any) => {
+        const name = p.user?.name || "P";
+        return name
+          .split(" ")
+          .map((n: string) => n[0])
+          .join("")
+          .toUpperCase();
+      })
+      .join(" & ");
+  };
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-[var(--color-background)] flex items-center justify-center">
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent"></div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[var(--color-background)] font-sans pb-24">
-      
       {/* 1. Header Section */}
       <div className="sticky top-0 z-40 bg-[var(--color-surface)] border-b border-[var(--color-border)] p-4 flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <button onClick={() => router.back()} className="p-2 -ml-2 text-[var(--color-text)] hover:bg-[var(--color-surface-elevated)] rounded-full transition-colors">
+          <button
+            onClick={() => router.back()}
+            className="p-2 -ml-2 text-[var(--color-text)] hover:bg-[var(--color-surface-elevated)] rounded-full transition-colors"
+          >
             <ArrowLeftIcon size={20} />
           </button>
-          <h1 className="font-bold text-lg text-[var(--color-text)] tracking-tight">Fixture & Bracket Setup</h1>
+          <h1 className="font-bold text-lg text-[var(--color-text)] tracking-tight">
+            Fixture & Bracket Setup
+          </h1>
         </div>
       </div>
 
       <div className="p-4 space-y-4 max-w-3xl mx-auto">
-        
         {/* 2. Tournament Info Card */}
         <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-2xl p-4 shadow-sm relative overflow-hidden">
           <div className="flex justify-between items-start mb-4">
             <div>
-              <h2 className="font-bold text-lg text-[var(--color-text)]">Pickleball Men's Open 2025</h2>
-              <p className="text-sm font-medium text-[var(--color-muted)] mt-0.5">U-17 Open • 01 Dec 2026, 8:00 AM</p>
+              <h2 className="font-bold text-lg text-[var(--color-text)]">
+                {event?.name || tournament?.name}
+              </h2>
+              <p className="text-sm font-medium text-[var(--color-muted)] mt-0.5">
+                {event?.teamType?.label || "Open"} •{" "}
+                {event?.startDate
+                  ? new Date(event.startDate).toLocaleDateString("en-IN", {
+                      day: "2-digit",
+                      month: "short",
+                      year: "numeric",
+                    })
+                  : "Date TBA"}
+              </p>
             </div>
-            <button className="text-[var(--color-muted)] p-1 hover:bg-[var(--color-surface-elevated)] rounded-lg">
-              <EllipsisIcon size={20} />
-            </button>
           </div>
           <div className="flex items-center justify-between pt-4 border-t border-[var(--color-border)]">
             <div className="flex flex-col">
-              <span className="text-xl font-bold text-[var(--color-text)]">{unassigned.length}</span>
-              <span className="text-xs font-semibold text-[var(--color-muted)] uppercase tracking-wider">Unassigned Players</span>
+              <span className="text-xl font-bold text-[var(--color-text)]">
+                {unassigned.length}
+              </span>
+              <span className="text-xs font-semibold text-[var(--color-muted)] uppercase tracking-wider">
+                Teams with Bye
+              </span>
             </div>
-            <button 
+            <button
               onClick={handleResetBrackets}
               className="px-4 py-2 bg-[var(--color-surface-elevated)] border border-[var(--color-border)] text-sm font-bold text-red-500 hover:text-red-600 rounded-xl hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors"
             >
@@ -219,26 +337,36 @@ export default function FixtureSetupPage() {
           </div>
         </div>
 
-        {/* 3. Remaining Players Section */}
+        {/* 3. Unassigned Teams Section */}
         <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-2xl shadow-sm overflow-hidden transition-all">
-          <button 
+          <button
             onClick={() => setIsRemainingOpen(!isRemainingOpen)}
             className="w-full flex items-center justify-between p-4 bg-[var(--color-surface-elevated)]"
           >
             <div className="flex items-center gap-2">
-              <span className="font-bold text-[var(--color-text)] text-sm">Remaining Players</span>
-              <span className="px-2 py-0.5 rounded-full bg-primary/10 text-primary text-xs font-bold">{unassigned.length}/64</span>
+              <span className="font-bold text-[var(--color-text)] text-sm">
+                Unassigned Teams (Bye)
+              </span>
+              <span className="px-2 py-0.5 rounded-full bg-primary/10 text-primary text-xs font-bold">
+                {unassigned.length}
+              </span>
             </div>
-            <ChevronDownIcon size={18} className={`text-[var(--color-muted)] transition-transform duration-300 ${isRemainingOpen ? "rotate-180" : ""}`} />
+            <ChevronDownIcon
+              size={18}
+              className={`text-[var(--color-muted)] transition-transform duration-300 ${isRemainingOpen ? "rotate-180" : ""}`}
+            />
           </button>
-          
+
           {isRemainingOpen && (
             <div className="p-4 border-t border-[var(--color-border)] space-y-4 animate-in fade-in slide-in-from-top-2">
               <div className="relative">
-                <SearchIcon size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--color-muted)]" />
-                <input 
-                  type="text" 
-                  placeholder="Search players..." 
+                <SearchIcon
+                  size={16}
+                  className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--color-muted)]"
+                />
+                <input
+                  type="text"
+                  placeholder="Search teams..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="w-full pl-9 pr-4 py-2.5 bg-[var(--color-surface-elevated)] border border-[var(--color-border)] rounded-xl text-sm outline-none focus:border-primary text-[var(--color-text)]"
@@ -246,27 +374,27 @@ export default function FixtureSetupPage() {
               </div>
               <div className="space-y-2 max-h-48 overflow-y-auto pr-2 scrollbar-thin">
                 {filteredUnassigned.length === 0 ? (
-                  <p className="text-sm text-[var(--color-muted)] text-center py-4">No unassigned players found.</p>
+                  <p className="text-sm text-[var(--color-muted)] text-center py-4">
+                    No unassigned teams found.
+                  </p>
                 ) : (
-                  filteredUnassigned.map(player => (
-                    <div key={player.id} className="flex items-center justify-between p-2 hover:bg-[var(--color-surface-elevated)] rounded-lg cursor-pointer transition-colors group border border-transparent hover:border-[var(--color-border)]">
+                  filteredUnassigned.map((team) => (
+                    <div
+                      key={team.id}
+                      className="flex items-center justify-between p-2 hover:bg-[var(--color-surface-elevated)] rounded-lg cursor-pointer transition-colors group border border-transparent hover:border-[var(--color-border)]"
+                    >
                       <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-gray-200 to-gray-300 dark:from-gray-700 dark:to-gray-600 flex items-center justify-center text-xs font-bold text-gray-700 dark:text-gray-200 shadow-inner">
-                          {player.avatar}
-                        </div>
-                        <span className="text-sm font-semibold text-[var(--color-text)]">{player.name}</span>
+                        <TeamLogo team={team} size="sm" />
+                        <span className="text-sm font-semibold text-[var(--color-text)]">
+                          {getTeamName(team)}
+                        </span>
                       </div>
                       <div className="flex items-center gap-2">
-                        {player.hasBye && (
-                          <span className="px-2 py-1 text-[10px] uppercase font-bold tracking-wider bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 rounded-md">
-                            Bye
-                          </span>
-                        )}
-                        <button 
-                          onClick={() => handleAssignClick(player)}
+                        <button
+                          onClick={() => handleAssignClick(team)}
                           className="opacity-0 group-hover:opacity-100 px-3 py-1.5 text-xs font-bold text-primary bg-primary/10 hover:bg-primary hover:text-white rounded-lg transition-all"
                         >
-                          Assign
+                          Assign to Slot
                         </button>
                       </div>
                     </div>
@@ -279,155 +407,126 @@ export default function FixtureSetupPage() {
 
         {/* 5. Matches Section */}
         <div className="pt-2 space-y-4">
-          
-          {/* A. Round Tabs */}
-          <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide -mx-4 px-4 sm:mx-0 sm:px-0">
-            {rounds.map(round => (
-              <button 
-                key={round}
-                onClick={() => { setActiveRound(round); setSelectedSlot(null); }}
-                className={`px-5 py-2 rounded-full text-sm font-bold whitespace-nowrap transition-colors ${
-                  activeRound === round 
-                    ? "bg-primary text-white shadow-md shadow-primary/20" 
-                    : "bg-[var(--color-surface)] border border-[var(--color-border)] text-[var(--color-muted)] hover:text-[var(--color-text)]"
-                }`}
-              >
-                {round}
-              </button>
-            ))}
+          <div className="flex items-center justify-between px-1">
+            <h3 className="font-bold text-[var(--color-text)]">
+              Round 1 Matches
+            </h3>
+            <span className="text-xs font-bold text-primary uppercase tracking-widest">
+              {matches.length} Matches
+            </span>
           </div>
 
-          {/* B. Match Cards */}
           <div className="space-y-3">
-            {currentMatches.length === 0 && (
-              <div className="text-center py-8 border-2 border-dashed border-[var(--color-border)] rounded-2xl bg-[var(--color-surface)]">
-                <p className="text-sm text-[var(--color-muted)] font-medium">No fixtures in this round.</p>
-              </div>
-            )}
-
-            {currentMatches.map((match: any, index: number) => (
+            {matches.map((match: any, index: number) => (
               <div key={match.id} className="relative group">
                 <div className="flex justify-between items-end mb-1.5 ml-1 mr-1">
                   <div className="text-xs font-bold text-[var(--color-muted)] uppercase tracking-wider">
                     Match {index + 1}
                   </div>
-                  {/* Remove Fixture Button */}
-                  <button 
-                    onClick={() => handleRemoveFixture(match)}
+                  <button
+                    onClick={() => handleRemoveFixture(match.id)}
                     className="text-[var(--color-muted)] hover:text-red-500 transition-colors p-1"
-                    title="Remove Fixture"
+                    title="Remove Match"
                   >
                     <TrashIcon size={14} />
                   </button>
                 </div>
 
-                {/* --- STATE 1: EMPTY OR PARTIALLY FILLED MATCH SLOT --- */}
-                {match.state === "empty" && (
-                  <div className={`border-2 border-[var(--color-border)] bg-[var(--color-surface)] rounded-2xl p-4 flex flex-col items-center justify-center gap-3 transition-all min-h-[110px] ${
-                    selectedSlot?.matchId === match.id ? "border-primary shadow-[0_0_15px_rgba(255,107,0,0.1)]" : "border-dashed hover:border-primary/50"
-                  }`}>
-                    
-                    <div className="flex gap-4 items-center">
-                      {/* P1 Slot */}
-                      <button 
-                        onClick={() => handleSlotClick(match.id, 'p1', match.p1)}
-                        className={`w-12 h-12 rounded-full flex items-center justify-center transition-all shadow-sm relative group/slot
-                          ${match.p1 
-                            ? "bg-gradient-to-br from-orange-400 to-orange-600 text-white font-bold hover:scale-105" 
-                            : selectedSlot?.matchId === match.id && selectedSlot?.position === 'p1'
-                              ? "bg-primary/20 text-primary border-2 border-primary ring-4 ring-primary/20 scale-110"
-                              : "bg-[var(--color-surface-elevated)] text-[var(--color-muted)] border border-[var(--color-border)] hover:bg-primary/10 hover:text-primary hover:border-primary/50"
-                          }`}
-                        title={match.p1 ? "Click to unassign" : "Click to select slot"}
-                      >
-                        {match.p1 ? match.p1.name.substring(0,2).toUpperCase() : <PlusIcon size={20} />}
-                        {match.p1 && <div className="absolute inset-0 bg-red-500/80 text-white rounded-full flex items-center justify-center opacity-0 group-hover/slot:opacity-100 transition-opacity backdrop-blur-sm"><XIcon size={16}/></div>}
-                      </button>
-                      
-                      <div className="flex items-center justify-center text-[var(--color-muted)] font-black text-xs uppercase">VS</div>
-                      
-                      {/* P2 Slot */}
-                      <button 
-                        onClick={() => handleSlotClick(match.id, 'p2', match.p2)}
-                        className={`w-12 h-12 rounded-full flex items-center justify-center transition-all shadow-sm relative group/slot
-                          ${match.p2 
-                            ? "bg-gradient-to-br from-blue-400 to-blue-600 text-white font-bold hover:scale-105" 
-                            : selectedSlot?.matchId === match.id && selectedSlot?.position === 'p2'
-                              ? "bg-primary/20 text-primary border-2 border-primary ring-4 ring-primary/20 scale-110"
-                              : "bg-[var(--color-surface-elevated)] text-[var(--color-muted)] border border-[var(--color-border)] hover:bg-primary/10 hover:text-primary hover:border-primary/50"
-                          }`}
-                        title={match.p2 ? "Click to unassign" : "Click to select slot"}
-                      >
-                        {match.p2 ? match.p2.name.substring(0,2).toUpperCase() : <PlusIcon size={20} />}
-                        {match.p2 && <div className="absolute inset-0 bg-red-500/80 text-white rounded-full flex items-center justify-center opacity-0 group-hover/slot:opacity-100 transition-opacity backdrop-blur-sm"><XIcon size={16}/></div>}
-                      </button>
-                    </div>
-                    
-                    <div className="text-[11px] font-bold text-[var(--color-muted)] bg-[var(--color-surface-elevated)] px-3 py-1 rounded-full uppercase tracking-wider mt-1">
-                      {selectedSlot?.matchId === match.id ? <span className="text-primary">Select a player from list ↑</span> : "Click slots to assign"}
-                    </div>
-                  </div>
-                )}
-
-                {/* --- STATE 2: UPCOMING (Fully Assigned but not started) --- */}
-                {match.state === "upcoming" && (
-                  <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-2xl p-1 shadow-sm flex flex-col relative overflow-hidden group-hover:border-[var(--color-text)] transition-colors">
-                    
-                    {/* Player 1 */}
-                    <div className="flex items-center justify-between p-3 rounded-t-xl bg-[var(--color-surface)]">
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-orange-400 to-orange-600 flex items-center justify-center text-white text-xs font-bold shadow-inner">
-                          {match.p1.name.substring(0,2).toUpperCase()}
+                <div
+                  className={`border-2 rounded-2xl p-4 flex flex-col items-center justify-center gap-3 transition-all min-h-[110px] ${
+                    match.state === "empty"
+                      ? "bg-[var(--color-surface)] border-dashed border-[var(--color-border)] hover:border-primary/50"
+                      : "bg-[var(--color-surface)] border-[var(--color-border)] shadow-sm"
+                  } ${selectedSlot?.matchId === match.id ? "border-primary ring-2 ring-primary/10" : ""}`}
+                >
+                  <div className="flex gap-4 items-center w-full justify-center">
+                    {/* Team A Slot */}
+                    <button
+                      onClick={() =>
+                        handleSlotClick(match.id, "teamA", match.teamA)
+                      }
+                      className="relative group/slot"
+                    >
+                      <TeamLogo
+                        team={match.teamA}
+                        size="lg"
+                        isSelected={
+                          selectedSlot?.matchId === match.id &&
+                          selectedSlot?.position === "teamA"
+                        }
+                      />
+                      {match.teamA && (
+                        <div className="absolute inset-0 bg-red-500/80 text-white rounded-full flex items-center justify-center opacity-0 group-hover/slot:opacity-100 transition-opacity backdrop-blur-sm">
+                          <XIcon size={16} />
                         </div>
-                        <span className="font-semibold text-sm text-[var(--color-text)]">
-                          {match.p1.name}
-                        </span>
+                      )}
+                    </button>
+
+                    <div className="flex flex-col items-center gap-1">
+                      <div className="text-[10px] font-black text-[var(--color-muted)] uppercase tracking-tighter">
+                        VS
                       </div>
+                      <div className="h-4 w-px bg-[var(--color-border)]" />
                     </div>
 
-                    <div className="h-px bg-[var(--color-border)] w-full relative">
-                       <div className="absolute top-1/2 left-6 -translate-y-1/2 bg-[var(--color-surface-elevated)] border border-[var(--color-border)] text-[9px] font-black text-[var(--color-muted)] px-1.5 py-0.5 rounded uppercase tracking-widest z-10">VS</div>
-                    </div>
-
-                    {/* Player 2 */}
-                    <div className="flex items-center justify-between p-3 rounded-b-xl bg-[var(--color-surface)]">
-                      <div className="flex items-center gap-3 pl-8"> 
-                        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center text-white text-xs font-bold shadow-inner">
-                          {match.p2.name.substring(0,2).toUpperCase()}
+                    {/* Team B Slot */}
+                    <button
+                      onClick={() =>
+                        handleSlotClick(match.id, "teamB", match.teamB)
+                      }
+                      className="relative group/slot"
+                    >
+                      <TeamLogo
+                        team={match.teamB}
+                        size="lg"
+                        isSelected={
+                          selectedSlot?.matchId === match.id &&
+                          selectedSlot?.position === "teamB"
+                        }
+                      />
+                      {match.teamB && (
+                        <div className="absolute inset-0 bg-red-500/80 text-white rounded-full flex items-center justify-center opacity-0 group-hover/slot:opacity-100 transition-opacity backdrop-blur-sm">
+                          <XIcon size={16} />
                         </div>
-                        <span className="font-semibold text-sm text-[var(--color-text)]">
-                          {match.p2.name}
-                        </span>
-                      </div>
-                    </div>
-
-                    {/* Date Footer */}
-                    <div className="px-3 py-2 bg-[var(--color-surface-elevated)] border-t border-[var(--color-border)] text-[11px] font-semibold text-[var(--color-muted)] rounded-b-xl flex justify-between items-center">
-                      <span>{match.date}</span>
-                      <button className="text-primary hover:text-orange-600 font-bold uppercase tracking-wider">Edit Slot</button>
-                    </div>
+                      )}
+                    </button>
                   </div>
-                )}
+
+                  <div className="flex flex-col items-center">
+                    <p className="text-[11px] font-bold text-[var(--color-text)] text-center px-4 line-clamp-1">
+                      {match.teamA ? getTeamName(match.teamA) : "Empty"} vs{" "}
+                      {match.teamB ? getTeamName(match.teamB) : "Empty"}
+                    </p>
+                    {selectedSlot?.matchId === match.id && (
+                      <span className="text-[10px] font-bold text-primary animate-pulse mt-1">
+                        Select a team from the list above ↑
+                      </span>
+                    )}
+                  </div>
+                </div>
               </div>
             ))}
 
-            {/* Add Fixture Button */}
-            <button 
+            <button
               onClick={handleAddFixture}
-              className="w-full mt-4 py-3 rounded-xl border-2 border-dashed border-[var(--color-border)] text-[var(--color-muted)] hover:text-[var(--color-text)] hover:border-[var(--color-text)] hover:bg-[var(--color-surface-elevated)] font-bold text-sm transition-all flex items-center justify-center gap-2"
+              className="w-full mt-4 py-4 rounded-2xl border-2 border-dashed border-[var(--color-border)] text-[var(--color-muted)] hover:text-[var(--color-text)] hover:border-primary hover:bg-primary/5 font-bold text-sm transition-all flex items-center justify-center gap-2 group"
             >
-              <PlusIcon size={16} /> Add Match to {activeRound}
+              <PlusIcon
+                size={18}
+                className="group-hover:scale-110 transition-transform"
+              />{" "}
+              Add Manual Match
             </button>
           </div>
         </div>
       </div>
 
       {/* 6. Publish Fixtures Button */}
-      <div className="fixed bottom-0 left-0 right-0 p-4 bg-[var(--color-surface)] border-t border-[var(--color-border)] z-40 pb-safe shadow-[0_-10px_30px_rgba(0,0,0,0.05)] dark:shadow-[0_-10px_30px_rgba(0,0,0,0.2)]">
+      <div className="fixed bottom-0 left-0 right-0 p-6 bg-[var(--color-surface)] border-t border-[var(--color-border)] z-40 shadow-[0_-10px_30px_rgba(0,0,0,0.05)]">
         <div className="max-w-3xl mx-auto">
-          <button 
-            onClick={() => setShowModal(true)}
-            className="w-full py-3.5 rounded-xl font-bold text-white shadow-lg shadow-primary/30 hover:shadow-primary/50 transition-all flex items-center justify-center gap-2 active:scale-[0.98]"
+          <button
+            onClick={handlePublishClick}
+            className="w-full py-4 rounded-2xl font-bold text-white shadow-lg shadow-orange-500/30 hover:shadow-orange-500/50 transition-all flex items-center justify-center gap-2 active:scale-[0.98]"
             style={{ background: "var(--gradient-orange)" }}
           >
             Publish Fixtures
@@ -435,60 +534,83 @@ export default function FixtureSetupPage() {
         </div>
       </div>
 
-      {/* 7. Bracket Adjustment Modal */}
-      {showModal && (
+      {/* 7. Bye Confirmation Modal */}
+      {showByeModal && (
         <>
-          <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 animate-in fade-in duration-200" onClick={() => setShowModal(false)} />
+          <div
+            className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 animate-in fade-in duration-200"
+            onClick={() => setShowByeModal(false)}
+          />
           <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[90%] max-w-sm bg-[var(--color-surface)] rounded-3xl shadow-2xl z-50 p-6 animate-in zoom-in-95 duration-200 border border-[var(--color-border)]">
-            
             <div className="w-12 h-12 bg-orange-100 dark:bg-orange-500/20 rounded-full flex items-center justify-center mb-5 border-4 border-white dark:border-[var(--color-surface)] shadow-sm -mt-10 mx-auto">
-               <TrophyIcon size={20} className="text-orange-600 dark:text-orange-500" />
+              <TrophyIcon
+                size={20}
+                className="text-orange-600 dark:text-orange-500"
+              />
             </div>
 
             <h3 className="text-center font-black text-lg text-[var(--color-text)] tracking-tight uppercase mb-2">
-              Bracket Adjustment Needed
+              Confirm Byes
             </h3>
-            
-            <p className="text-center text-[var(--color-text)] font-medium text-sm mb-1">
-              <span className="font-bold text-red-500">{unassigned.length} participants</span> are left unassigned.
-            </p>
-            <p className="text-center text-[var(--color-text)] font-medium text-sm mb-5">
-              Are you willing to give them a bye?
+
+            <p className="text-center text-[var(--color-text)] font-medium text-sm mb-4">
+              The following{" "}
+              <span className="font-bold text-orange-500">
+                {unassigned.length} teams
+              </span>{" "}
+              will receive a bye and advance to the next round.
             </p>
 
-            <div className="bg-[var(--color-surface-elevated)] rounded-xl p-3 mb-6 border border-[var(--color-border)]">
-              <p className="text-[11px] font-semibold text-[var(--color-muted)] leading-relaxed text-center">
-                <strong className="text-[var(--color-text)]">Note:</strong> Once published, fixtures will be visible to players. You can edit them later.
-              </p>
+            <div className="bg-[var(--color-surface-elevated)] rounded-xl p-3 mb-6 border border-[var(--color-border)] max-h-32 overflow-y-auto space-y-1.5">
+              {unassigned.map((t) => (
+                <div key={t.id} className="flex items-center gap-2">
+                  <div className="w-4 h-4 rounded-full bg-green-500/20 flex items-center justify-center">
+                    <CheckIcon size={10} className="text-green-600" />
+                  </div>
+                  <span className="text-xs font-semibold text-[var(--color-text)] truncate">
+                    {getTeamName(t)}
+                  </span>
+                </div>
+              ))}
+              {unassigned.length === 0 && (
+                <p className="text-[11px] text-[var(--color-muted)] text-center">
+                  No teams receiving byes.
+                </p>
+              )}
             </div>
 
             <div className="space-y-3">
-              <button 
-                onClick={() => {
-                  setShowModal(false);
-                  router.push(`/org/tournaments/event/matches?tournamentId=${encodeURIComponent(tournamentId)}&eventId=${encodeURIComponent(eventId)}`);
-                }}
-                className="w-full py-3 rounded-xl bg-green-500 text-white font-bold text-sm shadow-md hover:bg-green-600 transition-colors flex justify-center items-center gap-2"
+              <button
+                onClick={handleConfirmPublish}
+                disabled={isPublishing}
+                className="w-full py-3 rounded-xl bg-orange-500 text-white font-bold text-sm shadow-md hover:bg-orange-600 transition-colors flex justify-center items-center gap-2"
               >
-                <CheckIcon size={18} /> Give Bye
+                {isPublishing ? "Publishing..." : "Confirm & Create Matches"}
               </button>
-              
-              <button 
-                onClick={() => setShowModal(false)}
-                className="w-full py-3 rounded-xl bg-[var(--color-surface)] border-2 border-red-500 text-red-500 font-bold text-sm hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors flex justify-center items-center gap-2"
+              <button
+                onClick={() => setShowByeModal(false)}
+                className="w-full py-3 rounded-xl bg-[var(--color-surface-elevated)] text-[var(--color-text)] font-bold text-sm hover:bg-[var(--color-border)] transition-colors"
               >
-                Remove Participants
+                Cancel
               </button>
             </div>
-
-            <button onClick={() => setShowModal(false)} className="absolute top-4 right-4 text-[var(--color-muted)] hover:text-[var(--color-text)] bg-[var(--color-surface-elevated)] p-1.5 rounded-full transition-colors">
-              <XIcon size={16} />
-            </button>
           </div>
         </>
       )}
-
     </div>
   );
 }
 
+export default function FixtureSetupPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-[var(--color-background)] flex items-center justify-center">
+          <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent"></div>
+        </div>
+      }
+    >
+      <FixtureSetupContent />
+    </Suspense>
+  );
+}

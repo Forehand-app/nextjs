@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import React, { useState, useEffect, useMemo, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   ArrowLeftIcon,
   SearchIcon,
@@ -10,113 +10,198 @@ import {
   EllipsisIcon,
 } from "@/components/Icons";
 import { toQuery } from "@/lib/utils";
+import { teamApi, TeamState } from "@/lib/api/teamApi";
+import { tournamentApi } from "@/lib/api/tournamentApi";
+import { EventData } from "@/lib/models";
+import TeamLogo from "@/components/TeamLogo";
 
-type ParticipantStatus = "pending" | "confirmed" | "rejected";
+type FilterTab = "all" | "pending" | "confirmed" | "rejected";
 
-type Participant = {
-  id: string;
-  name: string;
-  role: string;
-  age: string;
-  avatar: string;
-  status: ParticipantStatus;
-};
-
-const DUMMY_PARTICIPANTS: Participant[] = [
-  {
-    id: "1",
-    name: "Anil Kumar",
-    role: "Power Player",
-    age: "under 20",
-    avatar: "AK",
-    status: "pending",
-  },
-  {
-    id: "2",
-    name: "Rahul Singh",
-    role: "Power Player",
-    age: "under 20",
-    avatar: "RS",
-    status: "confirmed",
-  },
-  {
-    id: "3",
-    name: "Priya Patel",
-    role: "Power Player",
-    age: "under 20",
-    avatar: "PP",
-    status: "rejected",
-  },
-  {
-    id: "4",
-    name: "John Doe",
-    role: "Power Player",
-    age: "under 20",
-    avatar: "JD",
-    status: "confirmed",
-  },
-  {
-    id: "5",
-    name: "Emily Chen",
-    role: "Power Player",
-    age: "under 20",
-    avatar: "EC",
-    status: "pending",
-  },
-  {
-    id: "6",
-    name: "Kunal Verma",
-    role: "Power Player",
-    age: "under 20",
-    avatar: "KV",
-    status: "confirmed",
-  },
-];
-
-type FilterTab = "all" | "pending" | "confirmed";
-
-export default function EventParticipantsPage() {
+function EventParticipantsContent() {
   const router = useRouter();
-  const [searchParams, setSearchParams] = useState<URLSearchParams>(
-    new URLSearchParams(),
-  );
+  const searchParams = useSearchParams();
 
-  useEffect(() => {
-    setSearchParams(new URLSearchParams(window.location.search));
-  }, []);
-
-  const tournamentId = searchParams.get("tournamentId") || "1";
-  const eventId = searchParams.get("eventId") || "1";
+  const tournamentId = searchParams.get("tournamentId") || "";
+  const eventId = searchParams.get("eventId") || "";
 
   const [filter, setFilter] = useState<FilterTab>("all");
   const [search, setSearch] = useState("");
-  const [participants, setParticipants] =
-    useState<Participant[]>(DUMMY_PARTICIPANTS);
+  const [teams, setTeams] = useState<any[]>([]);
+  const [event, setEvent] = useState<EventData | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const filtered = participants.filter((p) => {
-    const matchesFilter =
-      filter === "all" ||
-      (filter === "confirmed"
-        ? p.status === "confirmed"
-        : p.status === "pending");
-    const matchesSearch = p.name.toLowerCase().includes(search.toLowerCase());
-    return matchesFilter && matchesSearch;
-  });
+  // Track which team is in "confirming" state and for what decision
+  const [confirming, setConfirming] = useState<{
+    teamId: string;
+    decision: "participating" | "rejected";
+  } | null>(null);
 
-  const pendingCount = participants.filter(
-    (p) => p.status === "pending",
-  ).length;
+  useEffect(() => {
+    if (!eventId || !tournamentId) return;
 
-  const updateStatus = (id: string, status: ParticipantStatus) => {
-    setParticipants((prev) =>
-      prev.map((p) => (p.id === id ? { ...p, status } : p)),
-    );
+    const loadData = async () => {
+      try {
+        setIsLoading(true);
+        const [tournamentData, teamsData] = await Promise.all([
+          tournamentApi.getInfo(tournamentId),
+          teamApi.getTeamsByEvent(eventId),
+        ]);
+
+        const foundEvent = tournamentData.events?.find((e) => e.id === eventId);
+        setEvent(foundEvent || null);
+        setTeams(Array.isArray(teamsData) ? teamsData : []);
+      } catch (error) {
+        console.error("Failed to load participants data", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    void loadData();
+  }, [eventId, tournamentId]);
+  const filtered = useMemo(() => {
+    return teams.filter((t) => {
+      const rawStatus = t.teamStatus || t.teamState || t.status || "";
+      const status = String(rawStatus).toLowerCase();
+
+      const matchesFilter =
+        filter === "all" ||
+        (filter === "pending" &&
+          (status === "registered" ||
+            status === "created" ||
+            status === "pending")) ||
+        (filter === "confirmed" &&
+          (status === "participating" || status === "confirmed")) ||
+        (filter === "rejected" && status === "rejected");
+
+      const teamName =
+        t.name ||
+        t.participants?.map((p: any) => p.user?.name).join(" & ") ||
+        "Unknown Team";
+
+      const matchesSearch = teamName
+        .toLowerCase()
+        .includes(search.toLowerCase());
+      return matchesFilter && matchesSearch;
+    });
+  }, [teams, filter, search]);
+
+  const pendingCount = teams.filter((t) => {
+    const rawStatus = t.teamStatus || t.teamState || t.status || "";
+    const s = String(rawStatus).toLowerCase();
+    return s === "registered" || s === "created" || s === "pending";
+  }).length;
+
+  const [isFinalizing, setIsFinalizing] = useState(false);
+
+  const handleUpdateStatus = async (
+    teamId: string,
+    state: "participating" | "rejected",
+  ) => {
+    try {
+      await teamApi.updateTeamState(teamId, state);
+      // Refresh local state
+      setTeams((prev) =>
+        prev.map((t) =>
+          t.id === teamId ? { ...t, teamStatus: state, status: state } : t,
+        ),
+      );
+      setConfirming(null);
+    } catch (error) {
+      console.error("Failed to update team status", error);
+      alert("Failed to update status. Please try again.");
+    }
   };
 
-  const handleProceed = () => {
-    router.push(
-      "/org/tournaments/event/fixture" + toQuery({ tournamentId, eventId }),
+  const handleProceed = async () => {
+    const participatingTeamsCount = teams.filter((t) => {
+      const rawStatus = t.teamStatus || t.teamState || t.status || "";
+      const status = String(rawStatus).toLowerCase();
+      return status === "participating" || status === "confirmed";
+    }).length;
+
+    if (participatingTeamsCount < 2) {
+      const type =
+        event?.teamType?.label?.toLowerCase().includes("double") ||
+        event?.teamTypeCode?.toLowerCase().includes("double")
+          ? "pairs"
+          : "players";
+      alert(
+        `At least 2 ${type} are required so that we can finalize teams for the event.`,
+      );
+      return;
+    }
+
+    try {
+      setIsFinalizing(true);
+      // 1. Finalize the current event
+      await tournamentApi.updateEventState(eventId, "participants_finalized");
+
+      // 2. Fetch the latest tournament info to check other events
+      const tournamentData = await tournamentApi.getInfo(tournamentId);
+
+      // 3. Check if all events (including the one just updated) are beyond 'created'
+      // Note: tournamentData.events might still have the old state for the current event
+      // if the server cache didn't clear, so we manually check all EXCEPT this one
+      // plus assume this one is done.
+      const otherEvents = (tournamentData.events || []).filter(
+        (e) => e.id !== eventId,
+      );
+      const allOthersFinalized = otherEvents.every(
+        (e) => e.eventState !== "created",
+      );
+
+      if (allOthersFinalized) {
+        // If all events are now finalized/beyond created, set tournament to in_progress
+        await tournamentApi.updateTournamentState(tournamentId, "in_progress");
+      }
+
+      // 4. Redirect back to tournament detail
+      router.push(`/org/tournaments/detail${toQuery({ t: tournamentId })}`);
+    } catch (error) {
+      console.error("Failed to finalize participants", error);
+      alert("Failed to finalize participants. Please try again.");
+    } finally {
+      setIsFinalizing(false);
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-[var(--color-background)] flex items-center justify-center">
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent"></div>
+      </div>
     );
+  }
+
+  const getTeamName = (t: any) => {
+    const participants = t.participants || [];
+    if (participants.length === 0) return t.name || "Unknown Team";
+
+    if (participants.length === 1) {
+      // Singles: User name of the player
+      return participants[0].user?.name || t.name || "Player";
+    }
+
+    // Doubles: Mix of both players initials (e.g., "AB & CD")
+    return participants
+      .map((p: any) => {
+        const name = p.user?.name || "P";
+        return name
+          .split(" ")
+          .map((n: string) => n[0])
+          .join("")
+          .toUpperCase();
+      })
+      .join(" & ");
+  };
+
+  const getParticipantDetails = (t: any) => {
+    if (t.participants?.length > 0) {
+      const p = t.participants[0];
+      return `${p.user?.gender || "Open"} • ${p.user?.dob ? new Date().getFullYear() - new Date(p.user.dob).getFullYear() : "N/A"} years`;
+    }
+    return "No details";
   };
 
   return (
@@ -137,10 +222,17 @@ export default function EventParticipantsPage() {
       {/* Event Info */}
       <div className="bg-[var(--color-surface)] px-4 py-3 border-b border-[var(--color-border)]">
         <h2 className="font-bold text-base text-[var(--color-text)]">
-          Pickle Ball Men&apos;s 2025
+          {event?.name || "Loading Event..."}
         </h2>
         <p className="text-sm text-[var(--color-muted)] mt-0.5">
-          Under 20 | 24 Dec 2025, 9:00 AM
+          {event?.teamType?.label || "Open"} |{" "}
+          {event?.startDate
+            ? new Date(event.startDate).toLocaleDateString("en-IN", {
+                day: "2-digit",
+                month: "short",
+                year: "numeric",
+              })
+            : "TBA"}
         </p>
         <p className="text-xs text-orange-500 font-medium mt-1">
           {pendingCount} Registration Pending
@@ -149,24 +241,28 @@ export default function EventParticipantsPage() {
 
       <div className="flex-1 px-4 py-4 space-y-4 pb-28">
         {/* Filter Tabs */}
-        <div className="flex gap-2">
-          {(["all", "pending", "confirmed"] as FilterTab[]).map((f) => (
-            <button
-              key={f}
-              onClick={() => setFilter(f)}
-              className={`px-4 py-1.5 rounded-full text-sm font-medium transition-colors capitalize ${
-                filter === f
-                  ? "bg-orange-500 text-white"
-                  : "bg-[var(--color-surface-elevated)] text-[var(--color-text-secondary)]"
-              }`}
-            >
-              {f === "all"
-                ? "All"
-                : f === "confirmed"
-                  ? "Confirmed"
-                  : "Pending"}
-            </button>
-          ))}
+        <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
+          {(["all", "pending", "confirmed", "rejected"] as FilterTab[]).map(
+            (f) => (
+              <button
+                key={f}
+                onClick={() => setFilter(f)}
+                className={`px-4 py-1.5 rounded-full text-sm font-medium transition-colors capitalize whitespace-nowrap ${
+                  filter === f
+                    ? "bg-orange-500 text-white"
+                    : "bg-[var(--color-surface-elevated)] text-[var(--color-text-secondary)]"
+                }`}
+              >
+                {f === "all"
+                  ? "All"
+                  : f === "confirmed"
+                    ? "Confirmed"
+                    : f === "pending"
+                      ? "Pending"
+                      : "Rejected"}
+              </button>
+            ),
+          )}
         </div>
 
         {/* Search */}
@@ -191,69 +287,114 @@ export default function EventParticipantsPage() {
               No participants found.
             </div>
           )}
-          {filtered.map((p) => (
+          {filtered.map((t) => (
             <div
-              key={p.id}
+              key={t.id}
               className="bg-[var(--color-surface)] rounded-xl p-3 border border-[var(--color-border)] shadow-sm"
             >
               <div className="flex items-center gap-3">
-                {/* Avatar */}
-                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-orange-400 to-orange-600 flex items-center justify-center text-white font-semibold text-sm shrink-0">
-                  {p.avatar}
-                </div>
+                {/* Team Logo */}
+                <TeamLogo team={t} size="md" />
 
                 {/* Info */}
                 <div className="flex-1 min-w-0">
                   <p className="font-semibold text-sm text-[var(--color-text)] truncate">
-                    {p.name}
+                    {getTeamName(t)}
                   </p>
                   <p className="text-xs text-[var(--color-muted)]">
-                    {p.role} • {p.age}
+                    {getParticipantDetails(t)}
                   </p>
                 </div>
 
                 {/* Actions based on status */}
-                {p.status === "pending" && (
-                  <div className="flex gap-2 shrink-0">
-                    <button
-                      onClick={() => updateStatus(p.id, "confirmed")}
-                      className="px-3 py-1.5 rounded-full bg-green-500 text-white text-xs font-semibold hover:bg-green-600 transition-colors"
-                    >
-                      Accept
-                    </button>
-                    <button
-                      onClick={() => updateStatus(p.id, "rejected")}
-                      className="px-3 py-1.5 rounded-full bg-red-500 text-white text-xs font-semibold hover:bg-red-600 transition-colors"
-                    >
-                      Reject
-                    </button>
-                  </div>
-                )}
+                {(() => {
+                  const rawStatus =
+                    t.teamStatus || t.teamState || t.status || "";
+                  const status = String(rawStatus).toLowerCase();
 
-                {p.status === "confirmed" && (
-                  <div className="flex items-center gap-2 shrink-0">
-                    <button
-                      onClick={() => updateStatus(p.id, "confirmed")}
-                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-orange-500 text-white text-xs font-semibold"
-                    >
-                      <CheckIcon size={12} /> Confirm
-                    </button>
-                    <button className="text-[var(--color-muted)] p-1">
-                      <EllipsisIcon size={18} />
-                    </button>
-                  </div>
-                )}
+                  if (
+                    status === "registered" ||
+                    status === "created" ||
+                    status === "pending"
+                  ) {
+                    return (
+                      <div className="flex gap-2 shrink-0">
+                        {confirming?.teamId === t.id ? (
+                          <button
+                            onClick={() => {
+                              if (confirming) {
+                                handleUpdateStatus(t.id, confirming.decision);
+                              }
+                            }}
+                            className={`px-4 py-1.5 rounded-full text-white text-xs font-bold shadow-sm transition-all active:scale-95 ${
+                              confirming?.decision === "participating"
+                                ? "bg-green-600"
+                                : "bg-red-600"
+                            }`}
+                          >
+                            Confirm{" "}
+                            {confirming?.decision === "participating"
+                              ? "Accept"
+                              : "Reject"}
+                          </button>
+                        ) : (
+                          <>
+                            <button
+                              onClick={() =>
+                                setConfirming({
+                                  teamId: t.id,
+                                  decision: "participating",
+                                })
+                              }
+                              className="px-3 py-1.5 rounded-full bg-green-500 text-white text-xs font-semibold hover:bg-green-600 transition-colors"
+                            >
+                              Accept
+                            </button>
+                            <button
+                              onClick={() =>
+                                setConfirming({
+                                  teamId: t.id,
+                                  decision: "rejected",
+                                })
+                              }
+                              className="px-3 py-1.5 rounded-full bg-red-500 text-white text-xs font-semibold hover:bg-red-600 transition-colors"
+                            >
+                              Reject
+                            </button>
+                          </>
+                        )}
+                      </div>
+                    );
+                  }
 
-                {p.status === "rejected" && (
-                  <div className="flex items-center gap-2 shrink-0">
-                    <div className="w-7 h-7 rounded-full bg-red-100 dark:bg-red-500/20 flex items-center justify-center">
-                      <XIcon size={14} className="text-red-500" />
-                    </div>
-                    <button className="text-[var(--color-muted)] p-1">
-                      <EllipsisIcon size={18} />
-                    </button>
-                  </div>
-                )}
+                  if (status === "participating" || status === "confirmed") {
+                    return (
+                      <div className="flex items-center gap-2 shrink-0">
+                        <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-green-100 text-green-700 text-xs font-bold border border-green-200">
+                          <CheckIcon size={12} /> Accepted
+                        </div>
+                        <button className="text-[var(--color-muted)] p-1">
+                          <EllipsisIcon size={18} />
+                        </button>
+                      </div>
+                    );
+                  }
+
+                  if (status === "rejected") {
+                    return (
+                      <div className="flex items-center gap-2 shrink-0">
+                        <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-red-100 text-red-700 text-xs font-bold border border-red-200">
+                          <XIcon size={12} /> Rejected
+                        </div>
+                        <button className="text-[var(--color-muted)] p-1">
+                          <EllipsisIcon size={18} />
+                        </button>
+                      </div>
+                    );
+                  }
+
+                  return null;
+                })()}
               </div>
             </div>
           ))}
@@ -264,12 +405,31 @@ export default function EventParticipantsPage() {
       <div className="fixed bottom-0 left-0 right-0 p-4 bg-[var(--color-surface)] border-t border-[var(--color-border)] z-40">
         <button
           onClick={handleProceed}
-          className="w-full py-3.5 rounded-xl font-bold text-white text-sm shadow-lg shadow-orange-500/20 transition-all active:scale-[0.98]"
+          disabled={isFinalizing}
+          className="w-full py-3.5 rounded-xl font-bold text-white text-sm shadow-lg shadow-orange-500/20 transition-all active:scale-[0.98] disabled:opacity-70 flex items-center justify-center"
           style={{ background: "var(--gradient-orange)" }}
         >
-          Save and Proceed
+          {isFinalizing ? (
+            <div className="h-5 w-5 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
+          ) : (
+            "Confirm and Finalize Participants"
+          )}
         </button>
       </div>
     </div>
+  );
+}
+
+export default function EventParticipantsPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-[var(--color-background)] flex items-center justify-center">
+          <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent"></div>
+        </div>
+      }
+    >
+      <EventParticipantsContent />
+    </Suspense>
   );
 }

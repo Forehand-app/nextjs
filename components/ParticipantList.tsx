@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import { ParticipantData } from "@/lib/models";
+import TeamLogo from "./TeamLogo";
 
 type ParticipantListProps = {
   participants: ParticipantData[];

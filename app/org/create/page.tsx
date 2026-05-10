@@ -12,7 +12,7 @@ import {
   PhoneIcon,
   XIcon,
 } from "@/components/Icons";
-import { organizationApi } from "@/lib/api/orgaizationApi";
+import { organizationApi } from "@/lib/api/organizationApi";
 import { storageApi } from "@/lib/api/storageApi";
 import { OrganizationData } from "@/lib/models";
 import {
@@ -38,7 +38,9 @@ const STEP_TWO_FIELDS: (keyof OrganizationFormData)[] = [
   "postalCode",
 ];
 
-function isOrganizationFormField(value: unknown): value is keyof OrganizationFormData {
+function isOrganizationFormField(
+  value: unknown,
+): value is keyof OrganizationFormData {
   return typeof value === "string";
 }
 
@@ -149,7 +151,9 @@ export default function CreateOrgPage() {
 
       const hasStepOneErrors = result.error.issues.some((issue) => {
         const field = issue.path[0];
-        return isOrganizationFormField(field) && STEP_ONE_FIELDS.includes(field);
+        return (
+          isOrganizationFormField(field) && STEP_ONE_FIELDS.includes(field)
+        );
       });
 
       if (hasStepOneErrors) {
@@ -157,7 +161,9 @@ export default function CreateOrgPage() {
       } else if (
         result.error.issues.some((issue) => {
           const field = issue.path[0];
-          return isOrganizationFormField(field) && STEP_TWO_FIELDS.includes(field);
+          return (
+            isOrganizationFormField(field) && STEP_TWO_FIELDS.includes(field)
+          );
         })
       ) {
         setStep(2);
@@ -277,7 +283,9 @@ export default function CreateOrgPage() {
                 setFormData({ ...formData, name: e.target.value })
               }
               className={`w-full px-4 py-3 rounded-lg bg-[var(--color-surface)] border ${
-                fieldErrors.name ? "border-red-500" : "border-[var(--color-border)]"
+                fieldErrors.name
+                  ? "border-red-500"
+                  : "border-[var(--color-border)]"
               } text-[var(--color-text)] focus:border-primary focus:outline-none`}
             />
             <InputError message={fieldErrors.name} />
@@ -366,7 +374,9 @@ export default function CreateOrgPage() {
                 )}
               </div>
               <p className="font-medium">
-                {formData.logo ? formData.logo.name : "Upload Organization Logo"}
+                {formData.logo
+                  ? formData.logo.name
+                  : "Upload Organization Logo"}
               </p>
               <p className="text-sm text-[var(--color-muted)]">
                 PNG, JPG up to 15 MB
@@ -496,7 +506,9 @@ export default function CreateOrgPage() {
                   setFormData({ ...formData, city: e.target.value })
                 }
                 className={`w-full px-4 py-3 rounded-lg bg-[var(--color-surface)] border ${
-                  fieldErrors.city ? "border-red-500" : "border-[var(--color-border)]"
+                  fieldErrors.city
+                    ? "border-red-500"
+                    : "border-[var(--color-border)]"
                 } text-[var(--color-text)] focus:border-primary focus:outline-none`}
               />
               <InputError message={fieldErrors.city} />
