@@ -167,82 +167,82 @@ export default function TournamentDetailPage() {
         />
       </div>
 
-      <div className="sticky top-0 z-30 flex items-center justify-center bg-[#3a2a57]">
+      <div className="sticky top-0 z-30 flex items-center justify-center bg-[var(--color-background)]">
         <button
           onClick={() => setTab("about")}
-          className={`relative flex h-12 flex-1 items-center justify-center text-[16px] font-bold transition-all ${tab === "about" ? "text-white" : "text-white/50"}`}
+          className={`relative flex h-12 flex-1 items-center justify-center text-[16px] font-bold transition-all ${tab === "about" ? "text-[var(--color-text)]" : "text-[var(--color-text-secondary)] opacity-50"}`}
         >
           About
-          <div className={`absolute bottom-0 h-[2px] w-full ${tab === "about" ? "bg-[#ff7a1a]" : "bg-white/10"}`} />
+          <div className={`absolute bottom-0 h-[2px] w-full ${tab === "about" ? "bg-[#ff7a1a]" : "bg-[var(--color-border)]"}`} />
         </button>
         <button
           onClick={() => setTab("events")}
-          className={`relative flex h-12 flex-1 items-center justify-center text-[16px] font-bold transition-all ${tab === "events" ? "text-white" : "text-white/50"}`}
+          className={`relative flex h-12 flex-1 items-center justify-center text-[16px] font-bold transition-all ${tab === "events" ? "text-[var(--color-text)]" : "text-[var(--color-text-secondary)] opacity-50"}`}
         >
           Events
-          <div className={`absolute bottom-0 h-[2px] w-full ${tab === "events" ? "bg-[#ff7a1a]" : "bg-white/10"}`} />
+          <div className={`absolute bottom-0 h-[2px] w-full ${tab === "events" ? "bg-[#ff7a1a]" : "bg-[var(--color-border)]"}`} />
         </button>
       </div>
 
       <div className="space-y-6 p-4 pb-32">
         {tab === "about" ? (
           <>
-            <section className="rounded-[28px] border border-white/15 bg-white/[0.02] p-4 shadow-sm">
-              <h2 className="text-[22px] font-bold text-white">Overview</h2>
+            <section className="rounded-[28px] border border-[var(--color-border)] bg-[var(--color-surface)] p-4 shadow-sm">
+              <h2 className="text-[22px] font-bold text-[var(--color-text)]">Overview</h2>
               <div className="mt-4 grid grid-cols-2 gap-3">
-                <div className="flex flex-col gap-2 rounded-2xl border border-white/10 bg-white/[0.05] p-3">
-                  <div className="flex items-center gap-2 text-white/50">
+                <div className="flex flex-col gap-2 rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface-elevated)] p-3">
+                  <div className="flex items-center gap-2 text-[var(--color-text-secondary)] opacity-60">
                     <TimerIcon size={12} />
                     <span className="text-[11px] font-medium uppercase tracking-wider">Start Date</span>
                   </div>
-                  <p className="text-[13px] font-bold text-white">
+                  <p className="text-[13px] font-bold text-[var(--color-text)]">
                     {formatDateTime(tournament.startDate)}
                   </p>
                 </div>
-                <div className="flex flex-col gap-2 rounded-2xl border border-white/10 bg-white/[0.05] p-3">
-                  <div className="flex items-center gap-2 text-white/50">
+                <div className="flex flex-col gap-2 rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface-elevated)] p-3">
+                  <div className="flex items-center gap-2 text-[var(--color-text-secondary)] opacity-60">
                     <TimerIcon size={12} />
                     <span className="text-[11px] font-medium uppercase tracking-wider">End Date</span>
                   </div>
-                  <p className="text-[13px] font-bold text-white">
+                  <p className="text-[13px] font-bold text-[var(--color-text)]">
                     {formatDateTime(tournament.endDate)}
                   </p>
                 </div>
               </div>
-              <div className="mt-3 flex flex-col gap-2 rounded-2xl border border-white/10 bg-white/[0.05] p-3">
-                <div className="flex items-center gap-2 text-white/50">
+              <div className="mt-3 flex flex-col gap-2 rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface-elevated)] p-3">
+                <div className="flex items-center gap-2 text-[var(--color-text-secondary)] opacity-60">
                   <MapPinIcon size={12} />
                   <span className="text-[11px] font-medium uppercase tracking-wider">Venue Details</span>
                 </div>
-                <p className="text-[13px] font-bold leading-relaxed text-white">
+                <p className="text-[13px] font-bold leading-relaxed text-[var(--color-text)]">
                   {tournament.venueName}, {tournament.venueAddress},{" "}
                   {tournament.venueCity}, {tournament.venueState}
                 </p>
               </div>
             </section>
 
-            <section className="rounded-[28px] border border-white/15 bg-white/[0.02] p-4 shadow-sm">
-              <h2 className="text-[22px] font-bold text-white">Description</h2>
-              <p className="mt-3 text-[13px] leading-relaxed text-white/70">
+            <section className="rounded-[28px] border border-[var(--color-border)] bg-[var(--color-surface)] p-4 shadow-sm">
+              <h2 className="text-[22px] font-bold text-[var(--color-text)]">Description</h2>
+              <p className="mt-3 text-[13px] leading-relaxed text-[var(--color-text-secondary)]">
                 {tournament.description || "Join the biggest badminton tournament in the city! Open to all skill levels with exciting prizes."}
               </p>
             </section>
 
-            <section className="rounded-[28px] border border-white/15 bg-white/[0.02] p-4 shadow-sm">
-              <h2 className="text-[22px] font-bold text-white mb-6">Contact Information</h2>
+            <section className="rounded-[28px] border border-[var(--color-border)] bg-[var(--color-surface)] p-4 shadow-sm">
+              <h2 className="text-[22px] font-bold text-[var(--color-text)] mb-6">Contact Information</h2>
 
               <div className="space-y-6">
                 <div className="pt-0">
                   <div className="flex items-center justify-between mb-4">
                     <div className="flex items-center gap-4">
-                      <div className="h-14 w-14 overflow-hidden rounded-full border border-white/20 shadow-md">
+                      <div className="h-14 w-14 overflow-hidden rounded-full border border-[var(--color-border)] shadow-md">
                         <img 
                           src={tournament.organization?.logoUrl || "https://images.unsplash.com/photo-1531427186611-ecfd6d936c79?auto=format&fit=crop&q=80&w=100&h=100"} 
                           alt="Contact" 
                           className="h-full w-full object-cover"
                         />
                       </div>
-                      <p className="text-[20px] font-bold text-white">
+                      <p className="text-[20px] font-bold text-[var(--color-text)]">
                         {tournament.contactName}
                       </p>
                     </div>
@@ -254,7 +254,7 @@ export default function TournamentDetailPage() {
                   <div className="ml-[72px] space-y-3">
                     <a
                       href={`tel:${tournament.contactPhone}`}
-                      className="flex items-center gap-3 text-[18px] font-medium text-white/60 transition-colors hover:text-white"
+                      className="flex items-center gap-3 text-[18px] font-medium text-[var(--color-text-secondary)] transition-colors hover:text-[var(--color-text)]"
                     >
                       <PhoneIcon size={20} className="text-[#ff7a1a]" />
                       {tournament.contactPhone}
@@ -262,7 +262,7 @@ export default function TournamentDetailPage() {
 
                     <a
                       href={`mailto:${tournament.contactEmail}`}
-                      className="flex items-center gap-3 text-[18px] font-medium text-white/60 transition-colors hover:text-white break-all"
+                      className="flex items-center gap-3 text-[18px] font-medium text-[var(--color-text-secondary)] transition-colors hover:text-[var(--color-text)] break-all"
                     >
                       <MailIcon size={20} className="text-[#ff7a1a]" />
                       {tournament.contactEmail}
@@ -282,20 +282,20 @@ export default function TournamentDetailPage() {
             return (
               <section
                 key={ev.id}
-                className="rounded-3xl border border-white/10 bg-white/5 p-5 shadow-lg"
+                className={`rounded-3xl border p-5 shadow-lg ${isSelected ? "border-[#ff7a1a] bg-[#ff7a1a]/5" : "border-[var(--color-border)] bg-[var(--color-surface-elevated)]"}`}
               >
-                <h3 className="text-[20px] font-bold text-white">{ev.name}</h3>
+                <h3 className="text-[20px] font-bold text-[var(--color-text)]">{ev.name}</h3>
                 <div className="mt-4 grid grid-cols-2 gap-3">
-                  <div className="flex items-center gap-2 text-[13px] text-white/60">
+                  <div className="flex items-center gap-2 text-[13px] text-[var(--color-text-secondary)] opacity-60">
                     <CalendarIcon size={14} className="text-[#ff7a1a]" />
                     <span>Starts: {formatDate(ev.startDate)}</span>
                   </div>
-                  <div className="flex items-center gap-2 text-[13px] text-white/60">
+                  <div className="flex items-center gap-2 text-[13px] text-[var(--color-text-secondary)] opacity-60">
                     <SearchIcon size={14} className="text-[#ff7a1a]" />
                     <span>Closes: {formatDate(ev.dueDate)}</span>
                   </div>
                 </div>
-                <div className="mt-5 flex items-center justify-between border-t border-white/10 pt-5">
+                <div className="mt-5 flex items-center justify-between border-t border-[var(--color-border)] pt-5">
                   <div>
                     <p className="text-[24px] font-bold text-[#ff7a1a]">
                       {ev.amount === 0 ? (
@@ -307,13 +307,13 @@ export default function TournamentDetailPage() {
                         </>
                       )}
                     </p>
-                    <p className="mt-1 text-[12px] font-medium text-white/40 uppercase tracking-wider">
+                    <p className="mt-1 text-[12px] font-medium text-[var(--color-text-secondary)] opacity-60 uppercase tracking-wider">
                       {ev.paymentMode?.label || ev.paymentModeCode || "N/A"}
                     </p>
                   </div>
                   <button
                     onClick={() => toggleEvent(ev)}
-                    className={`inline-flex h-11 min-w-[120px] items-center justify-center gap-2 rounded-full border-2 px-6 text-[16px] font-bold transition-all active:scale-95 ${isSelected ? "border-[#ff7a1a] bg-[#ff7a1a] text-white shadow-lg shadow-orange-500/20" : "border-white/20 bg-white/5 text-white hover:border-white/40"}`}
+                    className={`inline-flex h-11 min-w-[120px] items-center justify-center gap-2 rounded-full border-2 px-6 text-[16px] font-bold transition-all active:scale-95 ${isSelected ? "border-[#ff7a1a] bg-[#ff7a1a] text-white shadow-lg shadow-orange-500/20" : "border-[var(--color-border)] bg-[var(--color-surface-elevated)] text-[var(--color-text)] hover:border-gray-400"}`}
                   >
                     {isSelected ? (
                       "Added"
@@ -326,25 +326,25 @@ export default function TournamentDetailPage() {
                 </div>
 
                 {isDoubles && isSelected ? (
-                  <div className="mt-5 rounded-2xl border border-white/10 bg-white/5 p-4">
+                  <div className="mt-5 rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface-elevated)] p-4">
                     {pairState === "adding" ? (
                       <>
-                        <p className="text-[18px] font-bold text-white">
+                        <p className="text-[18px] font-bold text-[var(--color-text)]">
                           Add your partner
                         </p>
                         <input
                           value={partnerPhone}
                           onChange={(e) => setPartnerPhone(e.target.value)}
                           placeholder="Enter partner's Phone No."
-                          className="mt-3 h-12 w-full rounded-xl border border-white/10 bg-white/5 px-4 text-[15px] text-white outline-none focus:border-[#ff7a1a]/50"
+                          className="mt-3 h-12 w-full rounded-xl border border-[var(--color-border)] bg-[var(--color-background)] px-4 text-[15px] text-[var(--color-text)] outline-none focus:border-[#ff7a1a]/50"
                         />
-                        <div className="mt-3 flex items-start gap-2 text-[12px] text-white/50">
+                        <div className="mt-3 flex items-start gap-2 text-[12px] text-[var(--color-text-secondary)]">
                           <InfoIcon size={14} className="mt-0.5 text-[#ff7a1a]" />
                           <p>Your partner must be registered on the app to enroll.</p>
                         </div>
                         <button
                           onClick={() => setPairState("invited")}
-                          className="mt-4 h-11 w-full rounded-full bg-white/10 text-[16px] font-bold text-white transition-all hover:bg-white/20 active:scale-95"
+                          className="mt-4 h-11 w-full rounded-full bg-[var(--color-surface-elevated)] border border-[var(--color-border)] text-[16px] font-bold text-[var(--color-text)] transition-all hover:bg-[var(--color-border)] active:scale-95"
                         >
                           Add Partner
                         </button>
@@ -422,7 +422,7 @@ export default function TournamentDetailPage() {
       </div>
 
       {tab === "about" ? (
-        <div className="fixed bottom-0 left-0 right-0 z-40 border-t border-white/10 bg-[#3a2a57] p-5 pb-[max(env(safe-area-inset-bottom),20px)]">
+        <div className="fixed bottom-0 left-0 right-0 z-40 border-t border-[var(--color-border)] bg-[var(--color-background)] p-5 pb-[max(env(safe-area-inset-bottom),20px)]">
           <button
             onClick={() => setTab("events")}
             className="h-16 w-full rounded-full bg-[#ff811f] text-[20px] font-bold text-white shadow-lg active:scale-[0.98] transition-transform"
@@ -431,12 +431,12 @@ export default function TournamentDetailPage() {
           </button>
         </div>
       ) : (
-        <div className="fixed bottom-0 left-0 right-0 z-40 border-t border-white/10 bg-[#3a2a57] p-5 pb-[max(env(safe-area-inset-bottom),20px)] transition-transform">
+        <div className="fixed bottom-0 left-0 right-0 z-40 border-t border-[var(--color-border)] bg-[var(--color-background)] p-5 pb-[max(env(safe-area-inset-bottom),20px)] transition-transform">
           <div className="flex items-center gap-4">
             {Object.values(selected).some(v => v) ? (
               <>
                 <div className="flex-1">
-                  <p className="text-[12px] font-medium text-white/40 uppercase tracking-widest">
+                  <p className="text-[12px] font-medium text-[var(--color-text-secondary)] uppercase tracking-widest opacity-60">
                     Total Amount
                   </p>
                   <p className="text-[28px] font-bold leading-tight text-[#ff7a1a]">
@@ -457,7 +457,7 @@ export default function TournamentDetailPage() {
             ) : (
               <button
                 disabled
-                className="h-16 w-full rounded-full bg-white/5 text-[20px] font-bold text-white/20 border border-white/10"
+                className="h-16 w-full rounded-full bg-[var(--color-surface)] text-[20px] font-bold text-[var(--color-text-secondary)] opacity-30 border border-[var(--color-border)]"
               >
                 Select an Event
               </button>

@@ -104,14 +104,14 @@ export default function TournamentHeroCard({
       <div className="flex items-center justify-between">
         <button
           onClick={onBack}
-          className="grid h-10 w-10 place-content-center rounded-full border border-white/20 bg-white/10 text-white backdrop-blur-md"
+          className="grid h-10 w-10 place-content-center rounded-full border border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-text)] backdrop-blur-md transition-colors hover:bg-[var(--color-surface-elevated)]"
           aria-label="Back"
         >
           <ArrowLeftIcon size={20} />
         </button>
         <button
           onClick={onShare}
-          className="grid h-10 w-10 place-content-center rounded-full border border-white/20 bg-white/10 text-white backdrop-blur-md"
+          className="grid h-10 w-10 place-content-center rounded-full border border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-text)] backdrop-blur-md transition-colors hover:bg-[var(--color-surface-elevated)]"
           aria-label="Share"
         >
           <ShareIcon size={18} />
@@ -120,7 +120,7 @@ export default function TournamentHeroCard({
 
       {/* Info Section */}
       <div className="mt-8 flex items-center gap-4">
-        <div className="h-16 w-16 shrink-0 overflow-hidden rounded-full border-2 border-white/20 bg-white shadow-lg">
+        <div className="h-16 w-16 shrink-0 overflow-hidden rounded-full border-2 border-[var(--color-border)] bg-white shadow-lg">
           {logoUrl ? (
             <img
               src={logoUrl}
@@ -134,10 +134,10 @@ export default function TournamentHeroCard({
           )}
         </div>
         <div className="min-w-0">
-          <h1 className="text-[28px] font-bold leading-tight text-white">
+          <h1 className="text-[28px] font-bold leading-tight text-[var(--color-text)]">
             {title}
           </h1>
-          <p className="mt-1 text-[16px] font-medium text-white/70">
+          <p className="mt-1 text-[16px] font-medium text-[var(--color-text-secondary)]">
             {subtitle}
           </p>
         </div>
@@ -146,23 +146,23 @@ export default function TournamentHeroCard({
       {/* Stats/Action Cards */}
       <div className="mt-8 grid grid-cols-2 gap-4">
         {/* Registered Card */}
-        <div className="flex h-[110px] items-center gap-4 rounded-[28px] border border-white/10 bg-white/[0.04] p-4 shadow-sm">
-          <div className="grid h-12 w-12 place-content-center rounded-full bg-white/10 text-[#ff7a1a]">
+        <div className="flex h-[110px] items-center gap-4 rounded-[28px] border border-[var(--color-border)] bg-[var(--color-surface)] p-4 shadow-sm">
+          <div className="grid h-12 w-12 place-content-center rounded-full bg-[var(--color-surface-elevated)] text-[#ff7a1a]">
             <Users size={24} />
           </div>
           <div>
-            <p className="text-[28px] font-bold leading-none text-white">
+            <p className="text-[28px] font-bold leading-none text-[var(--color-text)]">
               {registeredCount}
             </p>
-            <p className="mt-1.5 text-[14px] font-medium text-white/50">
+            <p className="mt-1.5 text-[14px] font-medium text-[var(--color-text-secondary)]">
               Registered
             </p>
           </div>
         </div>
 
         {/* Registration Card */}
-        <div className="flex h-[110px] flex-col items-center justify-center rounded-[28px] border border-white/10 bg-white/[0.04] p-4 text-center shadow-sm">
-          <p className="text-[17px] font-bold text-white">Registration</p>
+        <div className="flex h-[110px] flex-col items-center justify-center rounded-[28px] border border-[var(--color-border)] bg-[var(--color-surface)] p-4 text-center shadow-sm">
+          <p className="text-[17px] font-bold text-[var(--color-text)]">Registration</p>
           <div className="mt-3">
             <span className="inline-flex h-9 min-w-[100px] items-center justify-center rounded-full bg-[#ff7a1a] px-5 text-[15px] font-bold text-white shadow-[0_6px_20px_rgba(255,122,26,0.3)]">
               {registrationStatus}

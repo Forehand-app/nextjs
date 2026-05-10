@@ -1,5 +1,3 @@
-"use client";
-
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -58,7 +56,7 @@ export default function TournamentCheckoutScreen() {
 
   if (isLoading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-[#3a2a57]">
+      <div className="flex min-h-screen items-center justify-center bg-[var(--color-background)]">
         <div className="h-8 w-8 animate-spin rounded-full border-4 border-[#ff7a1a] border-t-transparent"></div>
       </div>
     );
@@ -66,13 +64,13 @@ export default function TournamentCheckoutScreen() {
 
   if (completed) {
     return (
-      <div className="min-h-screen bg-[#3a2a57] text-white">
+      <div className="min-h-screen bg-[var(--color-background)] text-[var(--color-text)]">
         <div className="mx-auto flex min-h-screen max-w-md flex-col justify-center px-6 text-center">
           <div className="mx-auto flex h-24 w-24 items-center justify-center rounded-full bg-[#22c55e]/20 text-[#22c55e] shadow-lg shadow-green-500/20">
             <CheckCircleIcon size={64} />
           </div>
           <h1 className="mt-8 text-3xl font-bold">Registration Completed</h1>
-          <p className="mt-4 text-[16px] text-white/60 leading-relaxed">
+          <p className="mt-4 text-[16px] text-[var(--color-text-secondary)] leading-relaxed">
             You are on the waiting list now.
             <br />
             For further info Contact your tournament Organizer.
@@ -98,13 +96,13 @@ export default function TournamentCheckoutScreen() {
   }
 
   return (
-    <div className="min-h-screen bg-[#3a2a57] pb-32 text-white">
+    <div className="min-h-screen bg-[var(--color-background)] pb-32 text-[var(--color-text)]">
       <div className="mx-auto max-w-md px-4 pt-[max(env(safe-area-inset-top),16px)]">
         {/* Header */}
         <div className="flex items-center gap-4">
           <button 
             onClick={() => router.back()} 
-            className="grid h-10 w-10 place-content-center rounded-full border border-white/10 bg-white/5 hover:bg-white/10 transition-colors"
+            className="grid h-10 w-10 place-content-center rounded-full border border-[var(--color-border)] bg-[var(--color-surface)] hover:bg-[var(--color-surface-elevated)] transition-colors"
           >
             <ArrowLeftIcon size={20} />
           </button>
@@ -113,7 +111,7 @@ export default function TournamentCheckoutScreen() {
 
         {/* Tournament Info */}
         <div className="mt-8 flex items-center gap-4">
-          <div className="h-14 w-14 shrink-0 overflow-hidden rounded-full border border-white/10 bg-white">
+          <div className="h-14 w-14 shrink-0 overflow-hidden rounded-full border border-[var(--color-border)] bg-white shadow-sm">
             {tournament?.logoUrl ? (
               <img src={tournament.logoUrl} alt="Logo" className="h-full w-full object-cover" />
             ) : (
@@ -122,21 +120,21 @@ export default function TournamentCheckoutScreen() {
           </div>
           <div>
             <h2 className="text-[20px] font-bold leading-tight">{tournament?.name}</h2>
-            <p className="text-[14px] text-white/50">{tournament?.organization?.name}</p>
+            <p className="text-[14px] text-[var(--color-text-secondary)] opacity-60">{tournament?.organization?.name}</p>
           </div>
         </div>
 
         {/* Selected Events */}
         <section className="mt-8">
-          <h3 className="text-[18px] font-bold text-white/60 uppercase tracking-widest">Your Registrations</h3>
+          <h3 className="text-[18px] font-bold text-[var(--color-text-secondary)] uppercase tracking-widest opacity-60">Your Registrations</h3>
           <div className="mt-4 space-y-4">
             {selectedEvents.map((ev) => (
-              <div key={ev.id} className="rounded-2xl border border-white/10 bg-white/5 p-4 relative group">
+              <div key={ev.id} className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface-elevated)] p-4 relative group">
                 <div className="flex items-center justify-between mb-2">
                   <span className={`rounded-full px-3 py-1 text-[10px] font-bold text-white ${ev.paymentModeCode === "online" ? "bg-[#22c55e]" : "bg-[#f97316]"}`}>
                     {ev.paymentMode?.label || "PAY ONLINE"}
                   </span>
-                  <button className="text-white/20 hover:text-red-500 transition-colors">
+                  <button className="text-[var(--color-text-secondary)] hover:text-red-500 transition-colors opacity-60">
                     <TrashIcon size={16} />
                   </button>
                 </div>
@@ -152,10 +150,10 @@ export default function TournamentCheckoutScreen() {
         </section>
 
         {/* Payment Summary */}
-        <section className="mt-8 space-y-3 border-t border-white/10 pt-6">
-          <div className="flex items-center justify-between text-white/50">
+        <section className="mt-8 space-y-3 border-t border-[var(--color-border)] pt-6">
+          <div className="flex items-center justify-between text-[var(--color-text-secondary)]">
             <span className="text-[16px] font-medium">Total Fees</span>
-            <span className="text-[18px] font-bold text-white"><span className="currency-inr mr-1">{INR}</span>{totalAmount}</span>
+            <span className="text-[18px] font-bold text-[var(--color-text)]"><span className="currency-inr mr-1">{INR}</span>{totalAmount}</span>
           </div>
           <div className="flex items-center justify-between pt-2">
             <span className="text-[22px] font-bold">To Pay Now</span>
@@ -164,7 +162,7 @@ export default function TournamentCheckoutScreen() {
         </section>
 
         {/* UPI Section */}
-        <section className="mt-8 rounded-3xl border border-white/10 bg-white/5 p-6 text-center">
+        <section className="mt-8 rounded-3xl border border-[var(--color-border)] bg-[var(--color-surface)] p-6 text-center">
           <div className="mx-auto h-40 w-40 rounded-2xl bg-white p-3 shadow-xl">
              {/* Simplified QR Mockup */}
              <div className="h-full w-full bg-gray-50 flex items-center justify-center border-2 border-dashed border-gray-200">
@@ -174,20 +172,20 @@ export default function TournamentCheckoutScreen() {
           <p className="mt-4 text-[16px] font-bold">
             Scan to pay <span className="text-[#ff7a1a]"><span className="currency-inr">{INR}</span>{totalAmount}</span>
           </p>
-          <p className="mt-1 text-[12px] text-white/40 font-medium">UPI ID: {tournament?.upiId || "forehandexample@oksbi"}</p>
+          <p className="mt-1 text-[12px] text-[var(--color-text-secondary)] font-medium opacity-60">UPI ID: {tournament?.upiId || "forehandexample@oksbi"}</p>
         </section>
 
         {/* Notice */}
         <section className="mt-6 rounded-2xl bg-[#ff7a1a]/10 p-4 border border-[#ff7a1a]/20">
           <p className="text-[15px] font-bold text-[#ff7a1a]">Payment Verification</p>
-          <p className="mt-1 text-[12px] text-white/60 leading-relaxed">
+          <p className="mt-1 text-[12px] text-[var(--color-text-secondary)] leading-relaxed opacity-80">
             Please share the transaction receipt with the organizer after successful payment to confirm your spot.
           </p>
         </section>
       </div>
 
       {/* Bottom Bar */}
-      <div className="fixed bottom-0 left-0 right-0 z-40 border-t border-white/10 bg-[#3a2a57] p-5 pb-[max(env(safe-area-inset-bottom),20px)]">
+      <div className="fixed bottom-0 left-0 right-0 z-40 border-t border-[var(--color-border)] bg-[var(--color-background)] p-5 pb-[max(env(safe-area-inset-bottom),20px)]">
         <button
           onClick={() => setCompleted(true)}
           className="flex h-16 w-full items-center justify-center rounded-full bg-[#ff811f] text-[20px] font-bold text-white shadow-lg active:scale-[0.98] transition-transform"
