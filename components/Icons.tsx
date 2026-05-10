@@ -451,3 +451,27 @@ export function DumbbellIcon(props: IconProps) {
     </SvgIcon>
   );
 }
+
+export function HierarchyIcon(props: IconProps) {
+  return (
+    <SvgIcon {...props}>
+      <circle cx="12" cy="5" r="2" />
+      <path d="M12 7v3" />
+      <path d="M6 13h12" />
+      <path d="M6 13v3" />
+      <path d="M12 13v3" />
+      <path d="M18 13v3" />
+      <circle cx="6" cy="19" r="2" />
+      <circle cx="12" cy="19" r="2" />
+      <circle cx="18" cy="19" r="2" />
+    </SvgIcon>
+  );
+}
+
+export function ShieldIcon(props: IconProps) {
+  return (
+    <SvgIcon {...props}>
+      <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10" />
+    </SvgIcon>
+  );
+}

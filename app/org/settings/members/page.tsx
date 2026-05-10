@@ -1,15 +1,14 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
-import Layout from "@/components/Layout";
-import { ArrowLeftIcon, XIcon } from "@/components/Icons";
 import { useApp } from "@/components/AppProvider";
 import {
   OrganizationMemberInvite,
   orgMemberInviteApi,
 } from "@/lib/api/orgMemberInviteApi";
 import { notificationApi } from "@/lib/api/notificationApi";
+import { HierarchyIcon } from "@/components/Icons";
+import { IntroWithIcon, MemberRow, SettingsShell } from "../_components/SettingsScaffold";
 
 function normalizePhone(phone: string) {
   const digits = phone.replace(/\D/g, "");
@@ -18,7 +17,6 @@ function normalizePhone(phone: string) {
 }
 
 export default function OrgMembersPage() {
-  const router = useRouter();
   const { activeOrganization } = useApp();
 
   const [phone, setPhone] = useState("");
@@ -110,62 +108,54 @@ export default function OrgMembersPage() {
   };
 
   return (
-    <Layout>
-      <div className="p-4 space-y-6">
-        <button
-          type="button"
-          onClick={() => router.back()}
-          className="p-2 rounded-lg hover:bg-[var(--color-surface-elevated)] min-h-[44px] flex items-center gap-2"
-          aria-label="Back"
-        >
-          <ArrowLeftIcon size={20} />
-          <span className="font-medium">Organization Members</span>
-        </button>
-        <h1 className="text-xl font-semibold">Organization Members</h1>
-        <p className="text-sm text-[var(--color-muted)]">Add or remove organization members.</p>
+    <SettingsShell title="Organization Members">
+      <IntroWithIcon
+        title="Manage Members"
+        subtitle="Add or remove organization members"
+      />
 
-        <form onSubmit={handleAdd} className="space-y-2">
-          <div className="flex gap-2">
-            <input
-              type="tel"
-              placeholder="Enter Admin's Phone No."
-              value={phone}
-              onChange={(e) => setPhone(e.target.value)}
-              className="flex-1 p-3 rounded-[var(--radius-input)] border border-[var(--color-border)] bg-[var(--color-surface)]"
-            />
-            <button
-              type="submit"
-              disabled={isSubmitting}
-              className="min-h-[44px] px-4 rounded-[var(--radius-button)] bg-primary text-[var(--color-primary-contrast)] font-medium disabled:opacity-60"
-            >
-              {isSubmitting ? "Adding..." : "Add"}
-            </button>
-          </div>
-          {feedback ? <p className="text-sm text-[var(--color-muted)]">{feedback}</p> : null}
-        </form>
+      <section className="rounded-[24px] border border-[var(--color-border)] bg-[var(--color-surface)] p-5 shadow-[0_2px_8px_rgba(0,0,0,0.04)]">
+        <div className="flex items-center gap-3">
+          <HierarchyIcon size={24} className="text-[var(--color-text)]" />
+          <h2 className="text-[22px] font-bold">Add Members</h2>
+        </div>
 
-        <ul className="space-y-2">
-          {members.map((m) => (
-            <li
-              key={m.id}
-              className="flex items-center justify-between p-4 rounded-[var(--radius-card)] bg-[var(--color-surface)] border border-[var(--color-border)]"
-            >
-              <div>
-                <p className="font-medium">{m.name}</p>
-                <p className="text-sm text-[var(--color-muted)]">{m.role} - {m.status}</p>
-              </div>
+        <div className="mt-8">
+          <p className="text-[14px] font-bold text-[var(--color-text)]">Add Members</p>
+          <form onSubmit={handleAdd} className="mt-3">
+            <div className="flex items-center gap-3">
+              <input
+                type="tel"
+                placeholder="Enter Member's Phone No."
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                className="h-12 flex-1 rounded-[12px] border border-[var(--color-border)] bg-[var(--color-surface-elevated)] px-4 text-[14px] text-[var(--color-text)] placeholder:text-[var(--color-text-muted)] outline-none transition-all focus:border-primary focus:ring-2 focus:ring-primary/10"
+              />
               <button
-                type="button"
-                onClick={() => void handleRemove(m)}
-                className="p-2 rounded-lg text-[var(--color-error)] hover:bg-[var(--color-error)]/10"
-                aria-label={`Remove ${m.name}`}
+                type="submit"
+                disabled={isSubmitting}
+                className="flex h-12 w-12 items-center justify-center rounded-full bg-[#ff7a00] text-white shadow-md transition-all hover:scale-105 active:scale-95 disabled:opacity-60"
+                aria-label="Add member"
               >
-                <XIcon size={18} />
+                <span className="text-2xl font-light leading-none">+</span>
               </button>
-            </li>
+            </div>
+            {feedback ? (
+              <p className="mt-2 text-[12px] text-[var(--color-text-muted)]">{feedback}</p>
+            ) : null}
+          </form>
+        </div>
+
+        <ul className="mt-8 flex flex-col gap-3">
+          {members.map((m) => (
+            <MemberRow
+              key={m.id}
+              name={m.name || "Alex Costa"}
+              onRemove={() => void handleRemove(m)}
+            />
           ))}
         </ul>
-      </div>
-    </Layout>
+      </section>
+    </SettingsShell>
   );
 }

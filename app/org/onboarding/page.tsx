@@ -9,18 +9,18 @@ import {
   ChevronRightIcon,
   GraduationCapIcon,
   TrophyIcon,
-  UsersIcon,
   XIcon,
 } from "@/components/Icons";
 import { optionsApi } from "@/lib/api/optionsApi";
 import { type OptionsData } from "@/lib/models";
+import { Users } from "lucide-react";
 
 type IconComponent = React.ComponentType<{ size?: number; className?: string }>;
 
 const orgTypeIconMap: Record<string, IconComponent> = {
   educationalInstitute: GraduationCapIcon,
   sportsAcademy: TrophyIcon,
-  sportsClub: UsersIcon,
+  sportsClub: Users,
   corporate: BuildingIcon,
   other: BuildingIcon,
 };
@@ -141,18 +141,16 @@ export default function OrgOnboardingPage() {
                   key={type.id}
                   type="button"
                   onClick={() => setSelected(type.code)}
-                  className={`w-full p-4 rounded-2xl border-2 flex items-center gap-3 text-left transition-all ${
-                    isSelected
-                      ? "border-primary bg-primary/10"
-                      : "border-[var(--color-border)] bg-[var(--color-surface)] hover:border-primary/50"
-                  }`}
+                  className={`w-full p-4 rounded-2xl border-2 flex items-center gap-3 text-left transition-all ${isSelected
+                    ? "border-primary bg-primary/10"
+                    : "border-[var(--color-border)] bg-[var(--color-surface)] hover:border-primary/50"
+                    }`}
                 >
                   <div
-                    className={`w-11 h-11 rounded-xl flex items-center justify-center ${
-                      isSelected
-                        ? "bg-primary text-white"
-                        : "bg-[var(--color-surface-elevated)] text-[var(--color-text)]"
-                    }`}
+                    className={`w-11 h-11 rounded-xl flex items-center justify-center ${isSelected
+                      ? "bg-primary text-white"
+                      : "bg-[var(--color-surface-elevated)] text-[var(--color-text)]"
+                      }`}
                   >
                     {isSelected ? (
                       <CheckIcon size={18} className="text-white" />

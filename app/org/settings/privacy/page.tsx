@@ -1,28 +1,48 @@
 "use client";
 
-import React from "react";
-import { useRouter } from "next/navigation";
-import Layout from "@/components/Layout";
-import { ArrowLeftIcon } from "@/components/Icons";
+import React, { useState } from "react";
+import { ShieldIcon } from "@/components/Icons";
+import {
+  IntroWithIcon,
+  SettingsShell,
+  ToggleRow,
+} from "../_components/SettingsScaffold";
 
 export default function OrgPrivacyPage() {
-  const router = useRouter();
+  const [privacy, setPrivacy] = useState([
+    { label: "Public Profile", desc: "Allow others to see your profile", on: true },
+    { label: "Show Statistics", desc: "Display your win/loss record", on: true },
+    { label: "Allow search", desc: "Let others find you by email/phone", on: false },
+    { label: "Receive Invites", desc: "Receive event invites from others", on: false },
+  ]);
+
+  const toggleRow = (index: number) => {
+    setPrivacy((current) =>
+      current.map((item, currentIndex) =>
+        currentIndex === index ? { ...item, on: !item.on } : item,
+      ),
+    );
+  };
+
   return (
-    <Layout>
-      <div className="p-4">
-        <button
-          type="button"
-          onClick={() => router.back()}
-          className="p-2 rounded-lg hover:bg-[var(--color-surface-elevated)] min-h-[44px] flex items-center gap-2"
-          aria-label="Back"
-        >
-          <ArrowLeftIcon size={20} />
-          <span className="font-medium">Privacy</span>
-        </button>
-        <h1 className="text-xl font-semibold mt-4">Privacy</h1>
-        <p className="text-sm text-[var(--color-muted)]">Control your settings.</p>
+    <SettingsShell title="Privacy">
+      <IntroWithIcon
+        icon={ShieldIcon}
+        title="Your Privacy"
+        subtitle="Choose your privacy settings."
+      />
+      <div className="flex flex-col gap-3">
+        {privacy.map((item, index) => (
+          <ToggleRow
+            key={item.label}
+            label={item.label}
+            subtitle={item.desc}
+            on={item.on}
+            onToggle={() => toggleRow(index)}
+          />
+        ))}
       </div>
-    </Layout>
+    </SettingsShell>
   );
 }
 
