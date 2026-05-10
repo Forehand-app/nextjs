@@ -2,28 +2,45 @@ import { OrganizationData } from "../models";
 import { fetchApi, getApiUrl } from "./interceptor";
 
 export const organizationApi = {
-    createOrganization: async (organizationData: OrganizationData): Promise<string> => {
-        const { data, error } = await fetchApi(getApiUrl({ path: "/org/register" }), {
-            method: "POST",
-            contentType: "json",
-            body: organizationData
-        });
-        if (error) throw error;
+  createOrganization: async (
+    organizationData: OrganizationData,
+  ): Promise<string> => {
+    const { data, error } = await fetchApi(
+      getApiUrl({ path: "/org/register" }),
+      {
+        method: "POST",
+        contentType: "json",
+        body: organizationData,
+      },
+    );
+    if (error) throw error;
 
     return data as string;
   },
 
-    getInfo: async (orgId: string): Promise<OrganizationData> => {
-        const { data, error } = await fetchApi(getApiUrl({ path: "/org/info", param: orgId }));
-        if (error) throw error;
+  getInfo: async (orgId: string): Promise<OrganizationData> => {
+    const { data, error } = await fetchApi(
+      getApiUrl({ path: "/org/info", param: orgId }),
+    );
+    if (error) throw error;
 
-        return data as OrganizationData;
-    },
+    return data as OrganizationData;
+  },
 
-    getUserOrganizations: async (): Promise<OrganizationData[]> => {
-        const { data } = await fetchApi(getApiUrl({ path: "/org/list" }));
+  getUserOrganizations: async (): Promise<OrganizationData[]> => {
+    const { data } = await fetchApi(getApiUrl({ path: "/org/list" }));
 
-        return data as OrganizationData[];
-    }
+    return data as OrganizationData[];
+  },
 
-}
+  updateOrganization: async (
+    organizationData: OrganizationData,
+  ): Promise<void> => {
+    const { error } = await fetchApi(getApiUrl({ path: "/org/update" }), {
+      method: "PUT",
+      contentType: "json",
+      body: organizationData,
+    });
+    if (error) throw error;
+  },
+};

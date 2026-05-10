@@ -68,7 +68,15 @@ const TopAppBar = () => (
 const EventHeader = ({ tournament }: { tournament: TournamentData | null }) => (
   <div className="flex gap-3 items-center">
     <div className="w-12 h-12 rounded-full bg-[var(--color-surface-elevated)] border border-[var(--color-border)] flex items-center justify-center overflow-hidden shrink-0">
-      <TrophyIcon size={24} className="text-[var(--color-muted)]" />
+      {tournament?.logoUrl ? (
+        <img
+          src={tournament.logoUrl}
+          alt="Tournament logo"
+          className="w-full h-full object-cover"
+        />
+      ) : (
+        <TrophyIcon size={24} className="text-[var(--color-muted)]" />
+      )}
     </div>
     <div>
       <h1 className="font-semibold text-lg leading-tight text-[var(--color-text)]">

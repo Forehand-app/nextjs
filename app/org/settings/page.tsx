@@ -6,18 +6,18 @@ import Link from "next/link";
 import { useTheme } from "@/components/ThemeProvider";
 import { useApp } from "@/components/AppProvider";
 import BottomNav from "@/components/BottomNav";
-import { 
-  BellIcon, 
-  LockIcon, 
-  HelpCircleIcon, 
-  PhoneIcon, 
-  MailIcon, 
-  LogOutIcon, 
-  MoonIcon, 
+import {
+  BellIcon,
+  LockIcon,
+  HelpCircleIcon,
+  PhoneIcon,
+  MailIcon,
+  LogOutIcon,
+  MoonIcon,
   ChevronRightIcon,
   ChevronDownIcon,
   CheckIcon,
-  UsersIcon
+  UsersIcon,
 } from "@/components/Icons";
 
 export default function OrgSettingsPage() {
@@ -27,24 +27,45 @@ export default function OrgSettingsPage() {
   const orgName = organization?.name || "Organization";
   const orgInitial = orgName.trim().charAt(0).toUpperCase() || "O";
   const contactEmail =
-    typeof organization?.contactEmail === "string" && organization.contactEmail.trim()
+    typeof organization?.contactEmail === "string" &&
+    organization.contactEmail.trim()
       ? organization.contactEmail
       : "No email added";
   const contactPhone =
-    typeof organization?.contactPhone === "string" && organization.contactPhone.trim()
+    typeof organization?.contactPhone === "string" &&
+    organization.contactPhone.trim()
       ? organization.contactPhone
       : "No phone added";
 
   const orgSettingsItems = [
-    { href: "/org/settings/notifications", icon: BellIcon, label: "Notifications", sub: "Manage preferences" },
-    { href: "/org/settings/members", icon: UsersIcon, label: "Manage Members", sub: "Add or remove staff" },
-    { href: "/org/settings/privacy", icon: LockIcon, label: "Privacy & Policy", sub: "Control your settings" },
-    { href: "/org/settings/help", icon: HelpCircleIcon, label: "Help & Support", sub: "Connect with support team" },
+    {
+      href: "/org/settings/notifications",
+      icon: BellIcon,
+      label: "Notifications",
+      sub: "Manage preferences",
+    },
+    {
+      href: "/org/settings/members",
+      icon: UsersIcon,
+      label: "Manage Members",
+      sub: "Add or remove staff",
+    },
+    {
+      href: "/org/settings/privacy",
+      icon: LockIcon,
+      label: "Privacy & Policy",
+      sub: "Control your settings",
+    },
+    {
+      href: "/org/settings/help",
+      icon: HelpCircleIcon,
+      label: "Help & Support",
+      sub: "Connect with support team",
+    },
   ];
 
   return (
     <div className="min-h-screen bg-[var(--color-background)] text-[var(--color-text)] flex flex-col">
-      
       <header className="sticky top-0 z-40 bg-[var(--color-surface)] border-b border-[var(--color-border)] shadow-sm">
         <div className="flex items-center h-14 px-5">
           <button
@@ -54,26 +75,44 @@ export default function OrgSettingsPage() {
             aria-expanded={showSwitchModal}
           >
             Organization Settings
-            <ChevronDownIcon size={18} className="text-[var(--color-text-muted)] mt-0.5 shrink-0" />
+            <ChevronDownIcon
+              size={18}
+              className="text-[var(--color-text-muted)] mt-0.5 shrink-0"
+            />
           </button>
         </div>
       </header>
 
       <main className="flex-1 pb-24 pb-safe px-4 pt-6 space-y-8 overflow-y-auto">
-        
         <div className="bg-[var(--color-surface)] rounded-2xl border border-[var(--color-border)] p-5 shadow-sm">
           <div className="flex items-center gap-4">
-            <div className="w-16 h-16 rounded-full bg-primary flex flex-shrink-0 items-center justify-center text-white text-2xl font-bold">
-              {orgInitial}
+            <div className="w-16 h-16 rounded-full bg-primary flex flex-shrink-0 items-center justify-center text-white text-2xl font-bold overflow-hidden border border-[var(--color-border)]">
+              {organization?.logoUrl ? (
+                <img
+                  src={organization.logoUrl}
+                  alt="Organization logo"
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                orgInitial
+              )}
             </div>
             <div className="flex-1 min-w-0">
               <h2 className="text-lg font-bold truncate">{orgName}</h2>
               <div className="mt-1 space-y-1 text-sm text-[var(--color-text-muted)]">
                 <p className="flex items-center gap-2 truncate">
-                  <PhoneIcon size={14} className="shrink-0 text-[var(--color-text)]" /> {contactPhone}
+                  <PhoneIcon
+                    size={14}
+                    className="shrink-0 text-[var(--color-text)]"
+                  />{" "}
+                  {contactPhone}
                 </p>
                 <p className="flex items-center gap-2 truncate">
-                  <MailIcon size={14} className="shrink-0 text-[var(--color-text)]" /> {contactEmail}
+                  <MailIcon
+                    size={14}
+                    className="shrink-0 text-[var(--color-text)]"
+                  />{" "}
+                  {contactEmail}
                 </p>
               </div>
             </div>
@@ -91,7 +130,6 @@ export default function OrgSettingsPage() {
             Preferences
           </h3>
           <div className="bg-[var(--color-surface)] rounded-2xl border border-[var(--color-border)] shadow-sm overflow-hidden flex flex-col">
-            
             <button
               onClick={toggleTheme}
               className="w-full flex items-center justify-between p-4 hover:bg-[var(--color-surface-elevated)] transition-colors text-left border-b border-[var(--color-border)]"
@@ -119,7 +157,9 @@ export default function OrgSettingsPage() {
                   key={idx}
                   href={item.href}
                   className={`flex items-center justify-between p-4 hover:bg-[var(--color-surface-elevated)] transition-colors ${
-                    idx !== orgSettingsItems.length - 1 ? "border-b border-[var(--color-border)]" : ""
+                    idx !== orgSettingsItems.length - 1
+                      ? "border-b border-[var(--color-border)]"
+                      : ""
                   }`}
                 >
                   <div className="flex items-center gap-3.5">
@@ -133,7 +173,10 @@ export default function OrgSettingsPage() {
                       </p>
                     </div>
                   </div>
-                  <ChevronRightIcon size={20} className="text-[var(--color-text-muted)] shrink-0" />
+                  <ChevronRightIcon
+                    size={20}
+                    className="text-[var(--color-text-muted)] shrink-0"
+                  />
                 </Link>
               );
             })}
@@ -145,12 +188,14 @@ export default function OrgSettingsPage() {
             <LogOutIcon size={18} className="shrink-0" /> Log Out
           </button>
         </div>
-        
       </main>
 
       <BottomNav />
 
-      <SwitchAccountModal isOpen={showSwitchModal} onClose={() => setShowSwitchModal(false)} />
+      <SwitchAccountModal
+        isOpen={showSwitchModal}
+        onClose={() => setShowSwitchModal(false)}
+      />
     </div>
   );
 }

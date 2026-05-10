@@ -90,8 +90,16 @@ export default function UserSettingsPage() {
       <main className="flex-1 pb-24 pb-safe px-4 pt-6 space-y-8 overflow-y-auto">
         <div className="bg-[var(--color-surface)] rounded-2xl border border-[var(--color-border)] p-5 shadow-sm">
           <div className="flex items-center gap-4">
-            <div className="w-16 h-16 rounded-full bg-primary flex flex-shrink-0 items-center justify-center text-white text-2xl font-bold">
-              {initials}
+            <div className="w-16 h-16 rounded-full bg-primary flex flex-shrink-0 items-center justify-center text-white text-2xl font-bold overflow-hidden border border-[var(--color-border)]">
+              {userProfile?.profilePicUrl ? (
+                <img
+                  src={userProfile.profilePicUrl}
+                  alt="Profile"
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                initials
+              )}
             </div>
             <div className="flex-1 min-w-0">
               <h2 className="text-lg font-bold truncate">

@@ -10,22 +10,78 @@ type TournamentHeroCardProps = {
   registrationStatus: string;
   onBack?: () => void;
   onShare?: () => void;
+  logoUrl?: string | null;
 };
 
 function SoftballLogo() {
   return (
     <div className="grid h-[42px] w-[42px] shrink-0 place-items-center rounded-full border border-[#f4f0e8] bg-[radial-gradient(circle_at_35%_35%,#fffefb_0%,#faf7ef_58%,#f3ebd8_100%)] shadow-[0_3px_8px_rgba(110,45,0,0.12)]">
       <svg viewBox="0 0 64 64" className="h-[42px] w-[42px]" aria-hidden="true">
-        <circle cx="32" cy="32" r="27" fill="#fffdf8" stroke="#2f2a21" strokeWidth="1.8" />
-        <circle cx="32" cy="32" r="20.5" fill="none" stroke="#2f2a21" strokeWidth="1.2" strokeDasharray="1.3 2.2" />
-        <path d="M18 12c4.8 6.4 7 13.1 7 20s-2.2 13.6-7 20" fill="none" stroke="#c96b1f" strokeWidth="2.2" strokeLinecap="round" />
-        <path d="M46 12c-4.8 6.4-7 13.1-7 20s2.2 13.6 7 20" fill="none" stroke="#c96b1f" strokeWidth="2.2" strokeLinecap="round" />
-        <path d="M15 24c5.8 2.8 11.4 4.2 17 4.2S43.2 26.8 49 24" fill="none" stroke="#c96b1f" strokeWidth="1.8" strokeLinecap="round" />
-        <path d="M15 40c5.8-2.8 11.4-4.2 17-4.2S43.2 37.2 49 40" fill="none" stroke="#c96b1f" strokeWidth="1.8" strokeLinecap="round" />
-        <text x="32" y="29" textAnchor="middle" fontSize="7.2" fontWeight="700" fill="#2f2a21" letterSpacing="1.8">
+        <circle
+          cx="32"
+          cy="32"
+          r="27"
+          fill="#fffdf8"
+          stroke="#2f2a21"
+          strokeWidth="1.8"
+        />
+        <circle
+          cx="32"
+          cy="32"
+          r="20.5"
+          fill="none"
+          stroke="#2f2a21"
+          strokeWidth="1.2"
+          strokeDasharray="1.3 2.2"
+        />
+        <path
+          d="M18 12c4.8 6.4 7 13.1 7 20s-2.2 13.6-7 20"
+          fill="none"
+          stroke="#c96b1f"
+          strokeWidth="2.2"
+          strokeLinecap="round"
+        />
+        <path
+          d="M46 12c-4.8 6.4-7 13.1-7 20s2.2 13.6 7 20"
+          fill="none"
+          stroke="#c96b1f"
+          strokeWidth="2.2"
+          strokeLinecap="round"
+        />
+        <path
+          d="M15 24c5.8 2.8 11.4 4.2 17 4.2S43.2 26.8 49 24"
+          fill="none"
+          stroke="#c96b1f"
+          strokeWidth="1.8"
+          strokeLinecap="round"
+        />
+        <path
+          d="M15 40c5.8-2.8 11.4-4.2 17-4.2S43.2 37.2 49 40"
+          fill="none"
+          stroke="#c96b1f"
+          strokeWidth="1.8"
+          strokeLinecap="round"
+        />
+        <text
+          x="32"
+          y="29"
+          textAnchor="middle"
+          fontSize="7.2"
+          fontWeight="700"
+          fill="#2f2a21"
+          letterSpacing="1.8"
+        >
           SOFT
         </text>
-        <text x="32" y="37.5" textAnchor="middle" fontSize="6" fontWeight="700" fill="#2f2a21" letterSpacing="1.4">
+        <text
+          x="32"
+          y="37.5"
+          textAnchor="middle"
+          fontSize="6"
+          fontWeight="700"
+          fill="#2f2a21"
+          letterSpacing="1.4"
+        >
           BALL
         </text>
       </svg>
@@ -40,6 +96,7 @@ export default function TournamentHeroCard({
   registrationStatus,
   onBack,
   onShare,
+  logoUrl,
 }: TournamentHeroCardProps) {
   return (
     <section className="overflow-hidden bg-[linear-gradient(180deg,#ff8a24_0%,#ff7418_100%)] px-4 pb-4 pt-[calc(max(env(safe-area-inset-top),12px)+4px)]">
@@ -62,7 +119,15 @@ export default function TournamentHeroCard({
 
       <div className="mt-5 grid grid-cols-[42px_minmax(0,1fr)] items-center gap-x-3">
         <div className="self-center">
-          <SoftballLogo />
+          {logoUrl ? (
+            <img
+              src={logoUrl}
+              alt="Logo"
+              className="h-[42px] w-[42px] rounded-full object-cover border border-white/40 shadow-sm"
+            />
+          ) : (
+            <SoftballLogo />
+          )}
         </div>
 
         <div className="min-w-0">
@@ -82,14 +147,20 @@ export default function TournamentHeroCard({
               <UsersIcon size={15} />
             </div>
             <div>
-              <p className="text-[28px] font-bold leading-none text-[var(--color-text)]">{registeredCount}</p>
-              <p className="mt-1 text-[12px] font-medium text-[var(--color-muted)]">Registered</p>
+              <p className="text-[28px] font-bold leading-none text-[var(--color-text)]">
+                {registeredCount}
+              </p>
+              <p className="mt-1 text-[12px] font-medium text-[var(--color-muted)]">
+                Registered
+              </p>
             </div>
           </div>
         </div>
 
         <div className="rounded-[14px] bg-[var(--color-surface)] px-3.5 py-3 shadow-[var(--shadow-card)]">
-          <p className="text-[19px] font-bold leading-tight text-[var(--color-text)]">Registration</p>
+          <p className="text-[19px] font-bold leading-tight text-[var(--color-text)]">
+            Registration
+          </p>
           <div className="mt-2.5 flex justify-center">
             <span className="inline-flex h-5 min-w-[52px] items-center justify-center rounded-full bg-primary/20 px-2 text-[10px] font-semibold text-primary">
               {registrationStatus}

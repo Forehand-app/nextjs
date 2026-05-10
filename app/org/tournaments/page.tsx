@@ -267,6 +267,7 @@ export default function OrgTournamentsPage() {
                   eventsCount={t.events?.length ?? 0}
                   date={formatDate(t.startDate)}
                   entryFee={getEntryFee(t)}
+                  logoUrl={t.logoUrl || undefined}
                   href={`/org/tournaments/detail${toQuery({ t: t.id })}`}
                 />
               ))
@@ -307,6 +308,7 @@ export default function OrgTournamentsPage() {
                   eventsCount={t.events?.length ?? 0}
                   date={formatDate(t.startDate)}
                   entryFee={getEntryFee(t)}
+                  logoUrl={t.logoUrl || undefined}
                   href={`/org/tournaments/detail${toQuery({ t: t.id })}`}
                 />
               ))

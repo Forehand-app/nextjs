@@ -93,8 +93,16 @@ export default function OrgProfilePage() {
         ) : null}
         <div className="p-4 rounded-[var(--radius-card)] bg-[var(--color-surface)] border border-[var(--color-border)] shadow-[var(--shadow-card)]">
           <div className="flex gap-4">
-            <div className="w-16 h-16 rounded-full bg-primary/20 flex items-center justify-center text-2xl font-bold text-primary shrink-0">
-              {orgInitial}
+            <div className="w-16 h-16 rounded-full bg-primary/20 flex items-center justify-center text-2xl font-bold text-primary shrink-0 overflow-hidden border border-[var(--color-border)]">
+              {organization?.logoUrl ? (
+                <img
+                  src={organization.logoUrl}
+                  alt="Organization logo"
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                orgInitial
+              )}
             </div>
             <div className="min-w-0 flex-1">
               <h2 className="text-lg font-semibold truncate">{orgName}</h2>

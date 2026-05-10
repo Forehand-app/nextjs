@@ -4,7 +4,10 @@ import React, { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { ArrowLeftIcon } from "@/components/Icons";
-import NotificationsSlideOver, { NotificationItem } from "@/components/NotificationsSlideOver";
+import { useApp } from "@/components/AppProvider";
+import NotificationsSlideOver, {
+  NotificationItem,
+} from "@/components/NotificationsSlideOver";
 
 type TopNavProps = {
   title?: string;
@@ -60,13 +63,19 @@ const mockNotifications: NotificationItem[] = [
   },
 ];
 
-export default function TopNav({ title, showBack = false, onBack, right }: TopNavProps) {
+export default function TopNav({
+  title,
+  showBack = false,
+  onBack,
+  right,
+}: TopNavProps) {
   const pathname = usePathname();
+  const { userProfile, activeOrganization } = useApp();
   const isOrg = pathname.startsWith("/org");
-  
+
   // CHANGED: Routes correctly to Settings instead of Profile
-  const profileHref = isOrg ? "/org/settings" : "/user/settings"; 
-  
+  const profileHref = isOrg ? "/org/settings" : "/user/settings";
+
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const unreadCount = mockNotifications.filter((n) => n.unread).length;
 
@@ -74,6 +83,14 @@ export default function TopNav({ title, showBack = false, onBack, right }: TopNa
     if (onBack) return onBack();
     if (typeof window !== "undefined") window.history.back();
   };
+
+  const initial = isOrg
+    ? activeOrganization?.name?.charAt(0) || "O"
+    : userProfile?.name?.charAt(0) || "P";
+
+  const picUrl = isOrg
+    ? activeOrganization?.logoUrl
+    : userProfile?.profilePicUrl;
 
   return (
     <>
@@ -117,12 +134,20 @@ export default function TopNav({ title, showBack = false, onBack, right }: TopNa
             {/* Profile Avatar */}
             <Link
               href={profileHref}
-              className="p-2 rounded-lg hover:bg-[var(--color-surface-elevated)] min-h-[44px] min-w-[44px] flex items-center justify-center"
+              className="p-1 rounded-full hover:bg-[var(--color-surface-elevated)] min-h-[40px] min-w-[40px] flex items-center justify-center transition-colors"
               aria-label="Profile"
             >
-              <span className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center text-sm font-medium">
-                A
-              </span>
+              {picUrl ? (
+                <img
+                  src={picUrl}
+                  alt="Profile"
+                  className="w-8 h-8 rounded-full object-cover border border-[var(--color-border)]"
+                />
+              ) : (
+                <span className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center text-sm font-bold text-primary border border-primary/10">
+                  {initial}
+                </span>
+              )}
             </Link>
             {right}
           </div>

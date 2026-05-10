@@ -14,7 +14,8 @@ import {
   SearchIcon,
   TrashIcon,
 } from "@/components/Icons";
-import { EventData } from "@/lib/models";
+import { tournamentApi } from "@/lib/api/tournamentApi";
+import { TournamentData, EventData } from "@/lib/models";
 import { toQuery } from "@/lib/utils";
 
 type MainTab = "about" | "events";
@@ -141,6 +142,7 @@ export default function TournamentDetailPage() {
           subtitle="Andheri West Organization"
           registeredCount={64}
           registrationStatus="Open"
+          logoUrl={null}
           onBack={() => router.back()}
         />
       </div>

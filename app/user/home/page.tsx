@@ -206,7 +206,15 @@ export default function UserHomePage() {
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center gap-3">
               <div className="w-12 h-12 rounded-full bg-white/20 border-2 border-white/40 flex items-center justify-center text-white font-bold text-lg overflow-hidden shrink-0">
-                {userInitial}
+                {userProfile?.profilePicUrl ? (
+                  <img
+                    src={userProfile.profilePicUrl}
+                    alt="Profile"
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  userInitial
+                )}
               </div>
               <div>
                 <h1 className="text-white font-bold text-xl leading-tight tracking-tight">
