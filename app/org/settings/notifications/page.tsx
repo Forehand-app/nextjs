@@ -1,26 +1,36 @@
 "use client";
 
 import React, { useState } from "react";
-import { Bell } from "lucide-react";
 import {
   IntroWithIcon,
   SettingsShell,
   ToggleRow,
 } from "../_components/SettingsScaffold";
+import { BellIcon } from "@/components/Icons";
 
 export default function OrgNotificationsPage() {
-  const [toggles, setToggles] = useState([true, true, false, false, false, true, true]);
+  const [toggles, setToggles] = useState([
+    true,
+    true,
+    false,
+    false,
+    false,
+    true,
+    true,
+  ]);
 
   const updateToggle = (index: number) => {
     setToggles((current) =>
-      current.map((value, currentIndex) => (currentIndex === index ? !value : value)),
+      current.map((value, currentIndex) =>
+        currentIndex === index ? !value : value,
+      ),
     );
   };
 
   return (
     <SettingsShell title="Notifications">
       <IntroWithIcon
-        icon={Bell}
+        icon={BellIcon}
         title="Stay Updated"
         subtitle="Choose which notifications you want to receive"
       />
@@ -39,4 +49,3 @@ export default function OrgNotificationsPage() {
     </SettingsShell>
   );
 }
-

@@ -227,46 +227,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           error,
         } = await supabase.auth.getSession();
         if (error) throw error;
-
         setSession(initialSession);
-
-        if (initialSession) {
-          const userId = initialSession.user.id;
-          lastFetchedUserIdRef.current = userId;
-
-          // If we have a session, fetch profile immediately to avoid flickering/redirects
-          try {
-            const profile = await userApi.getInfo();
-            setUserProfile(profile);
-
-            if (typeof window !== "undefined") {
-              const storedOrgId = localStorage.getItem(ACTIVE_ORG_STORAGE_KEY);
-              const orgs = await organizationApi.getUserOrganizations();
-              const fallbackOrg = orgs[0] || null;
-
-              if (storedOrgId) {
-                const matched = orgs.find((o) => o.id === storedOrgId);
-                if (matched) {
-                  activeOrgIdRef.current = matched.id || null;
-                  setActiveOrganization(matched);
-                } else {
-                  localStorage.removeItem(ACTIVE_ORG_STORAGE_KEY);
-                  activeOrgIdRef.current = fallbackOrg?.id || null;
-                  setActiveOrganization(fallbackOrg);
-                }
-              } else {
-                activeOrgIdRef.current = fallbackOrg?.id || null;
-                setActiveOrganization(fallbackOrg);
-              }
-            }
-          } catch (profileError) {
-            console.error("Failed to fetch profile during init:", profileError);
-          }
-        }
       } catch (err) {
         console.error("Failed to initialize app session:", err);
-      } finally {
         setIsLoading(false);
+      } finally {
         isInitialMount = false;
       }
     };
@@ -276,8 +241,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, nextSession) => {
-      // If session changed after initial mount, we need to re-fetch profile
       if (!isInitialMount) {
+        // If we have a session but it's different from what we think we're loading,
+        // or we don't have a profile yet, ensure we are in a loading state.
+        if (nextSession?.user?.id) {
+          setIsLoading(true);
+        }
         setSession(nextSession);
       }
     });
@@ -306,49 +275,55 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     };
   }, [supabase, finishNativeAuth]);
 
-  // 2. Respond to subsequent session changes (Login / Logout / Token Refresh)
+  // 2. Respond to ANY session change
   useEffect(() => {
     const userId = session?.user?.id || null;
 
-    // Handle logout or lost session
+    // A. User logged out or no session
     if (!userId) {
-      // Only reset if we're not currently in the initial loading phase
-      if (!isLoading) {
-        setUserProfile(null);
-        setActiveOrganization(null);
-        activeOrgIdRef.current = null;
-        lastFetchedUserIdRef.current = null;
-      }
+      setUserProfile(null);
+      setActiveOrganization(null);
+      activeOrgIdRef.current = null;
+      lastFetchedUserIdRef.current = null;
+      setIsLoading(false);
       return;
     }
 
-    // If we have a session but it's a DIFFERENT user than we last fetched for, fetch it
-    if (userId !== lastFetchedUserIdRef.current && !isLoading) {
-      setIsLoading(true);
-      (async () => {
+    // B. New user detected (initial load or sign-in)
+    if (userId !== lastFetchedUserIdRef.current) {
+      void (async () => {
         try {
+          setIsLoading(true);
           lastFetchedUserIdRef.current = userId;
+
           const profile = await userApi.getInfo();
-          setUserProfile(profile);
 
-          if (typeof window !== "undefined") {
-            const orgs = await organizationApi.getUserOrganizations();
-            const storedOrgId = localStorage.getItem(ACTIVE_ORG_STORAGE_KEY);
-            const matched =
-              orgs.find((o) => o.id === storedOrgId) || orgs[0] || null;
+          // VALIDATION: Ensure it's a real profile and not just a success message
+          if (profile && typeof profile === "object" && profile.name) {
+            setUserProfile(profile);
 
-            setActiveOrganization(matched);
-            activeOrgIdRef.current = matched?.id || null;
+            if (typeof window !== "undefined") {
+              const orgs = await organizationApi.getUserOrganizations();
+              const storedOrgId = localStorage.getItem(ACTIVE_ORG_STORAGE_KEY);
+              const matched =
+                orgs.find((o) => o.id === storedOrgId) || orgs[0] || null;
+
+              setActiveOrganization(matched);
+              activeOrgIdRef.current = matched?.id || null;
+            }
+          } else {
+            // No valid profile found
+            setUserProfile(null);
           }
         } catch (err) {
-          console.error("Failed to fetch profile on session change:", err);
+          console.error("Profile fetch error:", err);
           setUserProfile(null);
         } finally {
           setIsLoading(false);
         }
       })();
     }
-  }, [session, isLoading]);
+  }, [session]);
 
   /* ---- context value --------------------------------------------- */
 

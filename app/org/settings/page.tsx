@@ -16,8 +16,10 @@ import {
   MoonIcon,
   ChevronRightIcon,
   ChevronDownIcon,
+  BellIcon,
+  SettingsIcon,
+  UsersIcon,
 } from "@/components/Icons";
-import { Bell, Settings2, Users } from "lucide-react";
 
 export default function OrgSettingsPage() {
   const router = useRouter();
@@ -42,19 +44,19 @@ export default function OrgSettingsPage() {
   const orgSettingsItems = [
     {
       href: "/org/settings/notifications",
-      icon: Bell,
+      icon: BellIcon,
       label: "Notifications",
       sub: "Manage preferences",
     },
     {
       href: "/org/settings/preferences",
-      icon: Settings2,
+      icon: SettingsIcon,
       label: "Settings",
       sub: "App preferences",
     },
     {
       href: "/org/settings/members",
-      icon: Users,
+      icon: UsersIcon,
       label: "Organization Members",
       sub: "Add or remove members",
     },

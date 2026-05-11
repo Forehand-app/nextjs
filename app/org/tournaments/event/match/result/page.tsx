@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import Layout from "@/components/Layout";
 import { getItem, removeItem } from "@/lib/storage";
 import type { LiveMatchStateData, MatchConfigData } from "@/lib/models";
-import { Trophy } from "lucide-react";
+import { TrophyIcon } from "@/components/Icons";
 import { motion } from "framer-motion";
 import { toQuery } from "@/lib/utils";
 
@@ -150,7 +150,7 @@ export default function OrgMatchResultPage() {
             transition={{ type: "spring", stiffness: 180, damping: 12 }}
             className="mb-4 text-[#F7B31B]"
           >
-            <Trophy size={52} strokeWidth={2.3} />
+            <TrophyIcon size={52} />
           </motion.div>
 
           {/* Winner Label */}

@@ -17,10 +17,11 @@ import {
   DumbbellIcon,
   TrophyIcon,
   ChevronRightIcon,
-  InfoIcon
+  InfoIcon,
+  UsersIcon,
 } from "@/components/Icons";
 import { FloatingIcons } from "@/components/FloatingIcons";
-import { Users } from "lucide-react";
+
 const InputField = ({
   id,
   label,
@@ -32,13 +33,18 @@ const InputField = ({
 }: any) => {
   const handleClick = (e: React.MouseEvent) => {
     // If clicking the input/select directly, let the browser handle it
-    if (e.target instanceof HTMLInputElement || e.target instanceof HTMLSelectElement) {
+    if (
+      e.target instanceof HTMLInputElement ||
+      e.target instanceof HTMLSelectElement
+    ) {
       return;
     }
 
-    const input = (e.currentTarget as HTMLElement).querySelector('input, select') as HTMLInputElement | HTMLSelectElement;
+    const input = (e.currentTarget as HTMLElement).querySelector(
+      "input, select",
+    ) as HTMLInputElement | HTMLSelectElement;
     if (input) {
-      if (type === 'date' && (input as any).showPicker) {
+      if (type === "date" && (input as any).showPicker) {
         try {
           (input as any).showPicker();
         } catch {
@@ -54,14 +60,16 @@ const InputField = ({
     <div
       className="w-full min-w-0 space-y-1.5"
       onClick={(e) => {
-        if (type !== 'date') handleClick(e);
+        if (type !== "date") handleClick(e);
       }}
     >
-      <div className={`relative h-14 flex items-center rounded-full border bg-[var(--color-surface)] transition-all ${error ? 'border-red-500/50' : 'border-[var(--color-border)] focus-within:border-[#ff7a1a]'}`}>
+      <div
+        className={`relative h-14 flex items-center rounded-full border bg-[var(--color-surface)] transition-all ${error ? "border-red-500/50" : "border-[var(--color-border)] focus-within:border-[#ff7a1a]"}`}
+      >
         <div
           className="pl-4 text-[#ff7a1a] opacity-80 flex-shrink-0 cursor-pointer h-full flex items-center"
           onClick={(e) => {
-            if (type === 'date') {
+            if (type === "date") {
               e.stopPropagation();
               handleClick(e);
             }
@@ -80,7 +88,9 @@ const InputField = ({
           )}
         </div>
       </div>
-      {error && <p className="ml-4 text-[11px] font-bold text-red-500">{error}</p>}
+      {error && (
+        <p className="ml-4 text-[11px] font-bold text-red-500">{error}</p>
+      )}
     </div>
   );
 };
@@ -212,7 +222,9 @@ export default function RegisterPage() {
       router.replace("/home");
     } catch (err) {
       setErrorMessage(
-        err instanceof Error ? err.message : "Registration failed. Please try again.",
+        err instanceof Error
+          ? err.message
+          : "Registration failed. Please try again.",
       );
       setIsSubmitting(false);
     }
@@ -257,7 +269,11 @@ export default function RegisterPage() {
           <div className="relative">
             <div className="w-32 h-32 rounded-full border-4 border-white bg-[#3a2a57] shadow-xl overflow-hidden flex items-center justify-center relative">
               {avatarPreview ? (
-                <img src={avatarPreview} alt="Avatar" className="w-full h-full object-cover" />
+                <img
+                  src={avatarPreview}
+                  alt="Avatar"
+                  className="w-full h-full object-cover"
+                />
               ) : (
                 <div className="text-[var(--color-text-secondary)] opacity-30">
                   <UserIcon size={48} />
@@ -273,7 +289,8 @@ export default function RegisterPage() {
                     if (file) {
                       setAvatarFile(file);
                       const reader = new FileReader();
-                      reader.onloadend = () => setAvatarPreview(reader.result as string);
+                      reader.onloadend = () =>
+                        setAvatarPreview(reader.result as string);
                       reader.readAsDataURL(file);
                     }
                   }}
@@ -298,13 +315,18 @@ export default function RegisterPage() {
         </div>
 
         {/* Form */}
-        <form onSubmit={handleSubmit} className="w-full max-w-[360px] flex flex-col items-center space-y-4">
+        <form
+          onSubmit={handleSubmit}
+          className="w-full max-w-[360px] flex flex-col items-center space-y-4"
+        >
           <InputField
             id="name"
             placeholder="Full Name"
             icon={UserIcon}
             value={formData.name}
-            onChange={(e: any) => setFormData({ ...formData, name: e.target.value })}
+            onChange={(e: any) =>
+              setFormData({ ...formData, name: e.target.value })
+            }
             error={fieldErrors.name}
           />
 
@@ -314,20 +336,35 @@ export default function RegisterPage() {
             type="tel"
             icon={PhoneIcon}
             value={formData.contactNumber}
-            onChange={(e: any) => setFormData({ ...formData, contactNumber: e.target.value })}
+            onChange={(e: any) =>
+              setFormData({ ...formData, contactNumber: e.target.value })
+            }
             error={fieldErrors.contactNumber}
           />
 
-          <InputField id="gender" icon={Users} error={fieldErrors.gender}>
+          <InputField id="gender" icon={UsersIcon} error={fieldErrors.gender}>
             <div className="relative flex-1 flex items-center">
+              {" "}
               <select
                 value={formData.gender || ""}
-                onChange={(e) => setFormData({ ...formData, gender: e.target.value as any })}
+                onChange={(e) =>
+                  setFormData({ ...formData, gender: e.target.value as any })
+                }
                 className="flex-1 bg-transparent px-4 py-4 text-[16px] font-medium text-[var(--color-text)] outline-none appearance-none"
               >
-                <option value="" disabled className="bg-[var(--color-background)]">Gender</option>
-                <option value="male" className="bg-[var(--color-background)]">Male</option>
-                <option value="female" className="bg-[var(--color-background)]">Female</option>
+                <option
+                  value=""
+                  disabled
+                  className="bg-[var(--color-background)]"
+                >
+                  Gender
+                </option>
+                <option value="male" className="bg-[var(--color-background)]">
+                  Male
+                </option>
+                <option value="female" className="bg-[var(--color-background)]">
+                  Female
+                </option>
               </select>
               <div className="absolute right-4 pointer-events-none opacity-40">
                 <ChevronRightIcon size={16} className="rotate-90" />
@@ -341,22 +378,49 @@ export default function RegisterPage() {
             placeholder="Date of birth"
             icon={CalendarIcon}
             value={formData.dob}
-            onChange={(e: any) => setFormData({ ...formData, dob: e.target.value })}
+            onChange={(e: any) =>
+              setFormData({ ...formData, dob: e.target.value })
+            }
             error={fieldErrors.dob}
           />
 
           <div className="flex gap-3 w-full">
             <div className="flex-1">
-              <InputField id="playingHand" icon={DumbbellIcon} error={fieldErrors.playingHand}>
+              <InputField
+                id="playingHand"
+                icon={DumbbellIcon}
+                error={fieldErrors.playingHand}
+              >
                 <div className="relative flex-1 flex items-center">
                   <select
                     value={formData.playingHand || ""}
-                    onChange={(e) => setFormData({ ...formData, playingHand: e.target.value as any })}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        playingHand: e.target.value as any,
+                      })
+                    }
                     className="flex-1 bg-transparent px-3 py-4 text-[15px] font-medium text-[var(--color-text)] outline-none appearance-none"
                   >
-                    <option value="" disabled className="bg-[var(--color-background)]">Playing Hand</option>
-                    <option value="right" className="bg-[var(--color-background)]">Right</option>
-                    <option value="left" className="bg-[var(--color-background)]">Left</option>
+                    <option
+                      value=""
+                      disabled
+                      className="bg-[var(--color-background)]"
+                    >
+                      Playing Hand
+                    </option>
+                    <option
+                      value="right"
+                      className="bg-[var(--color-background)]"
+                    >
+                      Right
+                    </option>
+                    <option
+                      value="left"
+                      className="bg-[var(--color-background)]"
+                    >
+                      Left
+                    </option>
                   </select>
                   <div className="absolute right-3 pointer-events-none opacity-40">
                     <ChevronRightIcon size={14} className="rotate-90" />
@@ -370,7 +434,9 @@ export default function RegisterPage() {
                 placeholder="Primary sport"
                 icon={TrophyIcon}
                 value={formData.primarySport}
-                onChange={(e: any) => setFormData({ ...formData, primarySport: e.target.value })}
+                onChange={(e: any) =>
+                  setFormData({ ...formData, primarySport: e.target.value })
+                }
                 error={fieldErrors.primarySport}
               />
             </div>

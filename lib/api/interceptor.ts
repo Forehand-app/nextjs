@@ -94,6 +94,15 @@ export const fetchApi = async (
       if (!result.success) {
         throw new Error(result.message || "Call completed unsuccessfully");
       }
+
+      // If it's a GET request and data is missing, we likely want to return null/undefined
+      // rather than the success wrapper itself, to avoid 'truthy' checks passing incorrectly.
+      if (method === "GET") {
+        return {
+          data: result.data ?? null,
+        };
+      }
+
       return {
         data: result.data !== undefined ? result.data : result,
       };

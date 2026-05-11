@@ -18,8 +18,11 @@ import {
   ChevronDownIcon,
   CheckIcon,
   PlusIcon,
+  BellIcon,
+  SettingsIcon,
+  ShieldIcon,
+  PhoneIcon,
 } from "@/components/Icons";
-import { Bell, PhoneIcon, Settings2, Shield } from "lucide-react";
 
 export default function UserSettingsPage() {
   const router = useRouter();
@@ -32,19 +35,19 @@ export default function UserSettingsPage() {
   const settingsItems = [
     {
       href: "/user/settings/notifications",
-      icon: Bell,
+      icon: BellIcon,
       label: "Notifications",
       sub: "Manage Preferences",
     },
     {
       href: "/user/settings/privacy",
-      icon: Shield,
+      icon: ShieldIcon,
       label: "Privacy & Policy",
       sub: "Control your settings",
     },
     {
-      href: "/user/settings/preferences",
-      icon: Settings2,
+      href: "/user/settings",
+      icon: SettingsIcon,
       label: "Settings",
       sub: "App preferences",
     },
@@ -164,10 +167,11 @@ export default function UserSettingsPage() {
                 <Link
                   key={idx}
                   href={item.href}
-                  className={`flex items-center justify-between p-4 hover:bg-[var(--color-surface-elevated)] transition-colors ${idx !== settingsItems.length - 1
-                    ? "border-b border-[var(--color-border)]"
-                    : ""
-                    }`}
+                  className={`flex items-center justify-between p-4 hover:bg-[var(--color-surface-elevated)] transition-colors ${
+                    idx !== settingsItems.length - 1
+                      ? "border-b border-[var(--color-border)]"
+                      : ""
+                  }`}
                 >
                   <div className="flex items-center gap-3.5">
                     <div className="p-2 rounded-xl bg-[var(--color-surface-elevated)] text-[var(--color-text)] border border-[var(--color-border)] shrink-0">
