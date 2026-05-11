@@ -645,12 +645,12 @@ const SummaryTab = ({ events }: { events: EventData[] }) => {
 
   const getEventStatePill = (state?: string | null) => {
     if (state === "in_progress")
-      return { label: "Round 2 Live", className: "bg-red-500 text-white" };
+      return { label: "Round 2 Live", className: "bg-error text-primary-contrast" };
     if (state === "completed")
-      return { label: "Completed", className: "bg-green-600 text-white" };
+      return { label: "Completed", className: "bg-success text-primary-contrast" };
     if (state === "cancelled")
-      return { label: "Cancelled", className: "bg-neutral-500 text-white" };
-    return { label: "Round 1 Live", className: "bg-red-500 text-white" };
+      return { label: "Cancelled", className: "bg-muted text-primary-contrast" };
+    return { label: "Round 1 Live", className: "bg-error text-primary-contrast" };
   };
 
   const cards = events.map((event, index) => {
@@ -736,10 +736,10 @@ const SummaryTab = ({ events }: { events: EventData[] }) => {
               >
                 {card.statePill.label}
               </span>
-              <span className="px-2.5 py-1 text-[10px] leading-none rounded-full font-semibold bg-amber-500 text-white">
+              <span className="px-2.5 py-1 text-[10px] leading-none rounded-full font-semibold bg-warning text-primary-contrast">
                 On Track
               </span>
-              <span className="px-2.5 py-1 text-[10px] leading-none rounded-full font-semibold bg-green-500 text-white">
+              <span className="px-2.5 py-1 text-[10px] leading-none rounded-full font-semibold bg-success text-primary-contrast">
                 Rs {card.amount} Collected
               </span>
             </div>

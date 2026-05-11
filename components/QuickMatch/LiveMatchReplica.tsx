@@ -17,6 +17,10 @@ interface LiveMatchReplicaProps {
   sideBServing: boolean;
   sideALabel?: string;
   sideBLabel?: string;
+  scorerLabel?: string;
+  matchTimer?: string;
+  sideAActionLabel?: string;
+  sideBActionLabel?: string;
   showSwitchServe: boolean;
   showWinnerConfirm: boolean;
   showExitConfirm: boolean;
@@ -46,6 +50,44 @@ function SetScoreText({ value }: { value: SetScore }) {
   );
 }
 
+function initialsFromLabel(label: string) {
+  const parts = label.trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return "--";
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+  return `${parts[0][0] || ""}${parts[1][0] || ""}`.toUpperCase();
+}
+
+function splitPlayerNames(label: string) {
+  return label
+    .split("/")
+    .map((name) => name.trim())
+    .filter(Boolean)
+    .slice(0, 2);
+}
+
+function PlayerPairIcons({ label }: { label: string }) {
+  const players = splitPlayerNames(label);
+  const first = players[0] || label;
+  const second = players[1];
+  const firstInitials = initialsFromLabel(first);
+  const secondInitials = second ? initialsFromLabel(second) : null;
+
+  return (
+    <div className="mx-auto mb-1.5 flex h-12 w-[74px] items-center justify-center">
+      <div className="relative h-12 w-[74px]">
+        <div className="absolute left-0 top-0 flex h-12 w-12 items-center justify-center rounded-full border-2 border-border bg-surface-elevated text-[20px] font-semibold">
+          {firstInitials}
+        </div>
+        {secondInitials ? (
+          <div className="absolute right-0 top-0 z-10 flex h-12 w-12 items-center justify-center rounded-full border-2 border-border bg-surface text-[20px] font-semibold opacity-100">
+            {secondInitials}
+          </div>
+        ) : null}
+      </div>
+    </div>
+  );
+}
+
 export default function LiveMatchReplica({
   currentSetNumber,
   sideAScore,
@@ -57,6 +99,10 @@ export default function LiveMatchReplica({
   sideBServing,
   sideALabel = "Kunal Verma",
   sideBLabel = "Anil Kumar",
+  scorerLabel = sideALabel,
+  matchTimer = "00:00:00",
+  sideAActionLabel = sideALabel,
+  sideBActionLabel = sideBLabel,
   showSwitchServe,
   showWinnerConfirm,
   showExitConfirm,
@@ -95,7 +141,7 @@ export default function LiveMatchReplica({
         </header>
 
         {/* Match Overview */}
-        <section className="mb-4 rounded-[24px] border border-border bg-white dark:bg-surface p-5 shadow-sm">
+        <section className="mb-4 rounded-[24px] border border-border bg-surface p-5 shadow-sm">
           <div className="mb-4 flex items-center justify-between">
             <h2 className="text-[15px] font-bold">Match Overview</h2>
             <button
@@ -108,20 +154,20 @@ export default function LiveMatchReplica({
           </div>
 
           <div className="grid grid-cols-2 gap-4">
-            <div className="rounded-2xl border border-border bg-gray-50 dark:bg-white/5 p-1.5">
+            <div className="rounded-2xl border border-border bg-surface-elevated p-1.5">
               <div className="flex items-center justify-between px-2 py-1 mb-1 border-b border-border">
                 <span className="text-[10px] text-muted font-bold uppercase tracking-wider">Change Scorer</span>
                 <ChevronDown size={12} className="text-muted" />
               </div>
-              <p className="py-1 text-sm font-bold text-center">Alex Costa</p>
+              <p className="py-1 text-center text-sm font-bold">{scorerLabel}</p>
             </div>
 
-            <div className="rounded-2xl border border-border bg-gray-50 dark:bg-white/5 p-1.5">
+            <div className="rounded-2xl border border-border bg-surface-elevated p-1.5">
               <div className="flex items-center justify-between px-2 py-1 mb-1 border-b border-border">
                 <span className="text-[10px] text-muted font-bold uppercase tracking-wider">Match Timer</span>
                 <TimerReset size={12} className="text-muted" />
               </div>
-              <p className="py-1 text-sm font-bold text-center tabular-nums">00:23:45</p>
+              <p className="py-1 text-center text-sm font-bold tabular-nums">{matchTimer}</p>
             </div>
           </div>
         </section>
@@ -135,9 +181,7 @@ export default function LiveMatchReplica({
           <div className="rounded-[10px] border border-border p-2">
             <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2 text-center">
               <div>
-                <div className="mx-auto mb-1.5 flex h-12 w-12 items-center justify-center rounded-full border border-border text-[30px] font-semibold">
-                  KV
-                </div>
+                <PlayerPairIcons label={sideALabel} />
                 <p className="text-[9px]">{sideALabel}</p>
                 <span className={`mt-1 inline-flex rounded-full border px-1.5 py-0.5 text-[8px] ${sideAServing ? "border-[#FF9E63] text-primary" : "border-border text-muted"}`}>
                   {sideAServing ? "Serving" : "Receiving"}
@@ -147,9 +191,7 @@ export default function LiveMatchReplica({
               <div className="text-[28px] font-semibold text-muted">Vs</div>
 
               <div>
-                <div className="mx-auto mb-1.5 flex h-12 w-12 items-center justify-center rounded-full border border-border text-[30px] font-semibold">
-                  AK
-                </div>
+                <PlayerPairIcons label={sideBLabel} />
                 <p className="text-[9px]">{sideBLabel}</p>
                 <span className={`mt-1 inline-flex rounded-full border px-1.5 py-0.5 text-[8px] ${sideBServing ? "border-[#FF9E63] text-primary" : "border-border text-muted"}`}>
                   {sideBServing ? "Serving" : "Receiving"}
@@ -184,16 +226,16 @@ export default function LiveMatchReplica({
         {/* Action Buttons */}
         <section className="grid grid-cols-2 gap-2.5">
           <button type="button" onClick={onSideARally} className="h-10 rounded-[10px] bg-primary text-[13px] font-semibold text-primary-contrast">
-            Kunal V. Won Rally
+            {sideAActionLabel} Won Rally
           </button>
           <button type="button" onClick={onSideBRally} className="h-10 rounded-[10px] bg-primary text-[13px] font-semibold text-primary-contrast">
-            Anil K. Scored
+            {sideBActionLabel} Scored
           </button>
           <button type="button" onClick={onSideAFault} className="surface-row h-10 rounded-[10px] text-[13px] font-semibold">
-            Kunal V. Fault
+            {sideAActionLabel} Fault
           </button>
           <button type="button" onClick={onSideBFault} className="surface-row h-10 rounded-[10px] text-[13px] font-semibold">
-            Anil K. Fault
+            {sideBActionLabel} Fault
           </button>
         </section>
 
@@ -205,8 +247,8 @@ export default function LiveMatchReplica({
       {/* Switch Serve Dialog */}
       {showSwitchServe && (
         <div className="fixed inset-0 z-[280] bg-black/40 backdrop-blur-[4px] flex items-center justify-center p-6" onClick={onCloseSwitch}>
-          <div className="bg-white dark:bg-surface w-full max-w-[340px] rounded-[28px] p-8 text-center shadow-2xl animate-in zoom-in-95 duration-200" onClick={e => e.stopPropagation()}>
-            <div className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-full bg-orange-100 dark:bg-orange-500/10">
+          <div className="bg-surface w-full max-w-[340px] rounded-[28px] border border-border p-8 text-center shadow-2xl animate-in zoom-in-95 duration-200" onClick={e => e.stopPropagation()}>
+            <div className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-full bg-surface-elevated">
               <TimerReset size={28} className="text-primary" strokeWidth={2.5} />
             </div>
             <h3 className="text-2xl font-bold leading-tight tracking-tight">Switch Serve Now</h3>
@@ -228,8 +270,8 @@ export default function LiveMatchReplica({
       {/* Switch Sides Dialog (Set End) */}
       {showSwitchSides && (
         <div className="fixed inset-0 z-[282] bg-black/40 backdrop-blur-[4px] flex items-center justify-center p-6" onClick={onCloseSwitch}>
-          <div className="bg-white dark:bg-surface w-full max-w-[340px] rounded-[28px] p-8 text-center shadow-2xl animate-in zoom-in-95 duration-200" onClick={e => e.stopPropagation()}>
-            <div className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-full bg-orange-100 dark:bg-orange-500/10">
+          <div className="bg-surface w-full max-w-[340px] rounded-[28px] border border-border p-8 text-center shadow-2xl animate-in zoom-in-95 duration-200" onClick={e => e.stopPropagation()}>
+            <div className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-full bg-surface-elevated">
               <TimerReset size={28} className="text-primary" strokeWidth={2.5} />
             </div>
             <h3 className="text-2xl font-bold leading-tight tracking-tight">Switch Sides Now</h3>
@@ -251,9 +293,9 @@ export default function LiveMatchReplica({
       {/* Exit Confirm Dialog */}
       {showExitConfirm && (
         <div className="fixed inset-0 z-[285] bg-black/40 backdrop-blur-[4px] flex items-center justify-center p-6" onClick={onCloseExitConfirm}>
-          <div className="bg-white dark:bg-surface w-full max-w-[340px] rounded-[28px] p-8 text-center shadow-2xl animate-in zoom-in-95 duration-200" onClick={e => e.stopPropagation()}>
+          <div className="bg-surface w-full max-w-[340px] rounded-[28px] border border-border p-8 text-center shadow-2xl animate-in zoom-in-95 duration-200" onClick={e => e.stopPropagation()}>
             <h3 className="text-2xl font-bold leading-tight tracking-tight">Leave Match?</h3>
-            <div className="mt-2 mb-8 flex items-start gap-2 text-left bg-orange-50 dark:bg-orange-500/5 p-4 rounded-2xl">
+            <div className="mt-2 mb-8 flex items-start gap-2 rounded-2xl bg-surface-elevated p-4 text-left">
               <TimerReset size={18} className="shrink-0 text-primary mt-0.5" />
               <p className="text-sm text-muted leading-relaxed">
                 Are you sure? The match will not be saved and you will return to match setup.
@@ -263,7 +305,7 @@ export default function LiveMatchReplica({
               <button
                 type="button"
                 onClick={onCloseExitConfirm}
-                className="h-12 rounded-[16px] bg-gray-100 dark:bg-white/10 text-sm font-bold"
+                className="h-12 rounded-[16px] border border-border bg-surface-elevated text-sm font-bold"
               >
                 Continue
               </button>

@@ -80,9 +80,9 @@ function CheckLine({
     <button
       type="button"
       onClick={() => onChange(!checked)}
-      className="flex h-10 w-full items-center justify-between px-3 text-[12px] bg-white border border-border rounded-input hover:bg-gray-50 transition-colors"
+      className="flex h-10 w-full items-center justify-between rounded-input border border-border bg-surface-elevated px-3 text-[12px] transition-colors hover:bg-surface"
     >
-      <span className="font-medium text-gray-900">{text}</span>
+      <span className="font-medium text-text">{text}</span>
       <span
         className={`flex h-4 w-4 items-center justify-center rounded-[4px] border-2 transition-colors ${
           checked
@@ -455,11 +455,11 @@ export default function CourtSlider({ onBack, onStart }: CourtSliderProps) {
       {/* Player Name Picker */}
       {pickerSlot && (
         <div
-          className="fixed inset-0 z-[240] bg-black/45 backdrop-blur-[2px]"
+          className="fixed inset-0 z-[240] flex items-center justify-center bg-black/45 p-4 backdrop-blur-[2px]"
           onClick={() => setPickerSlot(null)}
         >
           <div
-            className="absolute inset-x-4 bottom-4 mx-auto max-w-[390px] surface-popup p-3"
+            className="w-full max-w-[390px] surface-popup p-3"
             onClick={(event) => event.stopPropagation()}
           >
             <div className="mb-2 flex items-center justify-between">

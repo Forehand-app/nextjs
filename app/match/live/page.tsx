@@ -56,8 +56,37 @@ export default function LiveMatchPage() {
   const [matchWinner, setMatchWinner] = useState<0 | 1 | null>(null);
   const [showExitConfirm, setShowExitConfirm] = useState(false);
   const [showSwitchSides, setShowSwitchSides] = useState(false);
-  const playerAName = searchParams.get("p1") || "Kunal Verma";
-  const playerBName = searchParams.get("p2") || "Anil Kumar";
+  const [scorerSide, setScorerSide] = useState<0 | 1>(config.initialServer === 2 ? 1 : 0);
+  const [elapsedSeconds, setElapsedSeconds] = useState(0);
+
+  const p1 = searchParams.get("p1") || "Player 1";
+  const p2 = searchParams.get("p2") || "Player 2";
+  const p3 = searchParams.get("p3") || "";
+  const p4 = searchParams.get("p4") || "";
+  const isDoubles = config.format === "doubles";
+  const playerAName = isDoubles ? [p1, p3].filter(Boolean).join(" / ") : p1;
+  const playerBName = isDoubles ? [p2, p4].filter(Boolean).join(" / ") : p2;
+  const sideAActionLabel = isDoubles ? "Team 1" : p1;
+  const sideBActionLabel = isDoubles ? "Team 2" : p2;
+  const scorerLabel = scorerSide === 0 ? sideAActionLabel : sideBActionLabel;
+
+  useEffect(() => {
+    setScorerSide(config.initialServer === 2 ? 1 : 0);
+  }, [config.initialServer]);
+
+  useEffect(() => {
+    const timer = window.setInterval(() => {
+      setElapsedSeconds((prev) => prev + 1);
+    }, 1000);
+    return () => window.clearInterval(timer);
+  }, []);
+
+  const matchTimer = useMemo(() => {
+    const hours = Math.floor(elapsedSeconds / 3600);
+    const minutes = Math.floor((elapsedSeconds % 3600) / 60);
+    const seconds = elapsedSeconds % 60;
+    return `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
+  }, [elapsedSeconds]);
 
   const emit = useCallback(
     (type: ScoreEventData["type"], details: Record<string, unknown>) => {
@@ -77,6 +106,7 @@ export default function LiveMatchPage() {
   const applyRallyAction = useCallback(
     (winnerSide: 0 | 1) => {
       emit("rally", { side: winnerSide });
+      setScorerSide(winnerSide);
       setState((previous) => {
         setHistory((historyPrevious) => [...historyPrevious, previous]);
         const next = applyRally(previous, config, winnerSide);
@@ -111,6 +141,7 @@ export default function LiveMatchPage() {
   const applyFaultAction = useCallback(
     (faultSide: 0 | 1) => {
       emit("fault", { side: faultSide });
+      setScorerSide(faultSide === 0 ? 1 : 0);
       setState((previous) => {
         setHistory((historyPrevious) => [...historyPrevious, previous]);
         const next = applyFault(previous, config, faultSide);
@@ -162,6 +193,10 @@ export default function LiveMatchPage() {
       sideBServing={state.serverSide === 1}
       sideALabel={playerAName}
       sideBLabel={playerBName}
+      scorerLabel={scorerLabel}
+      matchTimer={matchTimer}
+      sideAActionLabel={sideAActionLabel}
+      sideBActionLabel={sideBActionLabel}
       showSwitchServe={showSwitchServe}
       showSwitchSides={showSwitchSides}
       showWinnerConfirm={matchWinner != null}
