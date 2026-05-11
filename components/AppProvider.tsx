@@ -227,7 +227,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           error,
         } = await supabase.auth.getSession();
         if (error) throw error;
-        setSession(initialSession);
+
+        if (initialSession) {
+          setSession(initialSession);
+        } else {
+          setIsLoading(false);
+        }
       } catch (err) {
         console.error("Failed to initialize app session:", err);
         setIsLoading(false);
@@ -242,12 +247,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, nextSession) => {
       if (!isInitialMount) {
-        // If we have a session but it's different from what we think we're loading,
-        // or we don't have a profile yet, ensure we are in a loading state.
-        if (nextSession?.user?.id) {
-          setIsLoading(true);
-        }
-        setSession(nextSession);
+        setSession((prev) => {
+          if (prev?.user?.id !== nextSession?.user?.id) {
+            setIsLoading(true);
+          }
+          return nextSession;
+        });
       }
     });
 
@@ -322,6 +327,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           setIsLoading(false);
         }
       })();
+    } else {
+      // Same user, no need to re-fetch profile.
+      // Ensure we're not stuck in loading if onAuthStateChange set it to true.
+      setIsLoading(false);
     }
   }, [session]);
 
