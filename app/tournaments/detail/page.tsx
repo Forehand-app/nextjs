@@ -103,6 +103,15 @@ function TournamentDetailContent() {
       .reduce((sum, ev) => sum + (ev.amount ?? 0), 0);
   }, [selected, tournament]);
 
+  const registeredCount = useMemo(() => {
+    if (!tournament?.events) return 0;
+    return tournament.events.reduce(
+      (total, event) =>
+        total + (Array.isArray(event.teams) ? event.teams.length : 0),
+      0,
+    );
+  }, [tournament]);
+
   const handleAddedChange = (eventId: string, isAdded: boolean) => {
     setSelected((prev) => ({ ...prev, [eventId]: isAdded }));
   };
@@ -137,7 +146,7 @@ function TournamentDetailContent() {
         <TournamentHeroCard
           title={tournament.name}
           subtitle={tournament.organization?.name || "Organizer"}
-          registeredCount={0}
+          registeredCount={registeredCount}
           registrationStatus={
             tournament.tournamentState === "published" ? "Open" : "Closed"
           }

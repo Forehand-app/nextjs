@@ -27,6 +27,7 @@ import { tournamentApi } from "@/lib/api/tournamentApi";
 import { EventData, TournamentData } from "@/lib/models";
 import { useApp } from "@/components/AppProvider";
 import { inviteApi } from "@/lib/api/inviteApi";
+import { notificationApi } from "@/lib/api/notificationApi";
 
 function formatDate(value?: string | null) {
   if (!value) return "TBA";
@@ -645,12 +646,24 @@ const SummaryTab = ({ events }: { events: EventData[] }) => {
 
   const getEventStatePill = (state?: string | null) => {
     if (state === "in_progress")
-      return { label: "Round 2 Live", className: "bg-error text-primary-contrast" };
+      return {
+        label: "Round 2 Live",
+        className: "bg-error text-primary-contrast",
+      };
     if (state === "completed")
-      return { label: "Completed", className: "bg-success text-primary-contrast" };
+      return {
+        label: "Completed",
+        className: "bg-success text-primary-contrast",
+      };
     if (state === "cancelled")
-      return { label: "Cancelled", className: "bg-muted text-primary-contrast" };
-    return { label: "Round 1 Live", className: "bg-error text-primary-contrast" };
+      return {
+        label: "Cancelled",
+        className: "bg-muted text-primary-contrast",
+      };
+    return {
+      label: "Round 1 Live",
+      className: "bg-error text-primary-contrast",
+    };
   };
 
   const cards = events.map((event, index) => {
@@ -960,6 +973,17 @@ const EventCrewTab = ({
         organizationId:
           tournament?.organizationId || activeOrganization?.id || undefined,
       });
+
+      try {
+        await notificationApi.sendInviteNotification({
+          phone: cleanPhone,
+          tournamentId: tournamentId,
+          tournamentName: tournament?.name || "the tournament",
+          role: activeRole,
+        });
+      } catch (err) {
+        console.warn("Failed to send crew invite notification", err);
+      }
 
       setCrewMembers((prev) => [
         {

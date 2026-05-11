@@ -10,9 +10,11 @@ import {
   CheckIcon,
   XIcon,
 } from "@/components/Icons";
-import { EventData, TeamData, TeamStatus } from "@/lib/models";
+import { EventData, TeamData, TeamStatus, ProfileData } from "@/lib/models";
 import { teamApi } from "@/lib/api/teamApi";
 import { inviteApi } from "@/lib/api/inviteApi";
+import { userApi } from "@/lib/api/userApi";
+import { notificationApi } from "@/lib/api/notificationApi";
 import { useApp } from "@/components/AppProvider";
 
 interface RegistrationEventCardProps {
@@ -42,12 +44,16 @@ export default function RegistrationEventCard({
   const [team, setTeam] = useState<TeamData | null>(null);
   const [invite, setInvite] = useState<any>(null);
   const [partnerPhone, setPartnerPhone] = useState("");
+  const [partnerProfile, setPartnerProfile] =
+    useState<Partial<ProfileData> | null>(null);
   const [error, setError] = useState("");
 
   const isEligible = !event.gender || event.gender === userProfile?.gender;
   const isDoubles =
+    event.teamTypeId === 2 ||
     event.teamTypeCode?.toLowerCase().includes("double") ||
-    event.teamType?.label?.toLowerCase().includes("double");
+    event.teamType?.label?.toLowerCase().includes("double") ||
+    event.name?.toLowerCase().includes("double");
 
   const loadRegistrationState = useCallback(async () => {
     if (!event.id || !session?.user?.id) return;
@@ -58,10 +64,10 @@ export default function RegistrationEventCard({
 
       if (myTeam) {
         setTeam(myTeam);
-        if (
-          myTeam.status === "registered" ||
-          myTeam.status === "participating"
-        ) {
+
+        const status = (myTeam.teamStatus || myTeam.status)?.toLowerCase();
+        // If the team is not in 'created' state, it means it's finalized (registered/participating)
+        if (status && status !== "created") {
           setState("REGISTERED");
           return;
         }
@@ -71,19 +77,42 @@ export default function RegistrationEventCard({
           const participantsCount = myTeam.participants?.length || 0;
           if (participantsCount === 1) {
             const invites = await inviteApi.getEventTeamInvites(event.id);
-            const pendingInvite = invites?.find(
-              (inv: any) => inv.inviteState === "pending",
+            // The invites are returned as { invite: {...}, receiver: {...} }
+            const pendingInviteItem = invites?.find(
+              (inv: any) => inv.invite?.inviteState === "pending",
             );
-            const rejectedInvite = invites?.find(
-              (inv: any) => inv.inviteState === "rejected",
+            const rejectedInviteItem = invites?.find(
+              (inv: any) => inv.invite?.inviteState === "rejected",
             );
 
-            if (pendingInvite) {
+            if (pendingInviteItem) {
+              const pendingInvite = pendingInviteItem.invite;
               setInvite(pendingInvite);
               setState("INVITED");
-            } else if (rejectedInvite) {
+
+              // Use receiver info from the invite item if available
+              if (pendingInviteItem.receiver) {
+                setPartnerProfile(pendingInviteItem.receiver);
+              } else {
+                // Fallback to fetching by phone
+                const phone =
+                  pendingInvite.receiverPhone ||
+                  pendingInvite.phone ||
+                  (pendingInvite.receiver as any)?.phone;
+                if (phone) {
+                  userApi
+                    .getUserProfileInfo(phone)
+                    .then(setPartnerProfile)
+                    .catch(console.error);
+                }
+              }
+            } else if (rejectedInviteItem) {
+              const rejectedInvite = rejectedInviteItem.invite;
               setInvite(rejectedInvite);
-              setState("ADDING_PARTNER"); // Or show rejection then allow retry
+              setState("REJECTED");
+              if (rejectedInviteItem.receiver) {
+                setPartnerProfile(rejectedInviteItem.receiver);
+              }
             } else {
               setState("ADDING_PARTNER");
             }
@@ -111,7 +140,14 @@ export default function RegistrationEventCard({
       console.error("Failed to load registration state", err);
       setError("Failed to load state");
     }
-  }, [event.id, session?.user?.id, isDoubles, isEligible, isInitiallyAdded]);
+  }, [
+    event.id,
+    session?.user?.id,
+    isDoubles,
+    isEligible,
+    isInitiallyAdded,
+    onAddedChange,
+  ]);
 
   useEffect(() => {
     loadRegistrationState();
@@ -127,9 +163,8 @@ export default function RegistrationEventCard({
         participantIds: [session.user.id],
       });
 
-      const newTeam = await teamApi.getTeamInfo(
-        result.teamId || result.id || result,
-      );
+      const teamId = result.teamId || result.id || result;
+      const newTeam = await teamApi.getTeamInfo(teamId);
       setTeam(newTeam);
 
       if (isDoubles) {
@@ -146,21 +181,26 @@ export default function RegistrationEventCard({
   };
 
   const handleDiscard = async () => {
-    if (!team?.id) return;
+    if (!team?.id || !event.id || !session?.user?.id) return;
 
     try {
       setState("LOADING");
       // If there's an invite, delete it first
-      if (invite?.id) {
-        await inviteApi.deleteInvite(invite.id);
+      const inviteId = invite?.id || invite?.inviteId;
+      if (inviteId) {
+        await inviteApi.deleteInvite(inviteId).catch(console.error);
       }
-      await teamApi.deleteTeam(team.id);
+
+      // Use removeParticipant instead of deleteTeam because deleteTeam is Admin-only
+      // If we are the only participant, the backend will delete the team.
+      await teamApi.removeParticipant(team.id, session.user.id);
 
       setTeam(null);
       setInvite(null);
       setPartnerPhone("");
+      setPartnerProfile(null);
       setState("IDLE");
-      if (event.id) onAddedChange(event.id, false);
+      onAddedChange(event.id, false);
     } catch (err) {
       console.error("Failed to discard team", err);
       setError("Failed to discard");
@@ -182,6 +222,27 @@ export default function RegistrationEventCard({
         inviterName: userProfile?.name || "A player",
       });
       setInvite(result);
+
+      // Send a direct notification for better UI feedback (with accept/reject buttons)
+      try {
+        await notificationApi.sendTeamInviteNotification({
+          phone: partnerPhone,
+          eventId: event.id,
+          eventDisplayName: event.name,
+          inviterName: userProfile?.name || "A player",
+        });
+      } catch (err) {
+        console.warn("Failed to send teammate invite notification", err);
+      }
+
+      // Fetch partner profile
+      try {
+        const profile = await userApi.getUserProfileInfo(partnerPhone);
+        setPartnerProfile(profile);
+      } catch (err) {
+        console.error("Failed to fetch partner profile", err);
+      }
+
       setState("INVITED");
     } catch (err) {
       console.error("Failed to send invite", err);
@@ -197,30 +258,48 @@ export default function RegistrationEventCard({
   };
 
   const handleRemovePartner = async () => {
-    // Clarify with user: is there a removeParticipant API?
-    // For now, let's discard and start over or just delete invite
-    if (invite?.id) {
+    if (!team?.id || !session?.user?.id) return;
+
+    const inviteId = invite?.id || invite?.inviteId;
+    if (inviteId) {
       try {
         setState("LOADING");
-        await inviteApi.deleteInvite(invite.id);
+        await inviteApi.deleteInvite(inviteId);
         setInvite(null);
+        setPartnerProfile(null);
         setState("ADDING_PARTNER");
       } catch (err) {
         console.error("Failed to remove invite", err);
       }
     } else {
-      // If partner already joined, we might need teamApi.removeParticipant
-      // Fallback: discard team
-      handleDiscard();
+      // If partner already joined, remove them from the team
+      try {
+        const partner = team?.participants?.find(
+          (p: any) => p.userId !== session?.user?.id,
+        );
+        if (partner?.userId) {
+          setState("LOADING");
+          await teamApi.removeParticipant(team.id, partner.userId);
+          // Reload state to refresh team participants and revert to ADDING_PARTNER
+          loadRegistrationState();
+        } else {
+          // Fallback: discard team
+          handleDiscard();
+        }
+      } catch (err) {
+        console.error("Failed to remove partner", err);
+      }
     }
   };
 
   const handleRetryAfterRejection = async () => {
-    if (invite?.id) {
+    const inviteId = invite?.id || invite?.inviteId;
+    if (inviteId) {
       try {
         setState("LOADING");
-        await inviteApi.deleteInvite(invite.id);
+        await inviteApi.deleteInvite(inviteId);
         setInvite(null);
+        setPartnerProfile(null);
         setState("ADDING_PARTNER");
       } catch (err) {
         console.error("Failed to delete rejected invite", err);
@@ -263,6 +342,14 @@ export default function RegistrationEventCard({
         <div>
           <h3 className="text-[20px] font-bold text-[var(--color-text)]">
             {event.name}
+            {state === "REGISTERED" && (
+              <span className="ml-2 text-[10px] uppercase tracking-widest text-green-500 bg-green-500/10 px-2 py-0.5 rounded-full">
+                {(team?.teamStatus || team?.status)?.toLowerCase() ===
+                "participating"
+                  ? "Participating"
+                  : "Registered"}
+              </span>
+            )}
             {state === "INELIGIBLE" && (
               <span className="ml-2 text-[10px] uppercase tracking-widest text-red-500 bg-red-500/10 px-2 py-0.5 rounded-full">
                 {event.gender} only
@@ -344,7 +431,10 @@ export default function RegistrationEventCard({
               disabled
               className="inline-flex h-11 min-w-[120px] items-center justify-center gap-2 rounded-full border-2 border-green-500 bg-green-500 text-white px-6 text-[16px] font-bold cursor-default"
             >
-              Registered
+              {(team?.teamStatus || team?.status)?.toLowerCase() ===
+              "participating"
+                ? "Participating"
+                : "Registered"}
             </button>
           )}
 
@@ -397,9 +487,19 @@ export default function RegistrationEventCard({
                 </p>
                 <div className="mt-3 flex items-center justify-between rounded-xl border border-[var(--color-border)] bg-[var(--color-background)] p-3 text-[15px]">
                   <div className="flex items-center gap-3">
-                    <div className="h-8 w-8 rounded-full bg-gray-400" />
+                    {partnerProfile?.profilePicUrl ? (
+                      <img
+                        src={partnerProfile.profilePicUrl}
+                        alt={partnerProfile.name || "Partner"}
+                        className="h-8 w-8 rounded-full object-cover"
+                      />
+                    ) : (
+                      <div className="h-8 w-8 rounded-full bg-gray-400" />
+                    )}
                     <span className="font-medium">
-                      {invite?.receiverName || partnerPhone}
+                      {partnerProfile?.name ||
+                        invite?.receiverName ||
+                        partnerPhone}
                     </span>
                   </div>
                   <span className="rounded-lg bg-[#ff7a1a]/20 px-2.5 py-1 text-[11px] font-bold text-[#ff7a1a]">
@@ -437,9 +537,19 @@ export default function RegistrationEventCard({
                 </p>
                 <div className="mt-3 flex items-center justify-between rounded-xl border border-red-500/20 bg-red-500/5 p-3 text-[15px]">
                   <div className="flex items-center gap-3">
-                    <div className="h-8 w-8 rounded-full bg-gray-400" />
+                    {partnerProfile?.profilePicUrl ? (
+                      <img
+                        src={partnerProfile.profilePicUrl}
+                        alt={partnerProfile.name || "Partner"}
+                        className="h-8 w-8 rounded-full object-cover"
+                      />
+                    ) : (
+                      <div className="h-8 w-8 rounded-full bg-gray-400" />
+                    )}
                     <span className="font-medium">
-                      {invite?.receiverName || "Partner"}
+                      {partnerProfile?.name ||
+                        invite?.receiverName ||
+                        "Partner"}
                     </span>
                   </div>
                   <span className="rounded-lg bg-red-500/20 px-2.5 py-1 text-[11px] font-bold text-red-500">
@@ -466,18 +576,41 @@ export default function RegistrationEventCard({
                 <div className="mt-4 grid grid-cols-1 gap-3">
                   <div className="flex items-center justify-between rounded-xl bg-[var(--color-background)] p-3 border border-[var(--color-border)]">
                     <div className="flex items-center gap-3">
-                      <div className="h-8 w-8 rounded-full bg-primary" />
+                      {userProfile?.profilePicUrl ? (
+                        <img
+                          src={userProfile.profilePicUrl}
+                          alt={userProfile.name}
+                          className="h-8 w-8 rounded-full object-cover"
+                        />
+                      ) : (
+                        <div className="h-8 w-8 rounded-full bg-primary" />
+                      )}
                       <span className="font-medium">You</span>
                     </div>
                   </div>
                   <div className="flex items-center justify-between rounded-xl bg-[var(--color-background)] p-3 border border-[var(--color-border)]">
                     <div className="flex items-center gap-3">
-                      <div className="h-8 w-8 rounded-full bg-gray-400" />
-                      <span className="font-medium">
-                        {team?.participants?.find(
+                      {(() => {
+                        const partner = team?.participants?.find(
                           (p: any) => p.userId !== session?.user?.id,
-                        )?.user?.name || "Partner"}
-                      </span>
+                        )?.user;
+                        return (
+                          <>
+                            {partner?.profilePicUrl ? (
+                              <img
+                                src={partner.profilePicUrl}
+                                alt={partner.name || "Partner"}
+                                className="h-8 w-8 rounded-full object-cover"
+                              />
+                            ) : (
+                              <div className="h-8 w-8 rounded-full bg-gray-400" />
+                            )}
+                            <span className="font-medium">
+                              {partner?.name || "Partner"}
+                            </span>
+                          </>
+                        );
+                      })()}
                     </div>
                     <button
                       onClick={handleRemovePartner}

@@ -2,7 +2,20 @@ import { ProfileData } from "../models";
 import { fetchApi, getApiUrl } from "./interceptor";
 
 /**
- * API client for user profile and notification management.
+ * Structure of a notification item returned by the user notifications endpoint.
+ */
+export interface UserNotification {
+  id: string;
+  type: "invite";
+  title: string;
+  body: string;
+  source: string;
+  createdAt: string | null;
+  unread: boolean;
+}
+
+/**
+ * API client for user profile management and notifications.
  */
 export const userApi = {
   /**
@@ -14,9 +27,10 @@ export const userApi = {
    *   - phone (string): Contact number.
    *   - gender (string): 'male' or 'female'.
    *   - dob (string): ISO date of birth.
-   *   - playingHand (string): 'left' or 'right'.
-   *   - primarySport (string): Main sport of interest.
-   *   - profilePicUrl (optional string): URL to avatar image.
+   *   - playingHand (string): 'left' or 'right' or null.
+   *   - primarySport (string): Main sport of interest or null.
+   *   - profilePicUrl (optional string): Signed URL to the avatar image.
+   *   - profilePicPath (optional string): Internal storage path for the avatar.
    */
   getInfo: async (): Promise<ProfileData> => {
     const { data, error } = await fetchApi(
@@ -27,30 +41,76 @@ export const userApi = {
   },
 
   /**
-   * Registers a new user profile. Should be called after first-time login.
+   * Retrieves basic profile information for any user by their unique ID or phone number.
+   * This is typically used to display participant or member details.
    *
-   * @param profileData - `ProfileData` object containing initial profile details.
-   * @returns A promise resolving when the profile is created.
+   * @param identifier - The unique ID or 10-digit phone number (starts with 6-9) of the user to fetch.
+   * @returns A promise resolving to a partial `ProfileData` object:
+   *   - id (string): User's ID.
+   *   - name (string): User's name.
+   *   - profilePicUrl (string): Avatar URL.
+   *   - profilePicPath (string): Avatar storage path.
+   *   - gender (string): User's gender.
+   *   - primarySport (string): User's primary sport.
    */
-  registerUser: async (profileData: ProfileData) => {
-    await fetchApi(getApiUrl({ path: "/user/register" }), {
+  getUserProfileInfo: async (
+    identifier: string,
+  ): Promise<Partial<ProfileData>> => {
+    const { data, error } = await fetchApi(
+      getApiUrl({ path: "/user/userProfile/info", param: identifier }),
+    );
+    if (error) throw error;
+    return data as Partial<ProfileData>;
+  },
+
+  /**
+   * Registers a new user profile. This should be called once after the user's first login.
+
+   *
+   * @param profileData - `ProfileData` object containing:
+   *   - name (string): Full name.
+   *   - phone (string): 10-digit phone number (starts with 6-9).
+   *   - gender (string): 'male' or 'female'.
+   *   - dob (string): ISO date string (YYYY-MM-DD).
+   *   - playingHand (string | null): 'left' or 'right'.
+   *   - primarySport (string | null): Code or name of the primary sport.
+   *
+   * @returns A promise resolving when the profile is successfully created.
+   */
+  registerUser: async (profileData: ProfileData): Promise<void> => {
+    const { error } = await fetchApi(getApiUrl({ path: "/user/register" }), {
       method: "POST",
       contentType: "json",
-      body: profileData,
+      body: {
+        name: profileData.name,
+        phone: profileData.phone,
+        gender: profileData.gender,
+        dob: profileData.dob,
+        playingHand: profileData.playingHand,
+        primarySport: profileData.primarySport,
+      },
     });
+    if (error) throw error;
   },
 
   /**
    * Updates the current user's profile details.
    *
-   * @param profileData - Updated `ProfileData` object.
+   * @param profileData - Updated `ProfileData` object (same fields as registerUser).
    * @returns A promise resolving when the update is successful.
    */
-  updateProfile: async (profileData: ProfileData) => {
+  updateProfile: async (profileData: ProfileData): Promise<void> => {
     const { error } = await fetchApi(getApiUrl({ path: "/user/update" }), {
       method: "PUT",
       contentType: "json",
-      body: profileData,
+      body: {
+        name: profileData.name,
+        phone: profileData.phone,
+        gender: profileData.gender,
+        dob: profileData.dob,
+        playingHand: profileData.playingHand,
+        primarySport: profileData.primarySport,
+      },
     });
     if (error) throw error;
   },
@@ -58,8 +118,8 @@ export const userApi = {
   /**
    * Validates if a phone number is already registered by another user.
    *
-   * @param contact - The phone number string to validate.
-   * @returns A promise resolving to a boolean: `true` if valid (available), `false` if already in use.
+   * @param contact - The 10-digit phone number to validate.
+   * @returns A promise resolving to a boolean: `true` if the contact is valid (available), `false` if already in use.
    */
   validateContact: async (contact: string): Promise<boolean> => {
     const { data, error } = await fetchApi(
@@ -79,15 +139,23 @@ export const userApi = {
   },
 
   /**
-   * Retrieves all pending invitations (tournaments, organizations) for the current user.
+   * Retrieves all pending invitations (tournaments and organizations) for the current user.
+   * The notifications are sorted by creation date (newest first).
    *
-   * @returns A promise resolving to an array of formatted notification/invite objects.
+   * @returns A promise resolving to an array of `UserNotification` objects:
+   *   - id (string): The invite ID (used for responding).
+   *   - type (string): Always 'invite' for current version.
+   *   - title (string): E.g., 'Tournament Crew Invite' or 'Organization Invite'.
+   *   - body (string): Descriptive invitation text.
+   *   - source (string): Name of the tournament or organization.
+   *   - createdAt (string): ISO timestamp of the invite.
+   *   - unread (boolean): True if the invite is still 'pending'.
    */
-  getUserNotifications: async () => {
+  getUserNotifications: async (): Promise<UserNotification[]> => {
     const { data, error } = await fetchApi(
       getApiUrl({ path: "/user/notifications" }),
     );
     if (error) throw error;
-    return data;
+    return data as UserNotification[];
   },
 };

@@ -5,13 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import RegistrationEventCard from "@/components/Card/RegistrationEventCard";
 import { EventData } from "@/lib/models";
-import {
-  ArrowLeftIcon,
-  InfoIcon,
-  ShareIcon,
-  TrashIcon,
-  UsersIcon,
-} from "@/components/Icons";
+import { ArrowLeftIcon, ShareIcon, UsersIcon } from "@/components/Icons";
 import { toQuery } from "@/lib/utils";
 
 const mockEvents: EventData[] = [
@@ -59,17 +53,6 @@ const mockEvents: EventData[] = [
   },
 ];
 
-type PairStep = "adding" | "invited" | "pairing" | "paired";
-
-function PersonChip({ name }: { name: string }) {
-  return (
-    <div className="flex items-center gap-2 rounded-lg border border-border bg-surface-elevated px-3 py-2 text-sm">
-      <div className="h-6 w-6 rounded-full bg-[radial-gradient(circle_at_30%_30%,#d1d1d1,#7b7b7b)]" />
-      <span>{name}</span>
-    </div>
-  );
-}
-
 export default function TournamentEventPage() {
   const [searchParams, setSearchParams] = useState<URLSearchParams>(
     new URLSearchParams(),
@@ -83,7 +66,6 @@ export default function TournamentEventPage() {
   const id = searchParams.get("id") || "1";
 
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
-  const [pairStep, setPairStep] = useState<PairStep>("adding");
 
   const isSelected = (eventId: string) => selectedIds.includes(eventId);
   const toggleSelection = (event: EventData) => {
@@ -182,90 +164,20 @@ export default function TournamentEventPage() {
         {mockEvents.map((event) => {
           if (!event.id) return null;
           const selected = isSelected(event.id);
-          const showPairBox = event.eventFormatCode === "doubles" && selected;
 
           return (
             <RegistrationEventCard
               key={event.id}
               event={event}
-              isSelected={selected}
-              onSelect={() => toggleSelection(event)}
-              onDeselect={() => toggleSelection(event)}
-            >
-              {showPairBox ? (
-                <div className="rounded-2xl border border-border bg-surface p-3">
-                  {pairStep === "adding" ? (
-                    <>
-                      <p className="text-xl font-semibold">Add your partner</p>
-                      <input
-                        placeholder="Enter partner's Phone No."
-                        className="surface-input mt-2 h-10 w-full px-3 text-sm"
-                      />
-                      <p className="mt-1 flex items-start gap-1 text-xs text-muted">
-                        <InfoIcon size={11} className="mt-0.5" />
-                        Your partner must be registered on the app to enroll.
-                      </p>
-                      <button
-                        onClick={() => setPairStep("invited")}
-                        className="mt-2 h-9 w-full rounded-full border border-primary text-base font-semibold text-primary"
-                      >
-                        Add Partner
-                      </button>
-                    </>
-                  ) : null}
-
-                  {pairStep === "invited" ? (
-                    <>
-                      <p className="text-xl font-semibold">Add your partner</p>
-                      <div className="mt-2 flex items-center justify-between rounded-lg border border-border bg-surface-elevated p-2 text-sm">
-                        <div className="flex items-center gap-2">
-                          <div className="h-6 w-6 rounded-full bg-[radial-gradient(circle_at_30%_30%,#d1d1d1,#7b7b7b)]" />
-                          <span>Anil Kumar</span>
-                        </div>
-                        <span className="rounded-md bg-[#fff2e7] px-2 py-0.5 text-[10px] text-primary">
-                          Invite Pending
-                        </span>
-                      </div>
-                      <button
-                        onClick={() => setPairStep("pairing")}
-                        className="mt-2 h-9 w-full rounded-full border border-primary text-base font-semibold text-primary"
-                      >
-                        Continue
-                      </button>
-                    </>
-                  ) : null}
-
-                  {pairStep === "pairing" ? (
-                    <>
-                      <p className="text-xl font-semibold">Create Your Pair</p>
-                      <div className="mt-2 grid grid-cols-2 gap-2">
-                        <PersonChip name="You" />
-                        <button
-                          onClick={() => setPairStep("adding")}
-                          className="flex items-center justify-center gap-1 rounded-lg bg-[#ffd9d9] px-3 py-2 text-sm text-error"
-                        >
-                          <TrashIcon size={12} />
-                          Remove
-                        </button>
-                      </div>
-                      <button
-                        onClick={() => setPairStep("paired")}
-                        className="mt-2 h-9 w-full rounded-full border border-primary text-base font-semibold text-primary"
-                      >
-                        Confirm Your Pair
-                      </button>
-                    </>
-                  ) : null}
-
-                  {pairStep === "paired" ? (
-                    <div className="grid grid-cols-2 gap-2">
-                      <PersonChip name="You" />
-                      <PersonChip name="Anil Kumar" />
-                    </div>
-                  ) : null}
-                </div>
-              ) : null}
-            </RegistrationEventCard>
+              onAddedChange={(eventId, isAdded) => {
+                if (isAdded && !selectedIds.includes(eventId)) {
+                  setSelectedIds((prev) => [...prev, eventId]);
+                } else if (!isAdded && selectedIds.includes(eventId)) {
+                  setSelectedIds((prev) => prev.filter((id) => id !== eventId));
+                }
+              }}
+              isInitiallyAdded={selected}
+            />
           );
         })}
       </div>

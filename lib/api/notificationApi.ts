@@ -162,4 +162,33 @@ export const notificationApi = {
       },
     );
   },
+
+  /**
+   * Sends a teammate invite notification (via best-effort endpoints).
+   *
+   * @param args - phone, eventId, eventDisplayName, inviterName.
+   * @returns A promise resolving once the attempt is made.
+   */
+  sendTeamInviteNotification: async ({
+    phone,
+    eventId,
+    eventDisplayName,
+    inviterName,
+  }: {
+    phone: string;
+    eventId: string;
+    eventDisplayName?: string;
+    inviterName?: string;
+  }) => {
+    await postBestEffort(
+      ["/notifications/invite", "/notification/invite", "/notification/create"],
+      {
+        phone,
+        type: "invite",
+        eventId,
+        title: "Team Invitation",
+        body: `${inviterName || "A player"} has invited you to join their team for the event "${eventDisplayName || "an event"}".`,
+      },
+    );
+  },
 };

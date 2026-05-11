@@ -104,6 +104,7 @@ export interface EventData {
   gender?: string | null;
   playerBornAfter?: string | null; // ISO 8601 string
 
+  teamTypeId?: number | null;
   teamTypeCode?: string | null;
   teamType?: OptionsData | null;
 
@@ -131,6 +132,7 @@ export type TeamStatus =
 export interface TeamData {
   id?: string | null;
   status?: TeamStatus | null;
+  teamStatus?: TeamStatus | null;
   teamTypeCode?: string | null;
   teamType?: OptionsData | null;
   event?: EventData | null;

@@ -114,9 +114,7 @@ export default function TournamentCheckoutScreen() {
 
         if (!team || !team.id) {
           console.error(`No team found for event ${ev.name}`);
-          throw new Error(
-            `Registration not initialized for event "${ev.name}". Please go back and add it again.`,
-          );
+          continue; // Skip if no team found, or throw if mandatory
         }
 
         // Update the team state to registered
