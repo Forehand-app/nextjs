@@ -2,7 +2,7 @@
 
 import React from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { TimerReset, Trophy } from "lucide-react";
+import { TimerResetIcon, TrophyIcon } from "@/components/Icons";
 
 interface MatchReadyPopupProps {
   isOpen: boolean;
@@ -78,9 +78,11 @@ export default function MatchReadyPopup({
               className="absolute left-1/2 top-1/2 w-[90%] max-w-[360px] -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-4 text-center shadow-lg"
             >
               <div className="mx-auto mb-2 flex h-8 w-8 items-center justify-center text-primary">
-                <TimerReset size={21} />
+                <TimerResetIcon size={21} />
               </div>
-              <h3 className="text-[24px] font-semibold leading-none">Switch Serve Now</h3>
+              <h3 className="text-[24px] font-semibold leading-none">
+                Switch Serve Now
+              </h3>
               <p className="mx-auto mt-2 max-w-[260px] text-sm leading-[1.4] text-[var(--color-muted)]">
                 It&apos;s time for the players to switch serve on the court.
               </p>
@@ -103,14 +105,24 @@ export default function MatchReadyPopup({
             >
               <div className="w-full max-w-[360px] rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] px-6 py-5 text-center shadow-xl">
                 <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-[var(--color-surface-elevated)] text-[#F7B31B]">
-                  <Trophy size={28} strokeWidth={2.2} />
+                  <TrophyIcon size={28} strokeWidth={2.2} />
                 </div>
-                <p className="text-sm font-semibold text-[var(--color-muted)]">Winner</p>
-                <p className="mt-1 text-[22px] font-semibold text-[var(--color-text)]">{winnerName}</p>
+                <p className="text-sm font-semibold text-[var(--color-muted)]">
+                  Winner
+                </p>
+                <p className="mt-1 text-[22px] font-semibold text-[var(--color-text)]">
+                  {winnerName}
+                </p>
                 {winnerScore && (
-                  <p className="mt-2 text-sm text-[var(--color-muted)]">Final Score: {winnerScore}</p>
+                  <p className="mt-2 text-sm text-[var(--color-muted)]">
+                    Final Score: {winnerScore}
+                  </p>
                 )}
-                {courtName && <p className="mt-1 text-xs text-[var(--color-muted)]">{courtName}</p>}
+                {courtName && (
+                  <p className="mt-1 text-xs text-[var(--color-muted)]">
+                    {courtName}
+                  </p>
+                )}
                 <button
                   type="button"
                   onClick={onPrimaryAction}
@@ -126,4 +138,3 @@ export default function MatchReadyPopup({
     </AnimatePresence>
   );
 }
-

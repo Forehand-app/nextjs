@@ -24,6 +24,7 @@ import {
 } from "@/components/Icons";
 import { toQuery } from "@/lib/utils";
 import { tournamentApi } from "@/lib/api/tournamentApi";
+import { eventApi } from "@/lib/api/eventApi";
 import { EventData, TournamentData } from "@/lib/models";
 import { useApp } from "@/components/AppProvider";
 import { inviteApi } from "@/lib/api/inviteApi";
@@ -94,7 +95,13 @@ const EventHeader = ({ tournament }: { tournament: TournamentData | null }) => (
   </div>
 );
 
-const EventStats = ({ tournament }: { tournament: TournamentData | null }) => {
+const EventStats = ({
+  tournament,
+  onSync,
+}: {
+  tournament: TournamentData | null;
+  onSync: () => void;
+}) => {
   const registeredCount =
     tournament?.events?.reduce(
       (total, event) =>
@@ -103,6 +110,20 @@ const EventStats = ({ tournament }: { tournament: TournamentData | null }) => {
     ) ?? 0;
 
   const isRegistrationOpen = tournament?.tournamentState === "published";
+  const [isSyncing, setIsSyncing] = useState(false);
+
+  const handleSync = async () => {
+    if (!tournament?.id) return;
+    try {
+      setIsSyncing(true);
+      await tournamentApi.syncTournamentStatus(tournament.id);
+      onSync();
+    } catch (error) {
+      console.error("Failed to sync tournament status", error);
+    } finally {
+      setIsSyncing(false);
+    }
+  };
 
   return (
     <div className="grid grid-cols-2 gap-3">
@@ -117,21 +138,29 @@ const EventStats = ({ tournament }: { tournament: TournamentData | null }) => {
           <p className="text-sm text-[var(--color-muted)]">Registered</p>
         </div>
       </div>
-      <div className="rounded-xl bg-[var(--color-surface)] p-4 shadow-sm border border-[var(--color-border)]">
-        <p className="font-medium text-[var(--color-text)] text-sm mb-2">
-          Registration
-        </p>
+      <div className="rounded-xl bg-[var(--color-surface)] p-4 shadow-sm border border-[var(--color-border)] flex flex-col justify-center">
+        <div className="flex justify-between items-center mb-1">
+          <p className="font-medium text-[var(--color-text)] text-sm">Status</p>
+          <button
+            onClick={handleSync}
+            disabled={isSyncing}
+            className="text-[10px] font-bold text-orange-500 uppercase tracking-wider hover:underline disabled:opacity-50"
+          >
+            {isSyncing ? "Syncing..." : "Sync"}
+          </button>
+        </div>
         <div className="flex gap-2">
-          <button
-            className={`${isRegistrationOpen ? "bg-green-500 text-white" : "bg-[var(--color-surface-elevated)] text-[var(--color-text-secondary)]"} px-3 py-1 rounded-full text-xs font-medium flex-1 transition-transform active:scale-95`}
+          <span
+            className={`px-3 py-1 rounded-full text-xs font-bold text-center flex-1 capitalize ${
+              tournament?.tournamentState === "in_progress"
+                ? "bg-orange-100 text-orange-700"
+                : tournament?.tournamentState === "published"
+                  ? "bg-green-100 text-green-700"
+                  : "bg-[var(--color-surface-elevated)] text-[var(--color-text-secondary)]"
+            }`}
           >
-            Open
-          </button>
-          <button
-            className={`${!isRegistrationOpen ? "bg-gray-400 text-white" : "bg-[var(--color-surface-elevated)] text-[var(--color-text-secondary)]"} px-3 py-1 rounded-full text-xs font-medium flex-1 transition-transform active:scale-95`}
-          >
-            Close
-          </button>
+            {tournament?.tournamentState?.replace(/_/g, " ") || "Drafted"}
+          </span>
         </div>
       </div>
     </div>
@@ -504,15 +533,31 @@ const ExtendDueDateModal = ({
 const EventsTab = ({
   tournamentId,
   events,
+  onRefresh,
 }: {
   tournamentId: string;
   events: EventData[];
+  onRefresh: () => void;
 }) => {
   const [activeFilter, setActiveFilter] = useState("All");
   const filters = ["All", "Upcoming", "Past", "Ongoing"];
   const [extendModalEventId, setExtendModalEventId] = useState<string | null>(
     null,
   );
+  const [isUpdating, setIsUpdating] = useState<string | null>(null);
+
+  const handleCloseRegistration = async (eventId: string) => {
+    try {
+      setIsUpdating(eventId);
+      await eventApi.updateEventState(eventId, "registration_closed");
+      onRefresh();
+    } catch (error) {
+      console.error("Failed to close registration", error);
+      alert("Failed to close registration. Please try again.");
+    } finally {
+      setIsUpdating(null);
+    }
+  };
 
   return (
     <div className="space-y-4">
@@ -580,13 +625,25 @@ const EventsTab = ({
 
               {/* Actions row */}
               <div className="flex justify-between items-center mt-3 mb-4">
-                <button
-                  onClick={() => setExtendModalEventId(eventId)}
-                  className="border border-[var(--color-border)] px-3 py-1.5 rounded-lg text-sm font-medium text-[var(--color-text)] hover:bg-[var(--color-surface-elevated)] transition-colors flex items-center gap-1.5"
-                >
-                  <CalendarIcon size={14} />
-                  Extend Due Date
-                </button>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => setExtendModalEventId(eventId)}
+                    className="border border-[var(--color-border)] px-3 py-1.5 rounded-lg text-sm font-medium text-[var(--color-text)] hover:bg-[var(--color-surface-elevated)] transition-colors flex items-center gap-1.5"
+                  >
+                    <CalendarIcon size={14} />
+                    Extend
+                  </button>
+                  {state === "created" && (
+                    <button
+                      onClick={() => handleCloseRegistration(eventId)}
+                      disabled={isUpdating === eventId}
+                      className="border border-orange-200 bg-orange-50 px-3 py-1.5 rounded-lg text-sm font-semibold text-orange-700 hover:bg-orange-100 transition-colors flex items-center gap-1.5 disabled:opacity-50"
+                    >
+                      <TimerIcon size={14} />
+                      {isUpdating === eventId ? "Closing..." : "Close Reg."}
+                    </button>
+                  )}
+                </div>
                 <span
                   className={`px-3 py-1 rounded-full text-xs font-semibold tracking-wide capitalize ${badgeClass}`}
                 >
@@ -645,25 +702,44 @@ const SummaryTab = ({ events }: { events: EventData[] }) => {
   };
 
   const getEventStatePill = (state?: string | null) => {
-    if (state === "in_progress")
-      return {
-        label: "Round 2 Live",
-        className: "bg-error text-primary-contrast",
-      };
-    if (state === "completed")
-      return {
-        label: "Completed",
-        className: "bg-success text-primary-contrast",
-      };
-    if (state === "cancelled")
-      return {
-        label: "Cancelled",
-        className: "bg-muted text-primary-contrast",
-      };
-    return {
-      label: "Round 1 Live",
-      className: "bg-error text-primary-contrast",
-    };
+    switch (state) {
+      case "created":
+        return { label: "Draft", className: "bg-muted text-primary-contrast" };
+      case "registration_closed":
+        return {
+          label: "Reg Closed",
+          className: "bg-muted text-primary-contrast",
+        };
+      case "participants_finalized":
+        return {
+          label: "Finalized",
+          className: "bg-success text-primary-contrast",
+        };
+      case "scheduled":
+        return {
+          label: "Scheduled",
+          className: "bg-success text-primary-contrast",
+        };
+      case "in_progress":
+        return { label: "Live", className: "bg-error text-primary-contrast" };
+      case "round_over":
+        return {
+          label: "Round Over",
+          className: "bg-success text-primary-contrast",
+        };
+      case "completed":
+        return {
+          label: "Completed",
+          className: "bg-success text-primary-contrast",
+        };
+      case "cancelled":
+        return {
+          label: "Cancelled",
+          className: "bg-muted text-primary-contrast",
+        };
+      default:
+        return { label: "Draft", className: "bg-muted text-primary-contrast" };
+    }
   };
 
   const cards = events.map((event, index) => {
@@ -1151,116 +1227,102 @@ export default function TournamentEventDetailsPage() {
   const primaryTabs = ["About", "Events", "Summary", "Event Crew"];
   const [activeTab, setActiveTab] = useState("About");
 
-  useEffect(() => {
-    let isActive = true;
+  const loadTournamentData = async () => {
+    if (isAuthLoading) return;
+    try {
+      setErrorMessage("");
+      setIsLoading(true);
+      let tournamentData: TournamentData | null = null;
 
-    setSearchParams(new URLSearchParams(window.location.search));
-
-    const loadTournament = async () => {
-      if (isAuthLoading) return;
-      try {
-        setErrorMessage("");
-        setIsLoading(true);
-        let tournamentData: TournamentData | null = null;
-
-        if (!tournamentId) {
-          setErrorMessage("Tournament id is missing from the URL.");
-          return;
-        }
-
-        if (tournamentId !== "dummy-system-1" && !session?.access_token) {
-          setErrorMessage("Please sign in again to view tournament details.");
-          return;
-        }
-
-        if (tournamentId === "dummy-system-1") {
-          tournamentData = {
-            id: "dummy-system-1",
-            organizationId: "org-1",
-            name: "System Dummy Tournament",
-            description: "A dummy tournament showing various event states",
-            startDate: new Date().toISOString(),
-            venueName: "Dummy Arena",
-            venueAddress: "123 Fake St",
-            venueCity: "Mumbai",
-            venueState: "MH",
-            venuePostalCode: "400001",
-            venueCourts: 4,
-            contactName: "Admin",
-            contactEmail: "admin@dummy.com",
-            contactPhone: "9999999999",
-            tournamentState: "in_progress",
-            events: Array.from({ length: 8 }, (_, index) => {
-              const names = [
-                "U-17 Boys | Pickleball",
-                "U-17 Girls | Pickleball",
-                "Open Men | Pickleball",
-                "Open Women | Pickleball",
-                "Mixed Doubles | Pickleball",
-                "U-15 Boys | Pickleball",
-                "U-15 Girls | Pickleball",
-                "Veterans 40+ | Pickleball",
-              ];
-              const stateByIndex: EventData["eventState"][] = [
-                "created",
-                "in_progress",
-                "in_progress",
-                "participants_finalized",
-                "completed",
-                "in_progress",
-                "scheduled",
-                "created",
-              ];
-
-              return {
-                id: `dummy-${index + 1}`,
-                tournamentId: "dummy-system-1",
-                name: names[index],
-                startDate: new Date().toISOString(),
-                dueDate: new Date(
-                  Date.now() + (index + 1) * 86400000,
-                ).toISOString(),
-                pointsPerSet: 21,
-                setsPerMatch: 3,
-                amount: 3400 + index * 200,
-                eventState: stateByIndex[index],
-                teams: Array.from({ length: 3 + index }, () => ({})) as any,
-              };
-            }),
-          };
-        } else {
-          tournamentData = await tournamentApi.getInfo(tournamentId);
-        }
-
-        if (isActive) {
-          setTournament(tournamentData ?? null);
-        }
-      } catch (error) {
-        if (!isActive) return;
-        console.error("Failed to load tournament", error);
-        const message =
-          error instanceof Error ? error.message : "Unable to load tournament.";
-        const unauthorized =
-          typeof message === "string" &&
-          (message.includes("401") ||
-            message.toLowerCase().includes("unauthorized"));
-        setErrorMessage(
-          unauthorized
-            ? "Your session expired. Please sign in again."
-            : message,
-        );
-      } finally {
-        if (isActive) {
-          setIsLoading(false);
-        }
+      if (!tournamentId) {
+        setErrorMessage("Tournament id is missing from the URL.");
+        return;
       }
-    };
 
-    void loadTournament();
+      if (tournamentId !== "dummy-system-1" && !session?.access_token) {
+        setErrorMessage("Please sign in again to view tournament details.");
+        return;
+      }
 
-    return () => {
-      isActive = false;
-    };
+      if (tournamentId === "dummy-system-1") {
+        tournamentData = {
+          id: "dummy-system-1",
+          organizationId: "org-1",
+          name: "System Dummy Tournament",
+          description: "A dummy tournament showing various event states",
+          startDate: new Date().toISOString(),
+          venueName: "Dummy Arena",
+          venueAddress: "123 Fake St",
+          venueCity: "Mumbai",
+          venueState: "MH",
+          venuePostalCode: "400001",
+          venueCourts: 4,
+          contactName: "Admin",
+          contactEmail: "admin@dummy.com",
+          contactPhone: "9999999999",
+          tournamentState: "in_progress",
+          events: Array.from({ length: 8 }, (_, index) => {
+            const names = [
+              "U-17 Boys | Pickleball",
+              "U-17 Girls | Pickleball",
+              "Open Men | Pickleball",
+              "Open Women | Pickleball",
+              "Mixed Doubles | Pickleball",
+              "U-15 Boys | Pickleball",
+              "U-15 Girls | Pickleball",
+              "Veterans 40+ | Pickleball",
+            ];
+            const stateByIndex: EventData["eventState"][] = [
+              "created",
+              "in_progress",
+              "in_progress",
+              "participants_finalized",
+              "completed",
+              "in_progress",
+              "scheduled",
+              "created",
+            ];
+
+            return {
+              id: `dummy-${index + 1}`,
+              tournamentId: "dummy-system-1",
+              name: names[index],
+              startDate: new Date().toISOString(),
+              dueDate: new Date(
+                Date.now() + (index + 1) * 86400000,
+              ).toISOString(),
+              pointsPerSet: 21,
+              setsPerMatch: 3,
+              amount: 3400 + index * 200,
+              eventState: stateByIndex[index],
+              teams: Array.from({ length: 3 + index }, () => ({})) as any,
+            };
+          }),
+        };
+      } else {
+        tournamentData = await tournamentApi.getInfo(tournamentId);
+      }
+
+      setTournament(tournamentData ?? null);
+    } catch (error) {
+      console.error("Failed to load tournament", error);
+      const message =
+        error instanceof Error ? error.message : "Unable to load tournament.";
+      const unauthorized =
+        typeof message === "string" &&
+        (message.includes("401") ||
+          message.toLowerCase().includes("unauthorized"));
+      setErrorMessage(
+        unauthorized ? "Your session expired. Please sign in again." : message,
+      );
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    setSearchParams(new URLSearchParams(window.location.search));
+    void loadTournamentData();
   }, [tournamentId, session?.access_token, isAuthLoading]);
 
   // Retrieve the saved tab from sessionStorage on initial load
@@ -1280,7 +1342,7 @@ export default function TournamentEventDetailsPage() {
   return (
     <div className="min-h-screen bg-[var(--color-background)] px-4 py-3 pb-24 space-y-4">
       <TopAppBar />
-      {isLoading ? (
+      {isLoading && !tournament ? (
         <p className="text-center text-sm text-[var(--color-muted)] py-8">
           Loading tournament...
         </p>
@@ -1291,7 +1353,10 @@ export default function TournamentEventDetailsPage() {
       ) : (
         <>
           <EventHeader tournament={tournament} />
-          <EventStats tournament={tournament} />
+          <EventStats
+            tournament={tournament}
+            onSync={() => void loadTournamentData()}
+          />
 
           {/* Pass our custom handler to PrimaryTabs */}
           <PrimaryTabs
@@ -1306,6 +1371,7 @@ export default function TournamentEventDetailsPage() {
               <EventsTab
                 tournamentId={tournamentId}
                 events={tournament?.events ?? []}
+                onRefresh={() => void loadTournamentData()}
               />
             )}
             {activeTab === "Summary" && (

@@ -14,6 +14,7 @@ import {
 } from "@/components/Icons";
 import { toQuery } from "@/lib/utils";
 import { tournamentApi } from "@/lib/api/tournamentApi";
+import { eventApi } from "@/lib/api/eventApi";
 import { teamApi } from "@/lib/api/teamApi";
 import { matchApi, CreateMatchPayload } from "@/lib/api/matchApi";
 import { TournamentData, EventData } from "@/lib/models";
@@ -207,11 +208,10 @@ function FixtureSetupContent() {
     try {
       setIsPublishing(true);
 
-      const payload: CreateMatchPayload[] = matches
+      const matchesToCreate = matches
         .filter((m) => m.teamA && m.teamB)
         .map((m) => ({
-          eventId: eventId,
-          roundNumber: 1, // Round 1 for setup
+          roundNumber: event?.activeRound || 1,
           teamA: m.teamA.id,
           teamB: m.teamB.id,
           matchState: "scheduled",
@@ -219,22 +219,16 @@ function FixtureSetupContent() {
           setsPerMatch: event?.setsPerMatch || 1,
         }));
 
-      if (payload.length > 0) {
-        await matchApi.createMatches(payload);
+      if (matchesToCreate.length > 0) {
+        // Use the atomic finalizeSchedule pipeline
+        await eventApi.finalizeSchedule(eventId, matchesToCreate);
+      } else {
+        // Fallback for edge cases if matches are already created or not needed
+        await eventApi.updateEventState(eventId, "scheduled");
       }
 
-      // Update event state to scheduled
-      await tournamentApi.updateEventState(eventId, "scheduled");
-
-      // Check if all events in the tournament are now beyond 'created'
-      const updatedTournament = await tournamentApi.getInfo(tournamentId);
-      const allEventsFinalized = (updatedTournament.events || []).every(
-        (e) => e.eventState !== "created",
-      );
-
-      if (allEventsFinalized) {
-        await tournamentApi.updateTournamentState(tournamentId, "in_progress");
-      }
+      // Sync tournament status
+      await tournamentApi.syncTournamentStatus(tournamentId);
 
       router.push(`/org/tournaments/detail${toQuery({ t: tournamentId })}`);
     } catch (error) {
@@ -245,6 +239,13 @@ function FixtureSetupContent() {
       setShowByeModal(false);
     }
   };
+
+  const isAlreadyScheduled = !!(
+    event?.eventState &&
+    !["created", "registration_closed", "participants_finalized"].includes(
+      event.eventState,
+    )
+  );
 
   const filteredUnassigned = unassigned.filter((t) => {
     const teamName =
@@ -328,12 +329,14 @@ function FixtureSetupContent() {
                 Teams with Bye
               </span>
             </div>
-            <button
-              onClick={handleResetBrackets}
-              className="px-4 py-2 bg-[var(--color-surface-elevated)] border border-[var(--color-border)] text-sm font-bold text-red-500 hover:text-red-600 rounded-xl hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors"
-            >
-              Reset Brackets
-            </button>
+            {!isAlreadyScheduled && (
+              <button
+                onClick={handleResetBrackets}
+                className="px-4 py-2 bg-[var(--color-surface-elevated)] border border-[var(--color-border)] text-sm font-bold text-red-500 hover:text-red-600 rounded-xl hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors"
+              >
+                Reset Brackets
+              </button>
+            )}
           </div>
         </div>
 
@@ -389,14 +392,16 @@ function FixtureSetupContent() {
                           {getTeamName(team)}
                         </span>
                       </div>
-                      <div className="flex items-center gap-2">
-                        <button
-                          onClick={() => handleAssignClick(team)}
-                          className="opacity-0 group-hover:opacity-100 px-3 py-1.5 text-xs font-bold text-primary bg-primary/10 hover:bg-primary hover:text-white rounded-lg transition-all"
-                        >
-                          Assign to Slot
-                        </button>
-                      </div>
+                      {!isAlreadyScheduled && (
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => handleAssignClick(team)}
+                            className="opacity-0 group-hover:opacity-100 px-3 py-1.5 text-xs font-bold text-primary bg-primary/10 hover:bg-primary hover:text-white rounded-lg transition-all"
+                          >
+                            Assign to Slot
+                          </button>
+                        </div>
+                      )}
                     </div>
                   ))
                 )}
@@ -409,7 +414,7 @@ function FixtureSetupContent() {
         <div className="pt-2 space-y-4">
           <div className="flex items-center justify-between px-1">
             <h3 className="font-bold text-[var(--color-text)]">
-              Round 1 Matches
+              Round {event?.activeRound || 1} Matches
             </h3>
             <span className="text-xs font-bold text-primary uppercase tracking-widest">
               {matches.length} Matches
@@ -423,13 +428,15 @@ function FixtureSetupContent() {
                   <div className="text-xs font-bold text-[var(--color-muted)] uppercase tracking-wider">
                     Match {index + 1}
                   </div>
-                  <button
-                    onClick={() => handleRemoveFixture(match.id)}
-                    className="text-[var(--color-muted)] hover:text-red-500 transition-colors p-1"
-                    title="Remove Match"
-                  >
-                    <TrashIcon size={14} />
-                  </button>
+                  {!isAlreadyScheduled && (
+                    <button
+                      onClick={() => handleRemoveFixture(match.id)}
+                      className="text-[var(--color-muted)] hover:text-red-500 transition-colors p-1"
+                      title="Remove Match"
+                    >
+                      <TrashIcon size={14} />
+                    </button>
+                  )}
                 </div>
 
                 <div
@@ -443,8 +450,10 @@ function FixtureSetupContent() {
                     {/* Team A Slot */}
                     <button
                       onClick={() =>
+                        !isAlreadyScheduled &&
                         handleSlotClick(match.id, "teamA", match.teamA)
                       }
+                      disabled={isAlreadyScheduled}
                       className="relative group/slot"
                     >
                       <TeamLogo
@@ -455,7 +464,7 @@ function FixtureSetupContent() {
                           selectedSlot?.position === "teamA"
                         }
                       />
-                      {match.teamA && (
+                      {match.teamA && !isAlreadyScheduled && (
                         <div className="absolute inset-0 bg-red-500/80 text-white rounded-full flex items-center justify-center opacity-0 group-hover/slot:opacity-100 transition-opacity backdrop-blur-sm">
                           <XIcon size={16} />
                         </div>
@@ -472,8 +481,10 @@ function FixtureSetupContent() {
                     {/* Team B Slot */}
                     <button
                       onClick={() =>
+                        !isAlreadyScheduled &&
                         handleSlotClick(match.id, "teamB", match.teamB)
                       }
+                      disabled={isAlreadyScheduled}
                       className="relative group/slot"
                     >
                       <TeamLogo
@@ -484,7 +495,7 @@ function FixtureSetupContent() {
                           selectedSlot?.position === "teamB"
                         }
                       />
-                      {match.teamB && (
+                      {match.teamB && !isAlreadyScheduled && (
                         <div className="absolute inset-0 bg-red-500/80 text-white rounded-full flex items-center justify-center opacity-0 group-hover/slot:opacity-100 transition-opacity backdrop-blur-sm">
                           <XIcon size={16} />
                         </div>
@@ -507,32 +518,36 @@ function FixtureSetupContent() {
               </div>
             ))}
 
-            <button
-              onClick={handleAddFixture}
-              className="w-full mt-4 py-4 rounded-2xl border-2 border-dashed border-[var(--color-border)] text-[var(--color-muted)] hover:text-[var(--color-text)] hover:border-primary hover:bg-primary/5 font-bold text-sm transition-all flex items-center justify-center gap-2 group"
-            >
-              <PlusIcon
-                size={18}
-                className="group-hover:scale-110 transition-transform"
-              />{" "}
-              Add Manual Match
-            </button>
+            {!isAlreadyScheduled && (
+              <button
+                onClick={handleAddFixture}
+                className="w-full mt-4 py-4 rounded-2xl border-2 border-dashed border-[var(--color-border)] text-[var(--color-muted)] hover:text-[var(--color-text)] hover:border-primary hover:bg-primary/5 font-bold text-sm transition-all flex items-center justify-center gap-2 group"
+              >
+                <PlusIcon
+                  size={18}
+                  className="group-hover:scale-110 transition-transform"
+                />{" "}
+                Add Manual Match
+              </button>
+            )}
           </div>
         </div>
       </div>
 
       {/* 6. Publish Fixtures Button */}
-      <div className="fixed bottom-0 left-0 right-0 p-6 bg-[var(--color-surface)] border-t border-[var(--color-border)] z-40 shadow-[0_-10px_30px_rgba(0,0,0,0.05)]">
-        <div className="max-w-3xl mx-auto">
-          <button
-            onClick={handlePublishClick}
-            className="w-full py-4 rounded-2xl font-bold text-white shadow-lg shadow-orange-500/30 hover:shadow-orange-500/50 transition-all flex items-center justify-center gap-2 active:scale-[0.98]"
-            style={{ background: "var(--gradient-orange)" }}
-          >
-            Publish Fixtures
-          </button>
+      {!isAlreadyScheduled && (
+        <div className="fixed bottom-0 left-0 right-0 p-6 bg-[var(--color-surface)] border-t border-[var(--color-border)] z-40 shadow-[0_-10px_30px_rgba(0,0,0,0.05)]">
+          <div className="max-w-3xl mx-auto">
+            <button
+              onClick={handlePublishClick}
+              className="w-full py-4 rounded-2xl font-bold text-white shadow-lg shadow-orange-500/30 hover:shadow-orange-500/50 transition-all flex items-center justify-center gap-2 active:scale-[0.98]"
+              style={{ background: "var(--gradient-orange)" }}
+            >
+              Publish Fixtures
+            </button>
+          </div>
         </div>
-      </div>
+      )}
 
       {/* 7. Bye Confirmation Modal */}
       {showByeModal && (

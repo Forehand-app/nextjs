@@ -174,6 +174,62 @@ export const matchApi = {
   },
 
   /**
+   * Starts a match, transitioning it to 'in_progress' and automatically updating the event state to 'in_progress'.
+   *
+   * @param matchId - The unique ID of the match to start.
+   * @returns A promise resolving when the match is started.
+   */
+  startMatch: async (matchId: string) => {
+    const { error } = await fetchApi(
+      getApiUrl({ path: "/match/start", param: matchId }),
+      {
+        method: "POST",
+      },
+    );
+    if (error) throw error;
+  },
+
+  /**
+   * Completes a match, sets the winner, and transitions its state to 'completed'.
+   * Also automatically updates the losing team status to 'eliminated'.
+   *
+   * @param matchId - The unique ID of the match.
+   * @param winnerId - The ID of the winning team.
+   * @returns A promise resolving when the match is completed.
+   */
+  completeMatch: async (matchId: string, winnerId: string) => {
+    const { error } = await fetchApi(
+      getApiUrl({ path: "/match/complete", param: matchId }),
+      {
+        method: "POST",
+        contentType: "json",
+        body: { winnerId },
+      },
+    );
+    if (error) throw error;
+  },
+
+  /**
+   * Explicitly initializes a set record for a match.
+   *
+   * @param matchId - ID of the match.
+   * @param setNumber - Sequential set number (1, 2, 3...).
+   * @returns A promise resolving to the created set's ID.
+   */
+  initializeSet: async (matchId: string, setNumber: number) => {
+    const { data, error } = await fetchApi(
+      getApiUrl({ path: "/match/set/initialize" }),
+      {
+        method: "POST",
+        contentType: "json",
+        body: { matchId, setNumber },
+      },
+    );
+    if (error) throw error;
+    return data?.setId as string;
+  },
+
+  /**
    * Fetches detailed information for a single set, including its parent match and tournament context.
    *
    * @param setId - The unique ID of the set.

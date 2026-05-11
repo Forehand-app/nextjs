@@ -8,6 +8,7 @@ import {
   EllipsisIcon,
   CalendarIcon,
   TrophyIcon,
+  CheckIcon,
 } from "@/components/Icons";
 import { toQuery } from "@/lib/utils";
 import TeamLogo from "@/components/TeamLogo";
@@ -355,7 +356,12 @@ export default function OrgManageMatchesPage() {
             }
 
             let status: "upcoming" | "live" | "ended" = "upcoming";
-            if (m.matchState === "completed") status = "ended";
+            if (
+              m.matchState === "completed" ||
+              m.matchState === "abandoned" ||
+              m.matchState === "walkover"
+            )
+              status = "ended";
             else if (m.matchState === "in_progress") status = "live";
 
             // Robust team enrichment
@@ -437,6 +443,21 @@ export default function OrgManageMatchesPage() {
     return list;
   }, [event?.activeRound]);
 
+  const isRoundOver = useMemo(() => {
+    if (matches.length === 0) return false;
+    return matches.every((m) => m.status === "ended");
+  }, [matches]);
+
+  const handleNextRound = async () => {
+    if (!tournamentId || !eventId) return;
+    router.push(
+      `/org/tournaments/event/fixture${toQuery({
+        tournamentId,
+        eventId,
+      })}`,
+    );
+  };
+
   const filtered = useMemo(() => {
     return matches.filter((m) => {
       if (activeFilter === "all") return true;
@@ -471,6 +492,26 @@ export default function OrgManageMatchesPage() {
       </div>
 
       <div className="flex-1 p-4 space-y-4 pb-24">
+        {/* ── Round Over Banner ── */}
+        {isRoundOver && event?.eventState !== "completed" && (
+          <div className="bg-green-100 border border-green-200 rounded-2xl p-4 flex flex-col items-center gap-3">
+            <div className="flex items-center gap-2 text-green-800">
+              <CheckIcon size={20} className="text-green-600" />
+              <span className="font-bold">Round {activeRound} Complete!</span>
+            </div>
+            <p className="text-sm text-green-700 text-center">
+              All matches for this round have finished. You can now set up
+              fixtures for the next round.
+            </p>
+            <button
+              onClick={handleNextRound}
+              className="w-full py-3 bg-green-600 text-white rounded-xl font-bold text-sm shadow-md active:scale-95 transition-all"
+            >
+              Set Up Round {activeRound + 1}
+            </button>
+          </div>
+        )}
+
         {/* ── Tournament Info Card ── */}
         <div className="bg-[var(--color-surface)] rounded-2xl border border-[var(--color-border)] shadow-sm p-4 flex items-center gap-3">
           <div className="w-12 h-12 rounded-full bg-[var(--color-surface-elevated)] border border-[var(--color-border)] flex items-center justify-center shrink-0">

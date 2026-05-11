@@ -19,11 +19,11 @@ import {
   ChevronDownIcon,
   CheckIcon,
   PlusIcon,
-  
   ShieldIcon,
   PhoneIcon,
+  BellIcon,
+  SettingsIcon,
 } from "@/components/Icons";
-import { Bell, Settings2 } from "lucide-react";
 export default function UserSettingsPage() {
   const router = useRouter();
   const { theme, toggleTheme } = useTheme();
@@ -35,7 +35,7 @@ export default function UserSettingsPage() {
   const settingsItems = [
     {
       href: routes.userSettingsNotifications(),
-      icon: Bell,
+      icon: BellIcon,
       label: "Notifications",
       sub: "Manage Preferences",
     },
@@ -47,7 +47,7 @@ export default function UserSettingsPage() {
     },
     {
       href: routes.userSettingsPreferences(),
-      icon: Settings2,
+      icon: SettingsIcon,
       label: "Preferences",
       sub: "App preferences",
     },

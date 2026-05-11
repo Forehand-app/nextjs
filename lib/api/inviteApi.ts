@@ -217,4 +217,70 @@ export const inviteApi = {
     );
     if (error) throw error;
   },
+
+  /**
+   * Sends an invitation to a user to join an organization.
+   *
+   * @param payload - Object containing:
+   *   - phone (string): Recipient's phone number.
+   *   - organizationId (string): ID of the organization.
+   *
+   * @returns A promise resolving to the created invitation's data.
+   */
+  sendOrganizationMemberInvite: async (payload: {
+    phone: string;
+    organizationId: string;
+  }) => {
+    const { data, error } = await fetchApi(
+      getApiUrl({ path: "/invite/organization/member/create" }),
+      {
+        method: "POST",
+        contentType: "json",
+        body: payload,
+      },
+    );
+    if (error) throw error;
+    return data;
+  },
+
+  /**
+   * Lists all member invitations for a specific organization.
+   *
+   * @param organizationId - The unique ID of the organization.
+   * @returns A promise resolving to an array of invitation objects.
+   */
+  getOrganizationMemberInvites: async (organizationId: string) => {
+    const { data, error } = await fetchApi(
+      getApiUrl({ path: "/invite/organization/member/list" }),
+      {
+        method: "POST",
+        contentType: "json",
+        body: { organizationId },
+      },
+    );
+    if (error) throw error;
+    return data;
+  },
+
+  /**
+   * Rescinds (deletes) an organization member invitation.
+   *
+   * @param inviteId - The unique ID of the invitation.
+   * @param organizationId - The unique ID of the organization.
+   * @returns A promise resolving when the invitation is removed.
+   */
+  removeOrganizationMemberInvite: async (
+    inviteId: string,
+    organizationId: string,
+  ) => {
+    const { error } = await fetchApi(
+      getApiUrl({ path: "/invite/organization/member/remove" }),
+      {
+        method: "POST",
+        contentType: "json",
+        body: { inviteId, organizationId },
+      },
+    );
+    if (error) throw error;
+  },
 };

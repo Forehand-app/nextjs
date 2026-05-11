@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { ChevronRight, Zap } from "lucide-react";
+import { ChevronRightIcon, ZapIcon } from "@/components/Icons";
 import { useRouter } from "next/navigation";
 import CourtSlider from "./CourtSlider";
 import MatchSplash from "./MatchSplash";
@@ -14,7 +14,7 @@ type SetupPayload = {
   courtId: string;
   format: "singles" | "doubles";
   scoring: "sideout" | "rally";
-  bestOf: 3 | 5;
+  bestOf: 1 | 3 | 5;
   points: 11 | 15 | 21;
   winByTwo: boolean;
   initialServer: 1 | 2;
@@ -47,7 +47,7 @@ export default function QuickMatchFlow() {
       >
         <div className="flex items-center gap-3">
           <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 text-primary">
-            <Zap size={24} fill="currentColor" />
+            <ZapIcon size={24} fill="currentColor" />
           </div>
           <div>
             <h3 className="font-semibold text-text">Quick Match</h3>
@@ -56,7 +56,7 @@ export default function QuickMatchFlow() {
             </p>
           </div>
         </div>
-        <ChevronRight className="text-muted" size={20} />
+        <ChevronRightIcon className="text-muted" size={20} />
       </button>
 
       <AnimatePresence>

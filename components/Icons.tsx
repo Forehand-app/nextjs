@@ -5,6 +5,7 @@ import React from "react";
 export type IconProps = {
   size?: number;
   className?: string;
+  strokeWidth?: number | string;
 };
 
 function SvgIcon({
@@ -12,6 +13,7 @@ function SvgIcon({
   className,
   children,
   viewBox = "0 0 24 24",
+  strokeWidth = "2",
 }: IconProps & { children: React.ReactNode; viewBox?: string }) {
   return (
     <svg
@@ -20,7 +22,7 @@ function SvgIcon({
       viewBox={viewBox}
       fill="none"
       stroke="currentColor"
-      strokeWidth="2"
+      strokeWidth={strokeWidth}
       strokeLinecap="round"
       strokeLinejoin="round"
       aria-hidden
@@ -64,6 +66,45 @@ export function EllipsisIcon(props: IconProps) {
       <circle cx="5" cy="12" r="1" />
       <circle cx="12" cy="12" r="1" />
       <circle cx="19" cy="12" r="1" />
+    </SvgIcon>
+  );
+}
+
+export function ArrowRightIcon(props: IconProps) {
+  return (
+    <SvgIcon {...props}>
+      <path d="M5 12h14" />
+      <path d="M12 5l7 7-7 7" />
+    </SvgIcon>
+  );
+}
+
+export function RotateCcwIcon(props: IconProps) {
+  return (
+    <SvgIcon {...props}>
+      <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+      <path d="M3 3v5h5" />
+    </SvgIcon>
+  );
+}
+
+export function TimerResetIcon(props: IconProps) {
+  return (
+    <SvgIcon {...props}>
+      <path d="M10 2h4" />
+      <path d="M12 14v-4" />
+      <path d="M4 13a8 8 0 0 1 8-7 8 8 0 1 1-5.3 14L4 17.6" />
+      <path d="M9 17H4v5" />
+    </SvgIcon>
+  );
+}
+
+export function MoreVerticalIcon(props: IconProps) {
+  return (
+    <SvgIcon {...props}>
+      <circle cx="12" cy="12" r="1" />
+      <circle cx="12" cy="5" r="1" />
+      <circle cx="12" cy="19" r="1" />
     </SvgIcon>
   );
 }
@@ -464,6 +505,17 @@ export function HierarchyIcon(props: IconProps) {
       <circle cx="6" cy="19" r="2" />
       <circle cx="12" cy="19" r="2" />
       <circle cx="18" cy="19" r="2" />
+    </SvgIcon>
+  );
+}
+
+export function ZapIcon(props: IconProps & { fill?: string }) {
+  return (
+    <SvgIcon {...props}>
+      <polygon
+        points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"
+        fill={props.fill || "none"}
+      />
     </SvgIcon>
   );
 }

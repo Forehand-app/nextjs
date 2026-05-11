@@ -14,10 +14,12 @@ import {
   MailIcon,
   LogOutIcon,
   MoonIcon,
-  ChevronRightIcon,
+  BellIcon,
+  SettingsIcon,
+  UsersIcon,
   ChevronDownIcon,
+  ChevronRightIcon,
 } from "@/components/Icons";
-import { Bell, Settings2, Users2 } from "lucide-react";
 export default function OrgSettingsPage() {
   const router = useRouter();
   const { theme, toggleTheme } = useTheme();
@@ -41,19 +43,19 @@ export default function OrgSettingsPage() {
   const orgSettingsItems = [
     {
       href: "/org/settings/notifications",
-      icon: Bell,
+      icon: BellIcon,
       label: "Notifications",
       sub: "Manage preferences",
     },
     {
       href: "/org/settings/preferences",
-      icon: Settings2,
+      icon: SettingsIcon,
       label: "Settings",
       sub: "App preferences",
     },
     {
       href: "/org/settings/members",
-      icon: Users2,
+      icon: UsersIcon,
       label: "Organization Members",
       sub: "Add or remove members",
     },

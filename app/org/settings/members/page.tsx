@@ -2,13 +2,21 @@
 
 import React, { useEffect, useState } from "react";
 import { useApp } from "@/components/AppProvider";
-import {
-  OrganizationMemberInvite,
-  orgMemberInviteApi,
-} from "@/lib/api/orgMemberInviteApi";
+import { inviteApi } from "@/lib/api/inviteApi";
 import { notificationApi } from "@/lib/api/notificationApi";
 import { HierarchyIcon } from "@/components/Icons";
-import { IntroWithIcon, MemberRow, SettingsShell } from "../_components/SettingsScaffold";
+import {
+  IntroWithIcon,
+  MemberRow,
+  SettingsShell,
+} from "../_components/SettingsScaffold";
+
+type OrganizationMemberInvite = {
+  id: string;
+  name?: string;
+  phone?: string;
+  status?: string;
+};
 
 function normalizePhone(phone: string) {
   const digits = phone.replace(/\D/g, "");
@@ -31,13 +39,16 @@ export default function OrgMembersPage() {
 
     const loadInvites = async () => {
       try {
-        const rows = await orgMemberInviteApi.listOrganizationMemberInvites(organizationId);
+        const rows =
+          await inviteApi.getOrganizationMemberInvites(organizationId);
         if (!active) return;
         setMembers(rows);
       } catch {
         if (!active) return;
         setMembers([]);
-        setFeedback("Organization member invite list API is not available yet.");
+        setFeedback(
+          "Organization member invite list API is not available yet.",
+        );
       }
     };
 
@@ -65,7 +76,7 @@ export default function OrgMembersPage() {
     try {
       setIsSubmitting(true);
       setFeedback("");
-      const created = await orgMemberInviteApi.sendOrganizationMemberInvite({
+      const created = await inviteApi.sendOrganizationMemberInvite({
         phone: cleanPhone,
         organizationId,
       });
@@ -81,12 +92,14 @@ export default function OrgMembersPage() {
         console.warn("Failed to send org invite notification", err);
       }
 
-      setMembers((prev) => [created, ...prev]);
+      setMembers((prev) => [created as OrganizationMemberInvite, ...prev]);
       setPhone("");
       setFeedback("Invitation sent successfully.");
     } catch (error) {
       setFeedback(
-        error instanceof Error ? error.message : "Unable to send invitation right now.",
+        error instanceof Error
+          ? error.message
+          : "Unable to send invitation right now.",
       );
     } finally {
       setIsSubmitting(false);
@@ -97,12 +110,14 @@ export default function OrgMembersPage() {
     const organizationId = activeOrganization?.id;
     if (!organizationId) return;
     try {
-      await orgMemberInviteApi.removeOrganizationMemberInvite(member.id, organizationId);
+      await inviteApi.removeOrganizationMemberInvite(member.id, organizationId);
       setMembers((prev) => prev.filter((m) => m.id !== member.id));
       setFeedback("Member invite removed.");
     } catch (error) {
       setFeedback(
-        error instanceof Error ? error.message : "Unable to remove member invite.",
+        error instanceof Error
+          ? error.message
+          : "Unable to remove member invite.",
       );
     }
   };
@@ -121,7 +136,9 @@ export default function OrgMembersPage() {
         </div>
 
         <div className="mt-8">
-          <p className="text-[14px] font-bold text-[var(--color-text)]">Add Members</p>
+          <p className="text-[14px] font-bold text-[var(--color-text)]">
+            Add Members
+          </p>
           <form onSubmit={handleAdd} className="mt-3">
             <div className="flex items-center gap-3">
               <input
@@ -141,7 +158,9 @@ export default function OrgMembersPage() {
               </button>
             </div>
             {feedback ? (
-              <p className="mt-2 text-[12px] text-[var(--color-text-muted)]">{feedback}</p>
+              <p className="mt-2 text-[12px] text-[var(--color-text-muted)]">
+                {feedback}
+              </p>
             ) : null}
           </form>
         </div>

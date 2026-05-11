@@ -31,7 +31,9 @@ function initialsFromName(name: string) {
 }
 
 function getTeamPlayers(team: any): SidePlayer[] {
-  const participants = Array.isArray(team?.participants) ? team.participants : [];
+  const participants = Array.isArray(team?.participants)
+    ? team.participants
+    : [];
   if (!participants.length) {
     const fallbackName = team?.name || "Player";
     return [
@@ -192,20 +194,32 @@ export default function OrgMatchSetupPage() {
 
         const event =
           tournamentInfo?.events?.find((e: any) => e?.id === eventId) || null;
-        const bestOf = Number(event?.setsPerMatch || matchInfo?.sets?.length || 1);
+        const bestOf = Number(
+          event?.setsPerMatch || matchInfo?.sets?.length || 1,
+        );
         const normalizedBestOf =
           bestOf === 1 || bestOf === 3 || bestOf === 5 ? bestOf : 1;
 
-        const side0FromMatch = getTeamPlayers(matchInfo?.teamAData || matchInfo?.teamA);
-        const side1FromMatch = getTeamPlayers(matchInfo?.teamBData || matchInfo?.teamB);
+        const side0FromMatch = getTeamPlayers(
+          matchInfo?.teamAData || matchInfo?.teamA,
+        );
+        const side1FromMatch = getTeamPlayers(
+          matchInfo?.teamBData || matchInfo?.teamB,
+        );
         const inferredDoubles =
           side0FromMatch.length > 1 || side1FromMatch.length > 1;
         const format: MatchConfigData["format"] = inferredDoubles
           ? "doubles"
           : "singles";
 
-        const side0 = format === "doubles" ? side0FromMatch.slice(0, 2) : side0FromMatch.slice(0, 1);
-        const side1 = format === "doubles" ? side1FromMatch.slice(0, 2) : side1FromMatch.slice(0, 1);
+        const side0 =
+          format === "doubles"
+            ? side0FromMatch.slice(0, 2)
+            : side0FromMatch.slice(0, 1);
+        const side1 =
+          format === "doubles"
+            ? side1FromMatch.slice(0, 2)
+            : side1FromMatch.slice(0, 1);
         if (format === "doubles" && side0.length < 2) {
           side0.push({ name: "Player 2", initials: "P2" });
         }
@@ -306,8 +320,12 @@ export default function OrgMatchSetupPage() {
     if (isStarting) return;
     setIsStarting(true);
     save();
-    void matchApi.updateMatchState(matchId, "in_progress").catch((error) => {
-      console.error("Failed to move match to in_progress", error);
+    void matchApi.startMatch(matchId).catch((error) => {
+      console.error("Failed to start match via pipeline", error);
+      // Fallback to simple state update if /start is not ready
+      void matchApi.updateMatchState(matchId, "in_progress").catch((err) => {
+        console.error("Fallback start match failed", err);
+      });
     });
     router.replace(
       "/org/tournaments/event/match/live" +
@@ -421,7 +439,9 @@ export default function OrgMatchSetupPage() {
               <button
                 key={s}
                 type="button"
-                onClick={() => !isEventLocked && setConfig({ scoringSystem: s })}
+                onClick={() =>
+                  !isEventLocked && setConfig({ scoringSystem: s })
+                }
                 disabled={isEventLocked}
                 className={`min-h-[44px] rounded-xl border text-sm font-medium transition-colors ${
                   draft.config.scoringSystem === s

@@ -1,8 +1,7 @@
 "use client";
 
 import React from "react";
-import { ArrowLeftIcon, ShareIcon } from "@/components/Icons";
-import { Users } from "lucide-react";
+import { ArrowLeftIcon, ShareIcon, UsersIcon } from "@/components/Icons";
 type TournamentHeroCardProps = {
   title: string;
   subtitle: string;
@@ -148,7 +147,7 @@ export default function TournamentHeroCard({
         {/* Registered Card */}
         <div className="flex h-[110px] items-center gap-4 rounded-[28px] border border-[var(--color-border)] bg-[var(--color-surface)] p-4 shadow-sm">
           <div className="grid h-12 w-12 place-content-center rounded-full bg-[var(--color-surface-elevated)] text-[#ff7a1a]">
-            <Users size={24} />
+            <UsersIcon size={24} />
           </div>
           <div>
             <p className="text-[28px] font-bold leading-none text-[var(--color-text)]">
@@ -162,7 +161,9 @@ export default function TournamentHeroCard({
 
         {/* Registration Card */}
         <div className="flex h-[110px] flex-col items-center justify-center rounded-[28px] border border-[var(--color-border)] bg-[var(--color-surface)] p-4 text-center shadow-sm">
-          <p className="text-[17px] font-bold text-[var(--color-text)]">Registration</p>
+          <p className="text-[17px] font-bold text-[var(--color-text)]">
+            Registration
+          </p>
           <div className="mt-3">
             <span className="inline-flex h-9 min-w-[100px] items-center justify-center rounded-full bg-[#ff7a1a] px-5 text-[15px] font-bold text-white shadow-[0_6px_20px_rgba(255,122,26,0.3)]">
               {registrationStatus}

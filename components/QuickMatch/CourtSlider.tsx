@@ -2,7 +2,15 @@
 
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { animate, motion, useMotionValue } from "framer-motion";
-import { ArrowLeft, ArrowRight, Check, ChevronDown, Info, RotateCcw, X } from "lucide-react";
+import {
+  ArrowLeftIcon,
+  ArrowRightIcon,
+  CheckIcon,
+  ChevronDownIcon,
+  InfoIcon,
+  RotateCcwIcon,
+  XIcon,
+} from "@/components/Icons";
 
 interface CourtSliderProps {
   onBack: () => void;
@@ -32,7 +40,12 @@ type MatchFormState = {
   serveRotation: "set" | "point" | "none";
 };
 
-const SLOT_ORDER: SlotId[] = ["leftTop", "leftBottom", "rightTop", "rightBottom"];
+const SLOT_ORDER: SlotId[] = [
+  "leftTop",
+  "leftBottom",
+  "rightTop",
+  "rightBottom",
+];
 
 function initialsFromName(name: string) {
   const parts = name.trim().split(/\s+/);
@@ -62,7 +75,10 @@ function SelectLine({
           </option>
         ))}
       </select>
-      <ChevronDown size={14} className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-muted" />
+      <ChevronDownIcon
+        size={14}
+        className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-muted"
+      />
     </div>
   );
 }
@@ -90,7 +106,7 @@ function CheckLine({
             : "border-border bg-transparent"
         }`}
       >
-        {checked && <Check size={11} />}
+        {checked && <CheckIcon size={11} />}
       </span>
     </button>
   );
@@ -125,14 +141,16 @@ export default function CourtSlider({ onBack, onStart }: CourtSliderProps) {
   const [maxDrag, setMaxDrag] = useState(200);
 
   // THUMB constants (must match the style below exactly)
-  const THUMB_W = 70;  // px — width of the white pill
+  const THUMB_W = 70; // px — width of the white pill
   const SIDE_PAD = 12; // px — inset from each side inside the capsule
 
   useEffect(() => {
     const update = () => {
       const track = trackRef.current;
       if (!track) return;
-      setMaxDrag(Math.max(0, track.clientWidth - THUMB_W - SIDE_PAD - SIDE_PAD));
+      setMaxDrag(
+        Math.max(0, track.clientWidth - THUMB_W - SIDE_PAD - SIDE_PAD),
+      );
     };
 
     update();
@@ -147,8 +165,24 @@ export default function CourtSlider({ onBack, onStart }: CourtSliderProps) {
   const canStart = visibleSlots.every((slot) => Boolean(slots[slot]));
 
   const handleReset = () => {
-    setForm((previous) => ({ ...previous, doubles: false, initialServer: 1, scoringSystem: "sideout", bestOf: "3", pointsToWin: "11", timeoutPerSet: true, winByTwo: true, warmup: false, serveRotation: "set" }));
-    setSlots({ leftTop: null, leftBottom: null, rightTop: null, rightBottom: null });
+    setForm((previous) => ({
+      ...previous,
+      doubles: false,
+      initialServer: 1,
+      scoringSystem: "sideout",
+      bestOf: "3",
+      pointsToWin: "11",
+      timeoutPerSet: true,
+      winByTwo: true,
+      warmup: false,
+      serveRotation: "set",
+    }));
+    setSlots({
+      leftTop: null,
+      leftBottom: null,
+      rightTop: null,
+      rightBottom: null,
+    });
     x.set(0);
   };
 
@@ -198,12 +232,24 @@ export default function CourtSlider({ onBack, onStart }: CourtSliderProps) {
     <>
       <div className="mx-auto w-full max-w-[390px] px-4 pb-4 pt-3 text-text">
         <div className="mb-4 flex items-center justify-between">
-          <button type="button" onClick={onBack} className="h-8 w-8" aria-label="Back">
-            <ArrowLeft size={20} />
+          <button
+            type="button"
+            onClick={onBack}
+            className="h-8 w-8"
+            aria-label="Back"
+          >
+            <ArrowLeftIcon size={20} />
           </button>
-          <h2 className="text-[22px] font-semibold leading-none">Match Setup</h2>
-          <button type="button" onClick={handleReset} className="h-8 w-8 text-primary" aria-label="Reset">
-            <RotateCcw size={18} />
+          <h2 className="text-[22px] font-semibold leading-none">
+            Match Setup
+          </h2>
+          <button
+            type="button"
+            onClick={handleReset}
+            className="h-8 w-8 text-primary"
+            aria-label="Reset"
+          >
+            <RotateCcwIcon size={18} />
           </button>
         </div>
 
@@ -213,7 +259,9 @@ export default function CourtSlider({ onBack, onStart }: CourtSliderProps) {
           <div className="grid h-8 grid-cols-2 rounded-[9px] border border-border bg-surface p-0.5">
             <button
               type="button"
-              onClick={() => setForm((previous) => ({ ...previous, doubles: false }))}
+              onClick={() =>
+                setForm((previous) => ({ ...previous, doubles: false }))
+              }
               className={`rounded-[7px] text-[11px] transition-colors ${
                 !form.doubles
                   ? "bg-surface-elevated text-text font-semibold"
@@ -224,7 +272,9 @@ export default function CourtSlider({ onBack, onStart }: CourtSliderProps) {
             </button>
             <button
               type="button"
-              onClick={() => setForm((previous) => ({ ...previous, doubles: true }))}
+              onClick={() =>
+                setForm((previous) => ({ ...previous, doubles: true }))
+              }
               className={`rounded-[7px] text-[11px] transition-colors ${
                 form.doubles
                   ? "bg-surface-elevated text-text font-semibold"
@@ -270,7 +320,7 @@ export default function CourtSlider({ onBack, onStart }: CourtSliderProps) {
           </div>
 
           <div className="mt-2 flex items-center gap-1 text-[10px] text-muted">
-            <Info size={12} />
+            <InfoIcon size={12} />
             <span>Side may switch during the match per rules.</span>
           </div>
         </section>
@@ -281,7 +331,9 @@ export default function CourtSlider({ onBack, onStart }: CourtSliderProps) {
           <div className="grid grid-cols-2 gap-2.5">
             <button
               type="button"
-              onClick={() => setForm((previous) => ({ ...previous, initialServer: 1 }))}
+              onClick={() =>
+                setForm((previous) => ({ ...previous, initialServer: 1 }))
+              }
               className={`h-10 rounded-full border px-3 text-[12px] font-medium transition-colors ${
                 form.initialServer === 1
                   ? "border-border bg-surface-elevated text-text"
@@ -293,7 +345,9 @@ export default function CourtSlider({ onBack, onStart }: CourtSliderProps) {
             </button>
             <button
               type="button"
-              onClick={() => setForm((previous) => ({ ...previous, initialServer: 2 }))}
+              onClick={() =>
+                setForm((previous) => ({ ...previous, initialServer: 2 }))
+              }
               className={`h-10 rounded-full border px-3 text-[12px] font-medium transition-colors ${
                 form.initialServer === 2
                   ? "border-border bg-surface-elevated text-text"
@@ -312,7 +366,12 @@ export default function CourtSlider({ onBack, onStart }: CourtSliderProps) {
           <div className="grid grid-cols-2 gap-2.5">
             <button
               type="button"
-              onClick={() => setForm((previous) => ({ ...previous, scoringSystem: "sideout" }))}
+              onClick={() =>
+                setForm((previous) => ({
+                  ...previous,
+                  scoringSystem: "sideout",
+                }))
+              }
               className={`h-10 rounded-full border px-3 text-[12px] font-medium transition-colors ${
                 form.scoringSystem === "sideout"
                   ? "border-border bg-surface-elevated text-text"
@@ -323,7 +382,9 @@ export default function CourtSlider({ onBack, onStart }: CourtSliderProps) {
             </button>
             <button
               type="button"
-              onClick={() => setForm((previous) => ({ ...previous, scoringSystem: "rally" }))}
+              onClick={() =>
+                setForm((previous) => ({ ...previous, scoringSystem: "rally" }))
+              }
               className={`h-10 rounded-full border px-3 text-[12px] font-medium transition-colors ${
                 form.scoringSystem === "rally"
                   ? "border-border bg-surface-elevated text-text"
@@ -337,11 +398,18 @@ export default function CourtSlider({ onBack, onStart }: CourtSliderProps) {
 
         {/* Match Format */}
         <section className="mb-4">
-          <h3 className="mb-2 text-[22px] font-semibold leading-none tracking-tight">Match Format</h3>
+          <h3 className="mb-2 text-[22px] font-semibold leading-none tracking-tight">
+            Match Format
+          </h3>
           <div className="rounded-card border border-border bg-surface p-2">
             <SelectLine
               value={form.bestOf}
-              onChange={(value) => setForm((previous) => ({ ...previous, bestOf: value as MatchFormState["bestOf"] }))}
+              onChange={(value) =>
+                setForm((previous) => ({
+                  ...previous,
+                  bestOf: value as MatchFormState["bestOf"],
+                }))
+              }
               options={[
                 { label: "Best of 1", value: "1" },
                 { label: "Best of 3", value: "3" },
@@ -351,7 +419,12 @@ export default function CourtSlider({ onBack, onStart }: CourtSliderProps) {
             <div className="mt-2">
               <SelectLine
                 value={form.pointsToWin}
-                onChange={(value) => setForm((previous) => ({ ...previous, pointsToWin: value as MatchFormState["pointsToWin"] }))}
+                onChange={(value) =>
+                  setForm((previous) => ({
+                    ...previous,
+                    pointsToWin: value as MatchFormState["pointsToWin"],
+                  }))
+                }
                 options={[
                   { label: "11 points to win", value: "11" },
                   { label: "15 points to win", value: "15" },
@@ -365,20 +438,26 @@ export default function CourtSlider({ onBack, onStart }: CourtSliderProps) {
         {/* Time out Rules */}
         <section className="mb-4">
           <div className="mb-2 flex items-center justify-between">
-            <h3 className="text-[22px] font-semibold leading-none tracking-tight">Time out Rules</h3>
-            <ChevronDown size={18} />
+            <h3 className="text-[22px] font-semibold leading-none tracking-tight">
+              Time out Rules
+            </h3>
+            <ChevronDownIcon size={18} />
           </div>
           <div className="rounded-card border border-border bg-surface p-2">
             <CheckLine
               text="1 Timeout per set"
               checked={form.timeoutPerSet}
-              onChange={(checked) => setForm((previous) => ({ ...previous, timeoutPerSet: checked }))}
+              onChange={(checked) =>
+                setForm((previous) => ({ ...previous, timeoutPerSet: checked }))
+              }
             />
             <div className="mt-2">
               <CheckLine
                 text="Win by 2 points"
                 checked={form.winByTwo}
-                onChange={(checked) => setForm((previous) => ({ ...previous, winByTwo: checked }))}
+                onChange={(checked) =>
+                  setForm((previous) => ({ ...previous, winByTwo: checked }))
+                }
               />
             </div>
             <p className="mt-2 text-[11px] font-semibold">Warm-up Time</p>
@@ -386,7 +465,9 @@ export default function CourtSlider({ onBack, onStart }: CourtSliderProps) {
               <CheckLine
                 text="No warm-up"
                 checked={!form.warmup}
-                onChange={(checked) => setForm((previous) => ({ ...previous, warmup: !checked }))}
+                onChange={(checked) =>
+                  setForm((previous) => ({ ...previous, warmup: !checked }))
+                }
               />
             </div>
           </div>
@@ -394,10 +475,17 @@ export default function CourtSlider({ onBack, onStart }: CourtSliderProps) {
 
         {/* Serve Rotation */}
         <section className="mb-6">
-          <h3 className="mb-2 text-[22px] font-semibold leading-none tracking-tight">Serve Rotation</h3>
+          <h3 className="mb-2 text-[22px] font-semibold leading-none tracking-tight">
+            Serve Rotation
+          </h3>
           <SelectLine
             value={form.serveRotation}
-            onChange={(value) => setForm((previous) => ({ ...previous, serveRotation: value as MatchFormState["serveRotation"] }))}
+            onChange={(value) =>
+              setForm((previous) => ({
+                ...previous,
+                serveRotation: value as MatchFormState["serveRotation"],
+              }))
+            }
             options={[
               { label: "Switch side every set", value: "set" },
               { label: "Switch side every point", value: "point" },
@@ -444,7 +532,16 @@ export default function CourtSlider({ onBack, onStart }: CourtSliderProps) {
               className="z-10 touch-none cursor-grab flex items-center justify-center rounded-full bg-white shadow-md active:cursor-grabbing disabled:cursor-not-allowed"
             >
               {/* Orange arrow icon */}
-              <svg width={22} height={22} viewBox="0 0 24 24" fill="none" stroke="#f97316" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round">
+              <svg
+                width={22}
+                height={22}
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="#f97316"
+                strokeWidth={3}
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
                 <path d="M5 12h14" />
                 <path d="M12 5l7 7-7 7" />
               </svg>
@@ -465,8 +562,12 @@ export default function CourtSlider({ onBack, onStart }: CourtSliderProps) {
           >
             <div className="mb-2 flex items-center justify-between">
               <h4 className="text-sm font-semibold">Enter Player Name</h4>
-              <button type="button" onClick={() => setPickerSlot(null)} className="h-7 w-7 text-muted">
-                <X size={16} />
+              <button
+                type="button"
+                onClick={() => setPickerSlot(null)}
+                className="h-7 w-7 text-muted"
+              >
+                <XIcon size={16} />
               </button>
             </div>
 
@@ -507,11 +608,14 @@ export default function CourtSlider({ onBack, onStart }: CourtSliderProps) {
       {showConfirmStart && (
         <div className="fixed inset-0 z-[300] flex items-center justify-center bg-black/60 px-4 backdrop-blur-sm">
           <div className="w-full max-w-[320px] rounded-[24px] bg-[var(--color-surface)] p-6 shadow-2xl">
-            <h3 className="text-center text-[18px] font-bold text-[var(--color-text)]">Before you begin</h3>
+            <h3 className="text-center text-[18px] font-bold text-[var(--color-text)]">
+              Before you begin
+            </h3>
             <div className="mt-4 flex items-start gap-2.5 text-left">
-              <Info size={16} className="mt-0.5 shrink-0 text-muted" />
+              <InfoIcon size={16} className="mt-0.5 shrink-0 text-muted" />
               <p className="text-[13px] font-medium leading-[1.4] text-muted">
-                Quick match results are for instant tracking only and will not be saved to your profile or history.
+                Quick match results are for instant tracking only and will not
+                be saved to your profile or history.
               </p>
             </div>
             <button

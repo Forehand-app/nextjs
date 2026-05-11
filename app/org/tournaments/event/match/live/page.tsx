@@ -17,6 +17,7 @@ import {
 } from "@/lib/matchEngine";
 import { toQuery } from "@/lib/utils";
 import { matchApi } from "@/lib/api/matchApi";
+import { tournamentApi } from "@/lib/api/tournamentApi";
 
 type SidePlayer = { name: string; initials: string; avatarUrl?: string | null };
 
@@ -245,7 +246,8 @@ export default function OrgLiveMatchPage() {
       try {
         const updatedSetIndex = previous.currentSet;
         const setScore = next.setScores[updatedSetIndex] || [0, 0];
-        const setFinished = next.currentSet > previous.currentSet || winner != null;
+        const setFinished =
+          next.currentSet > previous.currentSet || winner != null;
 
         let setWinnerId: string | null = null;
         if (setFinished && teamIds.a && teamIds.b) {
@@ -254,7 +256,24 @@ export default function OrgLiveMatchPage() {
         }
 
         const matchWinnerId =
-          winner == null ? null : winner === 0 ? teamIds.a || null : teamIds.b || null;
+          winner == null
+            ? null
+            : winner === 0
+              ? teamIds.a || null
+              : teamIds.b || null;
+
+        // Ensure current set is initialized on the first point of a new set
+        if (
+          previous.setScores[updatedSetIndex] === undefined ||
+          (previous.setScores[updatedSetIndex][0] === 0 &&
+            previous.setScores[updatedSetIndex][1] === 0)
+        ) {
+          try {
+            await matchApi.initializeSet(matchId, updatedSetIndex + 1);
+          } catch (err) {
+            console.warn("Set initialization failed (may already exist)", err);
+          }
+        }
 
         await matchApi.updateScore({
           matchId,
@@ -268,13 +287,29 @@ export default function OrgLiveMatchPage() {
         });
 
         if (winner != null) {
-          await matchApi.updateMatchState(matchId, "completed", matchWinnerId);
+          // Final match state update via specialized complete endpoint
+          try {
+            if (matchWinnerId) {
+              await matchApi.completeMatch(matchId, matchWinnerId);
+            } else {
+              await matchApi.updateMatchState(matchId, "completed", null);
+            }
+          } catch (err) {
+            console.error("Match completion failed", err);
+          }
+
+          // Sync tournament and event status after match completion
+          try {
+            await tournamentApi.syncTournamentStatus(tournamentId);
+          } catch (err) {
+            console.warn("Post-match sync failed", err);
+          }
         }
       } catch (error) {
         console.error("Failed to sync live match update", error);
       }
     },
-    [matchId, teamIds.a, teamIds.b],
+    [matchId, tournamentId, teamIds.a, teamIds.b],
   );
 
   const applyRallyAction = useCallback(

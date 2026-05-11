@@ -12,6 +12,7 @@ import {
 import { toQuery } from "@/lib/utils";
 import { teamApi, TeamState } from "@/lib/api/teamApi";
 import { tournamentApi } from "@/lib/api/tournamentApi";
+import { eventApi } from "@/lib/api/eventApi";
 import { EventData } from "@/lib/models";
 import TeamLogo from "@/components/TeamLogo";
 
@@ -132,31 +133,33 @@ function EventParticipantsContent() {
       return;
     }
 
+    const pendingTeams = teams.filter((t) => {
+      const rawStatus = t.teamStatus || t.teamState || t.status || "";
+      const status = String(rawStatus).toLowerCase();
+      return (
+        status === "registered" || status === "created" || status === "pending"
+      );
+    });
+
+    if (pendingTeams.length > 0) {
+      if (
+        !confirm(
+          `There are ${pendingTeams.length} pending registrations. Finalizing will mark them all as rejected. Continue?`,
+        )
+      ) {
+        return;
+      }
+    }
+
     try {
       setIsFinalizing(true);
-      // 1. Finalize the current event
-      await tournamentApi.updateEventState(eventId, "participants_finalized");
+      // 1. Finalize the current event (locks participants, sets round 1, handles statuses)
+      await eventApi.finalizeParticipants(eventId);
 
-      // 2. Fetch the latest tournament info to check other events
-      const tournamentData = await tournamentApi.getInfo(tournamentId);
+      // 2. Sync tournament status (sets to in_progress if all events are ready)
+      await tournamentApi.syncTournamentStatus(tournamentId);
 
-      // 3. Check if all events (including the one just updated) are beyond 'created'
-      // Note: tournamentData.events might still have the old state for the current event
-      // if the server cache didn't clear, so we manually check all EXCEPT this one
-      // plus assume this one is done.
-      const otherEvents = (tournamentData.events || []).filter(
-        (e) => e.id !== eventId,
-      );
-      const allOthersFinalized = otherEvents.every(
-        (e) => e.eventState !== "created",
-      );
-
-      if (allOthersFinalized) {
-        // If all events are now finalized/beyond created, set tournament to in_progress
-        await tournamentApi.updateTournamentState(tournamentId, "in_progress");
-      }
-
-      // 4. Redirect back to tournament detail
+      // 3. Redirect back to tournament detail
       router.push(`/org/tournaments/detail${toQuery({ t: tournamentId })}`);
     } catch (error) {
       console.error("Failed to finalize participants", error);
@@ -165,6 +168,10 @@ function EventParticipantsContent() {
       setIsFinalizing(false);
     }
   };
+
+  const isAlreadyFinalized =
+    event?.eventState &&
+    !["created", "registration_closed"].includes(event.eventState);
 
   if (isLoading) {
     return (
@@ -313,9 +320,10 @@ function EventParticipantsContent() {
                   const status = String(rawStatus).toLowerCase();
 
                   if (
-                    status === "registered" ||
-                    status === "created" ||
-                    status === "pending"
+                    (status === "registered" ||
+                      status === "created" ||
+                      status === "pending") &&
+                    !isAlreadyFinalized
                   ) {
                     return (
                       <div className="flex gap-2 shrink-0">
@@ -373,9 +381,11 @@ function EventParticipantsContent() {
                         <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-green-100 text-green-700 text-xs font-bold border border-green-200">
                           <CheckIcon size={12} /> Accepted
                         </div>
-                        <button className="text-[var(--color-muted)] p-1">
-                          <EllipsisIcon size={18} />
-                        </button>
+                        {!isAlreadyFinalized && (
+                          <button className="text-[var(--color-muted)] p-1">
+                            <EllipsisIcon size={18} />
+                          </button>
+                        )}
                       </div>
                     );
                   }
@@ -386,9 +396,11 @@ function EventParticipantsContent() {
                         <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-red-100 text-red-700 text-xs font-bold border border-red-200">
                           <XIcon size={12} /> Rejected
                         </div>
-                        <button className="text-[var(--color-muted)] p-1">
-                          <EllipsisIcon size={18} />
-                        </button>
+                        {!isAlreadyFinalized && (
+                          <button className="text-[var(--color-muted)] p-1">
+                            <EllipsisIcon size={18} />
+                          </button>
+                        )}
                       </div>
                     );
                   }
@@ -402,20 +414,22 @@ function EventParticipantsContent() {
       </div>
 
       {/* Bottom CTA */}
-      <div className="fixed bottom-0 left-0 right-0 p-4 bg-[var(--color-surface)] border-t border-[var(--color-border)] z-40">
-        <button
-          onClick={handleProceed}
-          disabled={isFinalizing}
-          className="w-full py-3.5 rounded-xl font-bold text-white text-sm shadow-lg shadow-orange-500/20 transition-all active:scale-[0.98] disabled:opacity-70 flex items-center justify-center"
-          style={{ background: "var(--gradient-orange)" }}
-        >
-          {isFinalizing ? (
-            <div className="h-5 w-5 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
-          ) : (
-            "Confirm and Finalize Participants"
-          )}
-        </button>
-      </div>
+      {!isAlreadyFinalized && (
+        <div className="fixed bottom-0 left-0 right-0 p-4 bg-[var(--color-surface)] border-t border-[var(--color-border)] z-40">
+          <button
+            onClick={handleProceed}
+            disabled={isFinalizing}
+            className="w-full py-3.5 rounded-xl font-bold text-white text-sm shadow-lg shadow-orange-500/20 transition-all active:scale-[0.98] disabled:opacity-70 flex items-center justify-center"
+            style={{ background: "var(--gradient-orange)" }}
+          >
+            {isFinalizing ? (
+              <div className="h-5 w-5 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
+            ) : (
+              "Confirm and Finalize Participants"
+            )}
+          </button>
+        </div>
+      )}
     </div>
   );
 }

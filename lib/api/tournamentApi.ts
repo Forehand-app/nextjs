@@ -51,14 +51,11 @@ export const tournamentApi = {
    * @returns A promise resolving when events are created.
    */
   createEvents: async (events: EventData[]) => {
-    const { error } = await fetchApi(
-      getApiUrl({ path: "/tournament/events/create" }),
-      {
-        method: "POST",
-        contentType: "json",
-        body: events,
-      },
-    );
+    const { error } = await fetchApi(getApiUrl({ path: "/event/create" }), {
+      method: "POST",
+      contentType: "json",
+      body: events,
+    });
     if (error) throw error;
   },
 
@@ -152,20 +149,6 @@ export const tournamentApi = {
   },
 
   /**
-   * Fetches all participants (users and their teams) registered for a specific event.
-   *
-   * @param eventId - The unique ID of the event.
-   * @returns A promise resolving to an array of objects: { user: Profile, team: Team }.
-   */
-  getEventParticipants: async (eventId: string) => {
-    const { data, error } = await fetchApi(
-      getApiUrl({ path: "/tournament/events/participants", param: eventId }),
-    );
-    if (error) throw error;
-    return data;
-  },
-
-  /**
    * Updates the overall state of a tournament.
    *
    * @param tournamentId - The unique ID of the tournament.
@@ -220,46 +203,16 @@ export const tournamentApi = {
   },
 
   /**
-   * Permanently deletes a specific event from a tournament and its related data (teams, matches).
+   * Automatically re-evaluates and updates the tournament state based on the states of its events.
    *
-   * @param eventId - The unique ID of the event to delete.
-   * @returns A promise resolving when the event is deleted.
+   * @param tournamentId - The unique ID of the tournament.
+   * @returns A promise resolving when the sync is complete.
    */
-  deleteEvent: async (eventId: string) => {
+  syncTournamentStatus: async (tournamentId: string) => {
     const { error } = await fetchApi(
-      getApiUrl({ path: "/tournament/events", param: eventId }),
-      {
-        method: "DELETE",
-      },
-    );
-    if (error) throw error;
-  },
-
-  /**
-   * Updates the state of a specific event within a tournament.
-   *
-   * @param eventId - The unique ID of the event.
-   * @param state - The new state: 'created', 'registration_closed', 'participants_finalized', 'scheduled', 'in_progress', 'round_over', 'completed', 'cancelled'.
-   * @returns A promise resolving when the event state is updated.
-   */
-  updateEventState: async (
-    eventId: string,
-    state:
-      | "created"
-      | "registration_closed"
-      | "participants_finalized"
-      | "scheduled"
-      | "in_progress"
-      | "round_over"
-      | "completed"
-      | "cancelled",
-  ) => {
-    const { error } = await fetchApi(
-      getApiUrl({ path: "/tournament/events/update-state", param: eventId }),
+      getApiUrl({ path: "/tournament/sync-status", param: tournamentId }),
       {
         method: "POST",
-        contentType: "json",
-        body: { state },
       },
     );
     if (error) throw error;
