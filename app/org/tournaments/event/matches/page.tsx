@@ -318,9 +318,11 @@ export default function OrgManageMatchesPage() {
   useEffect(() => {
     if (!eventId || !activeRound) return;
 
+    let cancelled = false;
+    let firstLoad = true;
     const loadRoundMatches = async () => {
       try {
-        setIsMatchesLoading(true);
+        setIsMatchesLoading(firstLoad);
         const mData = await matchApi.getMatchesByEventAndRound(
           eventId,
           activeRound,
@@ -330,6 +332,7 @@ export default function OrgManageMatchesPage() {
           const mapped: MatchRow[] = mData.map((m: any) => {
             let swA = 0;
             let swB = 0;
+            const expectedSets = Number(event?.setsPerMatch || 1);
             const setScores = (m.sets || []).map((s: any) => {
               if (s.setStatus === "completed") {
                 if (s.teamAScore > s.teamBScore) swA++;
@@ -347,7 +350,7 @@ export default function OrgManageMatchesPage() {
               };
             });
 
-            while (setScores.length < 3) {
+            while (setScores.length < expectedSets) {
               setScores.push({ a: "--", b: "--" });
             }
 
@@ -390,7 +393,7 @@ export default function OrgManageMatchesPage() {
               sideB: teamB,
               setsWonA: swA,
               setsWonB: swB,
-              sets: setScores.slice(0, 3),
+              sets: setScores.slice(0, expectedSets),
               winner:
                 m.winnerId === teamA?.id
                   ? "a"
@@ -402,20 +405,28 @@ export default function OrgManageMatchesPage() {
               roundNumber: m.roundNumber || activeRound,
             };
           });
-          setMatches(mapped);
+          if (!cancelled) setMatches(mapped);
         } else {
-          setMatches([]);
+          if (!cancelled) setMatches([]);
         }
       } catch (error) {
         console.error("Failed to load round matches", error);
-        setMatches([]);
+        if (!cancelled) setMatches([]);
       } finally {
-        setIsMatchesLoading(false);
+        firstLoad = false;
+        if (!cancelled) setIsMatchesLoading(false);
       }
     };
 
     void loadRoundMatches();
-  }, [eventId, activeRound, teams]);
+    const intervalId = window.setInterval(() => {
+      void loadRoundMatches();
+    }, 10000);
+    return () => {
+      cancelled = true;
+      window.clearInterval(intervalId);
+    };
+  }, [eventId, activeRound, teams, event?.setsPerMatch]);
 
   const rounds = useMemo(() => {
     const maxRound = event?.activeRound || 1;

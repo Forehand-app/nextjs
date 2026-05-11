@@ -8,6 +8,7 @@ import { useRouter } from "next/navigation";
 import { useTheme } from "@/components/ThemeProvider";
 import { useApp } from "@/components/AppProvider";
 import BottomNav from "@/components/BottomNav";
+import { routes } from "@/routes";
 import {
   LockIcon,
   HelpCircleIcon,
@@ -18,12 +19,11 @@ import {
   ChevronDownIcon,
   CheckIcon,
   PlusIcon,
-  BellIcon,
-  SettingsIcon,
+  
   ShieldIcon,
   PhoneIcon,
 } from "@/components/Icons";
-
+import { Bell, Settings2 } from "lucide-react";
 export default function UserSettingsPage() {
   const router = useRouter();
   const { theme, toggleTheme } = useTheme();
@@ -34,25 +34,25 @@ export default function UserSettingsPage() {
 
   const settingsItems = [
     {
-      href: "/user/settings/notifications",
-      icon: BellIcon,
+      href: routes.userSettingsNotifications(),
+      icon: Bell,
       label: "Notifications",
       sub: "Manage Preferences",
     },
     {
-      href: "/user/settings/privacy",
+      href: routes.userSettingsPrivacy(),
       icon: ShieldIcon,
       label: "Privacy & Policy",
       sub: "Control your settings",
     },
     {
-      href: "/user/settings",
-      icon: SettingsIcon,
-      label: "Settings",
+      href: routes.userSettingsPreferences(),
+      icon: Settings2,
+      label: "Preferences",
       sub: "App preferences",
     },
     {
-      href: "/user/settings/help",
+      href: routes.userSettingsHelp(),
       icon: HelpCircleIcon,
       label: "Help & Support",
       sub: "Connect with our support team",
@@ -82,7 +82,7 @@ export default function UserSettingsPage() {
             className="flex items-center gap-1.5 font-bold text-[20px] tracking-tight hover:opacity-80 transition-opacity"
             aria-expanded={showSwitchModal}
           >
-            Individual Profile
+            Profile Switcher
             <ChevronDownIcon
               size={20}
               className="text-[var(--color-text)] mt-0.5 shrink-0"
@@ -129,7 +129,7 @@ export default function UserSettingsPage() {
             </div>
           </div>
           <Link
-            href="/user/settings/profile"
+            href={routes.userSettingsProfile()}
             className="mt-5 block w-full py-2.5 rounded-xl bg-[var(--color-primary)] border border-[var(--color-primary)] text-white text-center font-bold text-[15px] hover:opacity-90 transition-opacity"
           >
             Edit Profile

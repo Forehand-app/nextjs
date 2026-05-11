@@ -5,8 +5,10 @@ import Link from "next/link";
 import { ArrowLeft, ChevronDown, MoreVertical, RotateCcw, TimerReset, Trophy } from "lucide-react";
 
 type SetScore = [number | null, number | null];
+type PlayerIcon = { name: string; initials: string; avatarUrl?: string | null };
 
 interface LiveMatchReplicaProps {
+  title?: string;
   currentSetNumber: number;
   sideAScore: number;
   sideBScore: number;
@@ -21,6 +23,9 @@ interface LiveMatchReplicaProps {
   matchTimer?: string;
   sideAActionLabel?: string;
   sideBActionLabel?: string;
+  sideAPlayers?: PlayerIcon[];
+  sideBPlayers?: PlayerIcon[];
+  showScorerCard?: boolean;
   showSwitchServe: boolean;
   showWinnerConfirm: boolean;
   showExitConfirm: boolean;
@@ -65,22 +70,38 @@ function splitPlayerNames(label: string) {
     .slice(0, 2);
 }
 
-function PlayerPairIcons({ label }: { label: string }) {
-  const players = splitPlayerNames(label);
-  const first = players[0] || label;
-  const second = players[1];
-  const firstInitials = initialsFromLabel(first);
-  const secondInitials = second ? initialsFromLabel(second) : null;
+function PlayerPairIcons({
+  label,
+  players,
+}: {
+  label: string;
+  players?: PlayerIcon[];
+}) {
+  const names = splitPlayerNames(label);
+  const p0 = players?.[0];
+  const p1 = players?.[1];
+  const first = p0?.name || names[0] || label;
+  const second = p1?.name || names[1];
+  const firstInitials = p0?.initials || initialsFromLabel(first);
+  const secondInitials = second ? p1?.initials || initialsFromLabel(second) : null;
 
   return (
     <div className="mx-auto mb-1.5 flex h-12 w-[74px] items-center justify-center">
       <div className="relative h-12 w-[74px]">
-        <div className="absolute left-0 top-0 flex h-12 w-12 items-center justify-center rounded-full border-2 border-border bg-surface-elevated text-[20px] font-semibold">
-          {firstInitials}
+        <div className="absolute left-0 top-0 flex h-12 w-12 items-center justify-center overflow-hidden rounded-full border-2 border-border bg-surface-elevated text-[20px] font-semibold">
+          {p0?.avatarUrl ? (
+            <img src={p0.avatarUrl} alt={first} className="h-full w-full object-cover" />
+          ) : (
+            firstInitials
+          )}
         </div>
         {secondInitials ? (
-          <div className="absolute right-0 top-0 z-10 flex h-12 w-12 items-center justify-center rounded-full border-2 border-border bg-surface text-[20px] font-semibold opacity-100">
-            {secondInitials}
+          <div className="absolute right-0 top-0 z-10 flex h-12 w-12 items-center justify-center overflow-hidden rounded-full border-2 border-border bg-surface text-[20px] font-semibold opacity-100">
+            {p1?.avatarUrl ? (
+              <img src={p1.avatarUrl} alt={second} className="h-full w-full object-cover" />
+            ) : (
+              secondInitials
+            )}
           </div>
         ) : null}
       </div>
@@ -89,6 +110,7 @@ function PlayerPairIcons({ label }: { label: string }) {
 }
 
 export default function LiveMatchReplica({
+  title = "Live Match",
   currentSetNumber,
   sideAScore,
   sideBScore,
@@ -103,6 +125,9 @@ export default function LiveMatchReplica({
   matchTimer = "00:00:00",
   sideAActionLabel = sideALabel,
   sideBActionLabel = sideBLabel,
+  sideAPlayers = [],
+  sideBPlayers = [],
+  showScorerCard = true,
   showSwitchServe,
   showWinnerConfirm,
   showExitConfirm,
@@ -134,7 +159,7 @@ export default function LiveMatchReplica({
           <button type="button" onClick={onBack} className="h-9 w-9 text-text">
             <ArrowLeft size={20} />
           </button>
-          <h1 className="text-[22px] font-semibold leading-none">Live Match</h1>
+          <h1 className="text-[22px] font-semibold leading-none">{title}</h1>
           <button type="button" className="h-9 w-9 text-text">
             <MoreVertical size={18} />
           </button>
@@ -153,14 +178,16 @@ export default function LiveMatchReplica({
             </button>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div className="rounded-2xl border border-border bg-surface-elevated p-1.5">
-              <div className="flex items-center justify-between px-2 py-1 mb-1 border-b border-border">
-                <span className="text-[10px] text-muted font-bold uppercase tracking-wider">Change Scorer</span>
-                <ChevronDown size={12} className="text-muted" />
+          <div className={`grid gap-4 ${showScorerCard ? "grid-cols-2" : "grid-cols-1"}`}>
+            {showScorerCard && (
+              <div className="rounded-2xl border border-border bg-surface-elevated p-1.5">
+                <div className="flex items-center justify-between px-2 py-1 mb-1 border-b border-border">
+                  <span className="text-[10px] text-muted font-bold uppercase tracking-wider">Change Scorer</span>
+                  <ChevronDown size={12} className="text-muted" />
+                </div>
+                <p className="py-1 text-center text-sm font-bold">{scorerLabel}</p>
               </div>
-              <p className="py-1 text-center text-sm font-bold">{scorerLabel}</p>
-            </div>
+            )}
 
             <div className="rounded-2xl border border-border bg-surface-elevated p-1.5">
               <div className="flex items-center justify-between px-2 py-1 mb-1 border-b border-border">
@@ -181,8 +208,8 @@ export default function LiveMatchReplica({
           <div className="rounded-[10px] border border-border p-2">
             <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2 text-center">
               <div>
-                <PlayerPairIcons label={sideALabel} />
-                <p className="text-[9px]">{sideALabel}</p>
+                <PlayerPairIcons label={sideALabel} players={sideAPlayers} />
+                <p className="text-[12px] font-semibold">{sideALabel}</p>
                 <span className={`mt-1 inline-flex rounded-full border px-1.5 py-0.5 text-[8px] ${sideAServing ? "border-[#FF9E63] text-primary" : "border-border text-muted"}`}>
                   {sideAServing ? "Serving" : "Receiving"}
                 </span>
@@ -191,8 +218,8 @@ export default function LiveMatchReplica({
               <div className="text-[28px] font-semibold text-muted">Vs</div>
 
               <div>
-                <PlayerPairIcons label={sideBLabel} />
-                <p className="text-[9px]">{sideBLabel}</p>
+                <PlayerPairIcons label={sideBLabel} players={sideBPlayers} />
+                <p className="text-[12px] font-semibold">{sideBLabel}</p>
                 <span className={`mt-1 inline-flex rounded-full border px-1.5 py-0.5 text-[8px] ${sideBServing ? "border-[#FF9E63] text-primary" : "border-border text-muted"}`}>
                   {sideBServing ? "Serving" : "Receiving"}
                 </span>
@@ -204,15 +231,12 @@ export default function LiveMatchReplica({
             {scoringLabel}
           </div>
 
-          <div
-            className={`mt-2 grid overflow-hidden rounded-[9px] border border-border ${
-              bestOf === 5 ? "grid-cols-5" : "grid-cols-3"
-            }`}
-          >
+          <div className="mt-2 overflow-x-auto">
+            <div className="flex min-w-full overflow-hidden rounded-[9px] border border-border">
             {visibleSetScores.map((setScore, index) => (
               <div
                 key={index}
-                className={`p-1.5 text-center ${index < visibleSetScores.length - 1 ? "border-r border-border" : ""}`}
+                className={`min-w-[92px] flex-1 p-1.5 text-center ${index < visibleSetScores.length - 1 ? "border-r border-border" : ""}`}
               >
                 <p className="text-[10px]">Set {index + 1}</p>
                 <p className={`text-[14px] font-semibold ${setScore[0] == null ? "text-muted" : ""}`}>
@@ -220,6 +244,7 @@ export default function LiveMatchReplica({
                 </p>
               </div>
             ))}
+            </div>
           </div>
         </section>
 
@@ -312,7 +337,7 @@ export default function LiveMatchReplica({
               <button
                 type="button"
                 onClick={onConfirmExit}
-                className="h-12 rounded-[16px] bg-red-500 text-white text-sm font-bold shadow-lg shadow-red-500/20"
+                className="h-12 rounded-[16px] bg-primary text-white text-sm font-bold"
               >
                 Yes, Leave
               </button>

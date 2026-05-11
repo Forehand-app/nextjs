@@ -47,5 +47,11 @@ export const routes = {
     `/org/tournaments/event/match/live${toQuery({ tournamentId, eventId, matchId })}`,
   orgMatchResult: (tournamentId: string, eventId: string, matchId: string) =>
     `/org/tournaments/event/match/result${toQuery({ tournamentId, eventId, matchId })}`,
+  userSettings: () => "/user/settings",
+  userSettingsProfile: () => "/user/settings/profile",
+  userSettingsNotifications: () => "/user/settings/notifications",
+  userSettingsPrivacy: () => "/user/settings/privacy",
+  userSettingsPreferences: () => "/user/settings/preferences",
+  userSettingsHelp: () => "/user/settings/help",
 };
 

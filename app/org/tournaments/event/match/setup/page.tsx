@@ -9,8 +9,10 @@ import type { MatchConfigData } from "@/lib/models";
 import MatchReadyPopup from "@/components/QuickMatch/MatchReadyPopup";
 import { toQuery } from "@/lib/utils";
 import { ChevronDownIcon } from "@/components/Icons";
+import { matchApi } from "@/lib/api/matchApi";
+import { tournamentApi } from "@/lib/api/tournamentApi";
 
-type SidePlayer = { name: string; initials: string };
+type SidePlayer = { name: string; initials: string; avatarUrl?: string | null };
 
 type MatchSetupDraft = {
   config: MatchConfigData;
@@ -26,6 +28,28 @@ function initialsFromName(name: string) {
   const a = parts[0]?.[0] ?? "P";
   const b = parts[1]?.[0] ?? "";
   return (a + b).toUpperCase();
+}
+
+function getTeamPlayers(team: any): SidePlayer[] {
+  const participants = Array.isArray(team?.participants) ? team.participants : [];
+  if (!participants.length) {
+    const fallbackName = team?.name || "Player";
+    return [
+      {
+        name: fallbackName,
+        initials: initialsFromName(fallbackName),
+        avatarUrl: null,
+      },
+    ];
+  }
+  return participants.map((p: any) => {
+    const name = p?.user?.name || p?.name || "Player";
+    return {
+      name,
+      initials: initialsFromName(name),
+      avatarUrl: p?.user?.profilePicUrl || null,
+    };
+  });
 }
 
 // ─── Court Layout ─────────────────────────────────────────────────────────────
@@ -89,8 +113,16 @@ function CourtLayout({
 function PlayerPin({ player }: { player: SidePlayer }) {
   return (
     <div className="flex flex-col items-center gap-0.5">
-      <div className="w-8 h-8 rounded-full bg-white/20 border-2 border-white flex items-center justify-center text-white text-[10px] font-bold shadow-md">
-        {player.initials}
+      <div className="w-8 h-8 rounded-full bg-white/20 border-2 border-white flex items-center justify-center text-white text-[10px] font-bold shadow-md overflow-hidden">
+        {player.avatarUrl ? (
+          <img
+            src={player.avatarUrl}
+            alt={player.name}
+            className="w-full h-full object-cover"
+          />
+        ) : (
+          player.initials
+        )}
       </div>
       <span className="text-[9px] font-semibold text-white bg-black/40 px-1.5 py-0.5 rounded-full whitespace-nowrap max-w-[60px] truncate text-center">
         {player.name.split(" ")[0]}
@@ -115,6 +147,9 @@ export default function OrgMatchSetupPage() {
   const matchId = searchParams.get("matchId") || "m-1";
 
   const [isReadyPopupOpen, setIsReadyPopupOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const isEventLocked = true;
+  const [isStarting, setIsStarting] = useState(false);
 
   const defaultDraft: MatchSetupDraft = useMemo(
     () => ({
@@ -143,9 +178,73 @@ export default function OrgMatchSetupPage() {
 
   const [draft, setDraft] = useState<MatchSetupDraft>(defaultDraft);
 
+  useEffect(() => {
+    if (!tournamentId || !eventId || !matchId) return;
+    let cancelled = false;
+
+    const loadMatchSetup = async () => {
+      try {
+        setIsLoading(true);
+        const [matchInfo, tournamentInfo] = await Promise.all([
+          matchApi.getMatchInfo(matchId),
+          tournamentApi.getInfo(tournamentId),
+        ]);
+
+        const event =
+          tournamentInfo?.events?.find((e: any) => e?.id === eventId) || null;
+        const bestOf = Number(event?.setsPerMatch || matchInfo?.sets?.length || 1);
+        const normalizedBestOf =
+          bestOf === 1 || bestOf === 3 || bestOf === 5 ? bestOf : 1;
+
+        const side0FromMatch = getTeamPlayers(matchInfo?.teamAData || matchInfo?.teamA);
+        const side1FromMatch = getTeamPlayers(matchInfo?.teamBData || matchInfo?.teamB);
+        const inferredDoubles =
+          side0FromMatch.length > 1 || side1FromMatch.length > 1;
+        const format: MatchConfigData["format"] = inferredDoubles
+          ? "doubles"
+          : "singles";
+
+        const side0 = format === "doubles" ? side0FromMatch.slice(0, 2) : side0FromMatch.slice(0, 1);
+        const side1 = format === "doubles" ? side1FromMatch.slice(0, 2) : side1FromMatch.slice(0, 1);
+        if (format === "doubles" && side0.length < 2) {
+          side0.push({ name: "Player 2", initials: "P2" });
+        }
+        if (format === "doubles" && side1.length < 2) {
+          side1.push({ name: "Player 2", initials: "P2" });
+        }
+
+        if (!cancelled) {
+          setDraft({
+            config: {
+              scoringSystem: "sideout",
+              format,
+              bestOf: normalizedBestOf,
+              pointsToWin: Number(event?.pointsPerSet || 11),
+              winByTwo: true,
+              initialServer: 1,
+              warmupMinutes: 0,
+              timeoutPerSet: 1,
+              switchSidesEvery: -1,
+            },
+            side0,
+            side1,
+          });
+        }
+      } catch (error) {
+        console.error("Failed to load match setup data", error);
+      } finally {
+        if (!cancelled) setIsLoading(false);
+      }
+    };
+
+    void loadMatchSetup();
+    return () => {
+      cancelled = true;
+    };
+  }, [tournamentId, eventId, matchId]);
+
   // Swipe slider
   const trackRef = useRef<HTMLDivElement>(null);
-  const thumbRef = useRef<HTMLButtonElement>(null);
   const x = useMotionValue(0);
   const [maxDrag, setMaxDrag] = useState(200);
 
@@ -161,23 +260,33 @@ export default function OrgMatchSetupPage() {
       setMaxDrag(
         Math.max(0, track.clientWidth - THUMB_W - SIDE_PAD - SIDE_PAD),
       );
+      x.set(0);
     };
     update();
+    const observer = new ResizeObserver(update);
+    if (trackRef.current) observer.observe(trackRef.current);
     window.addEventListener("resize", update);
-    return () => window.removeEventListener("resize", update);
-  }, [THUMB_W, SIDE_PAD]);
+    return () => {
+      observer.disconnect();
+      window.removeEventListener("resize", update);
+    };
+  }, [THUMB_W, SIDE_PAD, x]);
 
   const handleSwipeEnd = () => {
+    if (isStarting || maxDrag <= 0) {
+      animate(x, 0, { type: "spring", stiffness: 360, damping: 26 });
+      return;
+    }
     const cur = x.get();
     // Fire when user drags past 80% of the available track
     if (cur >= maxDrag * 0.8) {
-      animate(x, maxDrag, { type: "spring", stiffness: 500, damping: 30 });
+      animate(x, Math.max(0, maxDrag - 4), {
+        type: "spring",
+        stiffness: 500,
+        damping: 30,
+      });
       window.setTimeout(() => {
-        save();
-        router.replace(
-          "/org/tournaments/event/match/live" +
-            toQuery({ tournamentId, eventId, matchId }),
-        );
+        startMatch();
       }, 200);
       return;
     }
@@ -194,7 +303,12 @@ export default function OrgMatchSetupPage() {
   };
 
   const startMatch = () => {
+    if (isStarting) return;
+    setIsStarting(true);
     save();
+    void matchApi.updateMatchState(matchId, "in_progress").catch((error) => {
+      console.error("Failed to move match to in_progress", error);
+    });
     router.replace(
       "/org/tournaments/event/match/live" +
         toQuery({ tournamentId, eventId, matchId }),
@@ -214,6 +328,21 @@ export default function OrgMatchSetupPage() {
   };
 
   const isDoubles = draft.config.format === "doubles";
+
+  if (isLoading) {
+    return (
+      <Layout
+        title="Match Setup"
+        showBack
+        showBottomNav={false}
+        onBack={() => router.back()}
+      >
+        <div className="min-h-[60vh] flex items-center justify-center">
+          <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent"></div>
+        </div>
+      </Layout>
+    );
+  }
 
   return (
     <Layout
@@ -265,6 +394,7 @@ export default function OrgMatchSetupPage() {
                   name="server"
                   checked={draft.config.initialServer === v}
                   onChange={() => setConfig({ initialServer: v as 1 | 2 })}
+                  disabled={isEventLocked}
                   className="accent-primary"
                 />
                 <span className="text-sm text-[var(--color-text)]">
@@ -291,7 +421,8 @@ export default function OrgMatchSetupPage() {
               <button
                 key={s}
                 type="button"
-                onClick={() => setConfig({ scoringSystem: s })}
+                onClick={() => !isEventLocked && setConfig({ scoringSystem: s })}
+                disabled={isEventLocked}
                 className={`min-h-[44px] rounded-xl border text-sm font-medium transition-colors ${
                   draft.config.scoringSystem === s
                     ? "bg-primary text-white border-primary"
@@ -314,6 +445,7 @@ export default function OrgMatchSetupPage() {
               <select
                 value={draft.config.bestOf}
                 onChange={(e) => setConfig({ bestOf: Number(e.target.value) })}
+                disabled={isEventLocked}
                 className="w-full appearance-none py-3 px-4 pr-10 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] text-sm text-[var(--color-text)]"
               >
                 {BEST_OF_OPTIONS.map((n) => (
@@ -333,6 +465,7 @@ export default function OrgMatchSetupPage() {
                 onChange={(e) =>
                   setConfig({ pointsToWin: Number(e.target.value) })
                 }
+                disabled={isEventLocked}
                 className="w-full appearance-none py-3 px-4 pr-10 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] text-sm text-[var(--color-text)]"
               >
                 {POINTS_OPTIONS.map((n) => (
@@ -418,6 +551,7 @@ export default function OrgMatchSetupPage() {
                     type="checkbox"
                     className="sr-only"
                     checked={checked}
+                    disabled={isEventLocked}
                     onChange={(e) => {
                       if (opt.key === "winByTwo")
                         setConfig({ winByTwo: e.target.checked });
@@ -469,6 +603,7 @@ export default function OrgMatchSetupPage() {
                       type="checkbox"
                       className="sr-only"
                       checked={checked}
+                      disabled={isEventLocked}
                       onChange={(e) =>
                         setConfig({ warmupMinutes: e.target.checked ? 0 : 5 })
                       }
@@ -491,6 +626,7 @@ export default function OrgMatchSetupPage() {
               onChange={(e) =>
                 setConfig({ switchSidesEvery: Number(e.target.value) })
               }
+              disabled={isEventLocked}
               className="w-full appearance-none py-3 px-4 pr-10 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] text-sm text-[var(--color-text)]"
             >
               <option value={0}>No side switching</option>
@@ -513,7 +649,7 @@ export default function OrgMatchSetupPage() {
           className="relative flex h-14 w-full max-w-[340px] select-none items-center overflow-hidden rounded-full shadow-xl"
           style={{
             background: "linear-gradient(135deg,#ff8c00,#f97316)",
-            boxShadow: "0 8px 32px rgba(249,115,22,0.45)",
+            boxShadow: "none",
           }}
         >
           {/* Centered label — sits behind thumb via z-index */}
@@ -523,11 +659,15 @@ export default function OrgMatchSetupPage() {
 
           {/* White pill thumb — fixed size, positioned with SIDE_PAD inset */}
           <motion.button
-            ref={thumbRef}
             drag="x"
             dragConstraints={{ left: 0, right: maxDrag }}
             dragElastic={0}
             dragMomentum={false}
+            onDragStart={() => {
+              if (!isStarting) {
+                setIsReadyPopupOpen(false);
+              }
+            }}
             style={{
               x,
               position: "absolute",
@@ -540,7 +680,8 @@ export default function OrgMatchSetupPage() {
             onDragEnd={handleSwipeEnd}
             type="button"
             aria-label="Swipe to start match"
-            className="z-10 touch-none cursor-grab flex items-center justify-center rounded-full bg-white shadow-md active:cursor-grabbing"
+            className="z-10 touch-none cursor-grab flex items-center justify-center rounded-full bg-white shadow-md active:cursor-grabbing disabled:cursor-not-allowed disabled:opacity-80"
+            disabled={isStarting}
           >
             {/* Orange arrow icon */}
             <svg

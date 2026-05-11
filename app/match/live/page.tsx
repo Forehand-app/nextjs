@@ -56,7 +56,6 @@ export default function LiveMatchPage() {
   const [matchWinner, setMatchWinner] = useState<0 | 1 | null>(null);
   const [showExitConfirm, setShowExitConfirm] = useState(false);
   const [showSwitchSides, setShowSwitchSides] = useState(false);
-  const [scorerSide, setScorerSide] = useState<0 | 1>(config.initialServer === 2 ? 1 : 0);
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
 
   const p1 = searchParams.get("p1") || "Player 1";
@@ -68,11 +67,7 @@ export default function LiveMatchPage() {
   const playerBName = isDoubles ? [p2, p4].filter(Boolean).join(" / ") : p2;
   const sideAActionLabel = isDoubles ? "Team 1" : p1;
   const sideBActionLabel = isDoubles ? "Team 2" : p2;
-  const scorerLabel = scorerSide === 0 ? sideAActionLabel : sideBActionLabel;
-
-  useEffect(() => {
-    setScorerSide(config.initialServer === 2 ? 1 : 0);
-  }, [config.initialServer]);
+  const scorerLabel = "Match Scorer";
 
   useEffect(() => {
     const timer = window.setInterval(() => {
@@ -106,7 +101,6 @@ export default function LiveMatchPage() {
   const applyRallyAction = useCallback(
     (winnerSide: 0 | 1) => {
       emit("rally", { side: winnerSide });
-      setScorerSide(winnerSide);
       setState((previous) => {
         setHistory((historyPrevious) => [...historyPrevious, previous]);
         const next = applyRally(previous, config, winnerSide);
@@ -141,7 +135,6 @@ export default function LiveMatchPage() {
   const applyFaultAction = useCallback(
     (faultSide: 0 | 1) => {
       emit("fault", { side: faultSide });
-      setScorerSide(faultSide === 0 ? 1 : 0);
       setState((previous) => {
         setHistory((historyPrevious) => [...historyPrevious, previous]);
         const next = applyFault(previous, config, faultSide);
@@ -179,6 +172,7 @@ export default function LiveMatchPage() {
 
   return (
     <LiveMatchReplica
+      title="Quick Match"
       currentSetNumber={Math.min(state.currentSet + 1, config.bestOf)}
       sideAScore={currentSet[0] ?? 0}
       sideBScore={currentSet[1] ?? 0}
@@ -194,6 +188,7 @@ export default function LiveMatchPage() {
       sideALabel={playerAName}
       sideBLabel={playerBName}
       scorerLabel={scorerLabel}
+      showScorerCard={false}
       matchTimer={matchTimer}
       sideAActionLabel={sideAActionLabel}
       sideBActionLabel={sideBActionLabel}

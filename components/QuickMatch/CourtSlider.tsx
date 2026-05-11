@@ -10,7 +10,7 @@ interface CourtSliderProps {
     courtId: string;
     format: "singles" | "doubles";
     scoring: "sideout" | "rally";
-    bestOf: 3 | 5;
+    bestOf: 1 | 3 | 5;
     points: 11 | 15 | 21;
     winByTwo: boolean;
     initialServer: 1 | 2;
@@ -24,7 +24,7 @@ type MatchFormState = {
   doubles: boolean;
   initialServer: 1 | 2;
   scoringSystem: "sideout" | "rally";
-  bestOf: "3" | "5";
+  bestOf: "1" | "3" | "5";
   pointsToWin: "11" | "15" | "21";
   timeoutPerSet: boolean;
   winByTwo: boolean;
@@ -172,7 +172,7 @@ export default function CourtSlider({ onBack, onStart }: CourtSliderProps) {
       courtId: form.doubles ? "c2" : "c1",
       format: form.doubles ? "doubles" : "singles",
       scoring: form.scoringSystem,
-      bestOf: Number(form.bestOf) as 3 | 5,
+      bestOf: Number(form.bestOf) as 1 | 3 | 5,
       points: Number(form.pointsToWin) as 11 | 15 | 21,
       winByTwo: form.winByTwo,
       initialServer: form.initialServer,
@@ -343,6 +343,7 @@ export default function CourtSlider({ onBack, onStart }: CourtSliderProps) {
               value={form.bestOf}
               onChange={(value) => setForm((previous) => ({ ...previous, bestOf: value as MatchFormState["bestOf"] }))}
               options={[
+                { label: "Best of 1", value: "1" },
                 { label: "Best of 3", value: "3" },
                 { label: "Best of 5", value: "5" },
               ]}

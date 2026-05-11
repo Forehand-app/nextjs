@@ -25,7 +25,7 @@ export default function QuickMatchSetupPage() {
     courtId: string;
     format: "singles" | "doubles";
     scoring: "sideout" | "rally";
-    bestOf: 3 | 5;
+    bestOf: 1 | 3 | 5;
     points: 11 | 15 | 21;
     winByTwo: boolean;
     initialServer: 1 | 2;

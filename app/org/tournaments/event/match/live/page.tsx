@@ -16,8 +16,9 @@ import {
   maybeAdvanceSet,
 } from "@/lib/matchEngine";
 import { toQuery } from "@/lib/utils";
+import { matchApi } from "@/lib/api/matchApi";
 
-type SidePlayer = { name: string; initials: string };
+type SidePlayer = { name: string; initials: string; avatarUrl?: string | null };
 
 function initialsFromName(name: string) {
   const parts = name.trim().split(/\s+/).filter(Boolean);
@@ -28,17 +29,17 @@ function initialsFromName(name: string) {
 
 function ensurePlayers(players: unknown, format: MatchConfigData["format"]) {
   const fallbackSingles = {
-    side0: [{ initials: "P1", name: "Player 1" }],
-    side1: [{ initials: "P2", name: "Player 2" }],
+    side0: [{ initials: "P1", name: "Player 1", avatarUrl: null }],
+    side1: [{ initials: "P2", name: "Player 2", avatarUrl: null }],
   };
   const fallbackDoubles = {
     side0: [
-      { initials: "P1", name: "Player 1" },
-      { initials: "P3", name: "Player 3" },
+      { initials: "P1", name: "Player 1", avatarUrl: null },
+      { initials: "P3", name: "Player 3", avatarUrl: null },
     ],
     side1: [
-      { initials: "P2", name: "Player 2" },
-      { initials: "P4", name: "Player 4" },
+      { initials: "P2", name: "Player 2", avatarUrl: null },
+      { initials: "P4", name: "Player 4", avatarUrl: null },
     ],
   };
 
@@ -54,12 +55,28 @@ function ensurePlayers(players: unknown, format: MatchConfigData["format"]) {
     const s1b = p.side1[1] ?? fallbackDoubles.side1[1];
     return {
       side0: [
-        { ...s0a, initials: s0a.initials || initialsFromName(s0a.name) },
-        { ...s0b, initials: s0b.initials || initialsFromName(s0b.name) },
+        {
+          ...s0a,
+          initials: s0a.initials || initialsFromName(s0a.name),
+          avatarUrl: s0a.avatarUrl || null,
+        },
+        {
+          ...s0b,
+          initials: s0b.initials || initialsFromName(s0b.name),
+          avatarUrl: s0b.avatarUrl || null,
+        },
       ],
       side1: [
-        { ...s1a, initials: s1a.initials || initialsFromName(s1a.name) },
-        { ...s1b, initials: s1b.initials || initialsFromName(s1b.name) },
+        {
+          ...s1a,
+          initials: s1a.initials || initialsFromName(s1a.name),
+          avatarUrl: s1a.avatarUrl || null,
+        },
+        {
+          ...s1b,
+          initials: s1b.initials || initialsFromName(s1b.name),
+          avatarUrl: s1b.avatarUrl || null,
+        },
       ],
     };
   }
@@ -67,8 +84,20 @@ function ensurePlayers(players: unknown, format: MatchConfigData["format"]) {
   const s0 = p.side0[0] ?? fallbackSingles.side0[0];
   const s1 = p.side1[0] ?? fallbackSingles.side1[0];
   return {
-    side0: [{ ...s0, initials: s0.initials || initialsFromName(s0.name) }],
-    side1: [{ ...s1, initials: s1.initials || initialsFromName(s1.name) }],
+    side0: [
+      {
+        ...s0,
+        initials: s0.initials || initialsFromName(s0.name),
+        avatarUrl: s0.avatarUrl || null,
+      },
+    ],
+    side1: [
+      {
+        ...s1,
+        initials: s1.initials || initialsFromName(s1.name),
+        avatarUrl: s1.avatarUrl || null,
+      },
+    ],
   };
 }
 
@@ -120,6 +149,8 @@ export default function OrgLiveMatchPage() {
     config.initialServer === 2 ? 1 : 0,
   );
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
+  const [matchScorerName, setMatchScorerName] = useState("Match Scorer");
+  const [teamIds, setTeamIds] = useState<{ a?: string; b?: string }>({});
 
   const isDoubles = config.format === "doubles";
   const sideALabel = isDoubles
@@ -130,7 +161,38 @@ export default function OrgLiveMatchPage() {
     : players.side1[0].name;
   const sideAActionLabel = isDoubles ? "Team 1" : players.side0[0].name;
   const sideBActionLabel = isDoubles ? "Team 2" : players.side1[0].name;
-  const scorerLabel = scorerSide === 0 ? sideAActionLabel : sideBActionLabel;
+
+  useEffect(() => {
+    if (!matchId) return;
+    let cancelled = false;
+    const loadScorer = async () => {
+      try {
+        const info = await matchApi.getMatchInfo(matchId);
+        const scorerName =
+          info?.scorerUser?.name ||
+          info?.scorerName ||
+          info?.scorer?.name ||
+          "Match Scorer";
+        if (!cancelled) setMatchScorerName(scorerName);
+        if (!cancelled) {
+          setTeamIds({
+            a:
+              info?.teamAData?.id ||
+              (typeof info?.teamA === "string" ? info.teamA : info?.teamA?.id),
+            b:
+              info?.teamBData?.id ||
+              (typeof info?.teamB === "string" ? info.teamB : info?.teamB?.id),
+          });
+        }
+      } catch (error) {
+        console.error("Failed to load match scorer", error);
+      }
+    };
+    void loadScorer();
+    return () => {
+      cancelled = true;
+    };
+  }, [matchId]);
 
   useEffect(() => {
     const timer = window.setInterval(() => {
@@ -174,6 +236,47 @@ export default function OrgLiveMatchPage() {
     [matchId],
   );
 
+  const syncMatchUpdate = useCallback(
+    async (
+      previous: LiveMatchStateData,
+      next: LiveMatchStateData,
+      winner: 0 | 1 | null,
+    ) => {
+      try {
+        const updatedSetIndex = previous.currentSet;
+        const setScore = next.setScores[updatedSetIndex] || [0, 0];
+        const setFinished = next.currentSet > previous.currentSet || winner != null;
+
+        let setWinnerId: string | null = null;
+        if (setFinished && teamIds.a && teamIds.b) {
+          if (setScore[0] > setScore[1]) setWinnerId = teamIds.a;
+          if (setScore[1] > setScore[0]) setWinnerId = teamIds.b;
+        }
+
+        const matchWinnerId =
+          winner == null ? null : winner === 0 ? teamIds.a || null : teamIds.b || null;
+
+        await matchApi.updateScore({
+          matchId,
+          setNumber: updatedSetIndex + 1,
+          teamAScore: setScore[0] ?? 0,
+          teamBScore: setScore[1] ?? 0,
+          setStatus: setFinished ? "completed" : "in_progress",
+          winnerId: setWinnerId,
+          matchFinished: winner != null,
+          matchWinnerId,
+        });
+
+        if (winner != null) {
+          await matchApi.updateMatchState(matchId, "completed", matchWinnerId);
+        }
+      } catch (error) {
+        console.error("Failed to sync live match update", error);
+      }
+    },
+    [matchId, teamIds.a, teamIds.b],
+  );
+
   const applyRallyAction = useCallback(
     (winnerSide: 0 | 1) => {
       emit("rally", { side: winnerSide });
@@ -184,10 +287,11 @@ export default function OrgLiveMatchPage() {
         const advanced = maybeAdvanceSet(next, config);
         persist(advanced.state);
         setMatchWinner(advanced.matchWinner);
+        void syncMatchUpdate(previous, advanced.state, advanced.matchWinner);
         return advanced.state;
       });
     },
-    [config, emit, persist],
+    [config, emit, persist, syncMatchUpdate],
   );
 
   const applyFaultAction = useCallback(
@@ -200,10 +304,11 @@ export default function OrgLiveMatchPage() {
         const advanced = maybeAdvanceSet(next, config);
         persist(advanced.state);
         setMatchWinner(advanced.matchWinner);
+        void syncMatchUpdate(previous, advanced.state, advanced.matchWinner);
         return advanced.state;
       });
     },
-    [config, emit, persist],
+    [config, emit, persist, syncMatchUpdate],
   );
 
   const undo = useCallback(() => {
@@ -264,10 +369,12 @@ export default function OrgLiveMatchPage() {
       sideBServing={state.serverSide === 1}
       sideALabel={sideALabel}
       sideBLabel={sideBLabel}
-      scorerLabel={scorerLabel}
+      scorerLabel={matchScorerName}
       matchTimer={matchTimer}
       sideAActionLabel={sideAActionLabel}
       sideBActionLabel={sideBActionLabel}
+      sideAPlayers={players.side0}
+      sideBPlayers={players.side1}
       showSwitchServe={showSwitchServe}
       showSwitchSides={showSwitchSides}
       showWinnerConfirm={matchWinner != null}
@@ -304,4 +411,3 @@ export default function OrgLiveMatchPage() {
     />
   );
 }
-
