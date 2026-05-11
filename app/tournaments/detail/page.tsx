@@ -19,6 +19,7 @@ import {
 import { tournamentApi } from "@/lib/api/tournamentApi";
 import { TournamentData, EventData } from "@/lib/models";
 import { toQuery } from "@/lib/utils";
+import { useApp } from "@/components/AppProvider";
 
 type MainTab = "about" | "events";
 type PairStep = "idle" | "adding" | "invited" | "pairing" | "paired";
@@ -61,6 +62,7 @@ export default function TournamentDetailPage() {
     new URLSearchParams(),
   );
   const router = useRouter();
+  const { userProfile } = useApp();
   const [tournament, setTournament] = useState<TournamentData | null>(null);
   const [joinedTournaments, setJoinedTournaments] = useState<TournamentData[]>(
     [],
@@ -124,6 +126,9 @@ export default function TournamentDetailPage() {
 
   const toggleEvent = (ev: EventData) => {
     if (!ev.id || isAlreadyRegistered(ev.id)) return;
+    const isEligible = !ev.gender || ev.gender === userProfile?.gender;
+    if (!isEligible) return;
+
     const current = Boolean(selected[ev.id]);
     const isDoubles =
       ev.teamTypeCode?.toLowerCase().includes("double") ||
@@ -310,16 +315,23 @@ export default function TournamentDetailPage() {
             if (!ev.id) return null;
             const isSelected = Boolean(selected[ev.id]);
             const registered = isAlreadyRegistered(ev.id);
+            const isEligible = !ev.gender || ev.gender === userProfile?.gender;
+
             const isDoubles =
               ev.teamTypeCode?.toLowerCase().includes("double") ||
               ev.teamType?.label?.toLowerCase().includes("double");
             return (
               <section
                 key={ev.id}
-                className={`rounded-3xl border p-5 shadow-lg ${isSelected ? "border-[#ff7a1a] bg-[#ff7a1a]/5" : registered ? "border-green-500 bg-green-500/5" : "border-[var(--color-border)] bg-[var(--color-surface-elevated)]"}`}
+                className={`rounded-3xl border p-5 shadow-lg ${isSelected ? "border-[#ff7a1a] bg-[#ff7a1a]/5" : registered ? "border-green-500 bg-green-500/5" : !isEligible ? "border-red-500/20 bg-red-500/5 opacity-80" : "border-[var(--color-border)] bg-[var(--color-surface-elevated)]"}`}
               >
                 <h3 className="text-[20px] font-bold text-[var(--color-text)]">
                   {ev.name}
+                  {!isEligible && (
+                    <span className="ml-2 text-[10px] uppercase tracking-widest text-red-500 bg-red-500/10 px-2 py-0.5 rounded-full">
+                      {ev.gender} only
+                    </span>
+                  )}
                 </h3>
                 <div className="mt-4 grid grid-cols-2 gap-3">
                   <div className="flex items-center gap-2 text-[13px] text-[var(--color-text-secondary)] opacity-60">
@@ -351,13 +363,15 @@ export default function TournamentDetailPage() {
                   </div>
                   <button
                     onClick={() => toggleEvent(ev)}
-                    disabled={registered}
-                    className={`inline-flex h-11 min-w-[120px] items-center justify-center gap-2 rounded-full border-2 px-6 text-[16px] font-bold transition-all active:scale-95 ${isSelected ? "border-[#ff7a1a] bg-[#ff7a1a] text-white shadow-lg shadow-orange-500/20" : registered ? "border-green-500 bg-green-500 text-white cursor-default" : "border-[var(--color-border)] bg-[var(--color-surface-elevated)] text-[var(--color-text)] hover:border-gray-400"}`}
+                    disabled={registered || !isEligible}
+                    className={`inline-flex h-11 min-w-[120px] items-center justify-center gap-2 rounded-full border-2 px-6 text-[16px] font-bold transition-all active:scale-95 ${isSelected ? "border-[#ff7a1a] bg-[#ff7a1a] text-white shadow-lg shadow-orange-500/20" : registered ? "border-green-500 bg-green-500 text-white cursor-default" : !isEligible ? "border-red-500/50 text-red-500 bg-red-500/10 cursor-not-allowed" : "border-[var(--color-border)] bg-[var(--color-surface-elevated)] text-[var(--color-text)] hover:border-gray-400"}`}
                   >
                     {isSelected ? (
                       "Added"
                     ) : registered ? (
                       "Registered"
+                    ) : !isEligible ? (
+                      "Ineligible"
                     ) : (
                       <>
                         <PlusIcon size={14} /> Add

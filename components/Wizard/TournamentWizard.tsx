@@ -382,7 +382,6 @@ export default function TournamentWizard({
     { id: 1, code: "male", label: "Men's" },
     { id: 2, code: "female", label: "Women's" },
     { id: 3, code: "mixed", label: "Mixed" },
-    { id: 4, code: "open", label: "Open" },
   ];
 
   const setsOpts: OptionsData[] = [
