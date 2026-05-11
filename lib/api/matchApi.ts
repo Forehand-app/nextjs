@@ -1,5 +1,8 @@
 import { fetchApi, getApiUrl } from "./interceptor";
 
+/**
+ * Payload for creating one or more matches.
+ */
 export interface CreateMatchPayload {
   eventId: string;
   roundNumber: number;
@@ -18,6 +21,9 @@ export interface CreateMatchPayload {
   sideSwitching?: "per_set" | "half_set" | "no_switch";
 }
 
+/**
+ * Payload for updating a set score and potentially match state.
+ */
 export interface UpdateScorePayload {
   matchId: string;
   setNumber: number;
@@ -29,7 +35,28 @@ export interface UpdateScorePayload {
   matchWinnerId?: string | null;
 }
 
+/**
+ * API client for match-related operations.
+ */
 export const matchApi = {
+  /**
+   * Bulk creates matches for an event.
+   *
+   * @param matches - An array of `CreateMatchPayload` objects.
+   *   - eventId (string): The ID of the event these matches belong to.
+   *   - roundNumber (number): The round this match is part of.
+   *   - teamA (string): ID of the first team.
+   *   - teamB (string): ID of the second team.
+   *   - scorer (optional string): User ID of the assigned scorer.
+   *   - winnerId (optional string): ID of the winning team if already known.
+   *   - matchState (optional): 'scheduled', 'in_progress', 'completed', etc.
+   *   - setsPerMatch (optional number): Override event-level sets per match.
+   *   - pointsPerSet (optional number): Override event-level points per set.
+   *   - sideSwitching (optional): 'per_set', 'half_set', 'no_switch'.
+   *
+   * @returns A promise resolving to the API response data containing an array of results for each match creation attempt.
+   *   Each result item: { success: boolean, message: string, data?: { matchId: string } }
+   */
   createMatches: async (matches: CreateMatchPayload[]) => {
     const { data, error } = await fetchApi(
       getApiUrl({ path: "/match/create" }),
@@ -43,6 +70,16 @@ export const matchApi = {
     return data;
   },
 
+  /**
+   * Updates the overall state and winner of a specific match.
+   *
+   * @param matchId - The unique ID of the match to update.
+   * @param state - The new state of the match.
+   *   Allowed values: 'scheduled', 'in_progress', 'completed', 'abandoned', 'walkover'.
+   * @param winnerId - (Optional) The ID of the team that won the match. Pass null to clear.
+   *
+   * @returns A promise that resolves when the update is successful.
+   */
   updateMatchState: async (
     matchId: string,
     state: "scheduled" | "in_progress" | "completed" | "abandoned" | "walkover",
@@ -59,6 +96,21 @@ export const matchApi = {
     if (error) throw error;
   },
 
+  /**
+   * Updates the score and status for a specific set within a match.
+   *
+   * @param payload - `UpdateScorePayload` object.
+   *   - matchId (string): ID of the match.
+   *   - setNumber (number): Which set is being updated (1, 2, 3...).
+   *   - teamAScore (number): Current score for Team A in this set.
+   *   - teamBScore (number): Current score for Team B in this set.
+   *   - setStatus (string): 'not_started', 'in_progress', or 'completed'.
+   *   - winnerId (optional string): ID of the set winner.
+   *   - matchFinished (optional boolean): Flag if this set ends the whole match.
+   *   - matchWinnerId (optional string): ID of the match winner if matchFinished is true.
+   *
+   * @returns A promise that resolves when the score update is successful.
+   */
   updateScore: async (payload: UpdateScorePayload) => {
     const { error } = await fetchApi(
       getApiUrl({ path: "/match/update-score" }),
@@ -71,6 +123,13 @@ export const matchApi = {
     if (error) throw error;
   },
 
+  /**
+   * Retrieves all matches associated with a specific event, including their set data and participant details.
+   *
+   * @param eventId - The unique ID of the event.
+   * @returns A promise resolving to an array of match objects.
+   *   Each match includes: sets, teamAData (with participants/users), teamBData (with participants/users).
+   */
   getMatchesByEvent: async (eventId: string) => {
     const { data, error } = await fetchApi(
       getApiUrl({ path: "/match/list", param: eventId }),
@@ -79,6 +138,13 @@ export const matchApi = {
     return data;
   },
 
+  /**
+   * Retrieves matches for a specific round within an event.
+   *
+   * @param eventId - The unique ID of the event.
+   * @param roundNumber - The round number to filter matches by.
+   * @returns A promise resolving to an array of match objects for that specific round.
+   */
   getMatchesByEventAndRound: async (eventId: string, roundNumber: number) => {
     const { data, error } = await fetchApi(
       getApiUrl({ path: "/match/list", param: eventId }),
@@ -92,6 +158,13 @@ export const matchApi = {
     return data;
   },
 
+  /**
+   * Fetches full details for a single match, including scores, participants, and parent event/tournament info.
+   *
+   * @param matchId - The unique ID of the match.
+   * @returns A promise resolving to a detailed match object.
+   *   Includes: sets, teamAData, teamBData, event (with tournament), scorerUser, winner.
+   */
   getMatchInfo: async (matchId: string) => {
     const { data, error } = await fetchApi(
       getApiUrl({ path: "/match/info", param: matchId }),
@@ -100,6 +173,13 @@ export const matchApi = {
     return data;
   },
 
+  /**
+   * Fetches detailed information for a single set, including its parent match and tournament context.
+   *
+   * @param setId - The unique ID of the set.
+   * @returns A promise resolving to the set data object.
+   *   Includes: match (with event/tournament), winner.
+   */
   getSetInfo: async (setId: string) => {
     const { data, error } = await fetchApi(
       getApiUrl({ path: "/match/set/info", param: setId }),
@@ -108,6 +188,13 @@ export const matchApi = {
     return data;
   },
 
+  /**
+   * Updates the progress status of a specific set.
+   *
+   * @param setId - The unique ID of the set.
+   * @param state - The new status ('not_started', 'in_progress', 'completed').
+   * @returns A promise that resolves when the set status is updated.
+   */
   updateSetState: async (
     setId: string,
     state: "not_started" | "in_progress" | "completed",

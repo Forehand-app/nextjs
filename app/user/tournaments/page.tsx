@@ -67,14 +67,16 @@ export default function UserTournamentsPage() {
       onAccept:
         item.type === "invite"
           ? async () => {
-              await notificationApi.respondToInvite(item.id, "accept");
+              const targetId = item.inviteId || item.id;
+              await notificationApi.respondToInvite(targetId, "accept");
               setNotifications((prev) => prev.filter((n) => n.id !== item.id));
             }
           : undefined,
       onReject:
         item.type === "invite"
           ? async () => {
-              await notificationApi.respondToInvite(item.id, "reject");
+              const targetId = item.inviteId || item.id;
+              await notificationApi.respondToInvite(targetId, "reject");
               setNotifications((prev) => prev.filter((n) => n.id !== item.id));
             }
           : undefined,

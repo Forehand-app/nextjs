@@ -5,7 +5,13 @@ import Link from "next/link";
 import Layout from "@/components/Layout";
 import HomeHeader from "@/components/HomeHeader";
 import { useApp } from "@/components/AppProvider";
-import { CalendarIcon, CircleIcon, TimerIcon, TrophyIcon } from "@/components/Icons";
+import {
+  CalendarIcon,
+  CircleIcon,
+  TimerIcon,
+  TrophyIcon,
+  BellIcon,
+} from "@/components/Icons";
 import {
   motion,
   useScroll,
@@ -16,6 +22,10 @@ import {
 import { useEffect, useMemo, useRef, useState } from "react";
 import { tournamentApi } from "@/lib/api/tournamentApi";
 import { TournamentData } from "@/lib/models";
+import NotificationsSlideOver, {
+  NotificationItem,
+} from "@/components/NotificationsSlideOver";
+import { notificationApi } from "@/lib/api/notificationApi";
 
 const liveMatches = [
   {
@@ -85,7 +95,12 @@ const AnimatedCard = ({
   const scale = useTransform(scrollXProgress, [0, 0.5, 1], [0.95, 1, 0.95]);
 
   return (
-    <motion.article ref={cardRef} variants={cardVariants} style={{ scale }} className={className}>
+    <motion.article
+      ref={cardRef}
+      variants={cardVariants}
+      style={{ scale }}
+      className={className}
+    >
       {children}
     </motion.article>
   );
@@ -120,7 +135,12 @@ const Dot = ({
   const width = useTransform(scrollXProgress, inputRange, widthOutput);
   const opacity = useTransform(scrollXProgress, inputRange, opacityOutput);
 
-  return <motion.div style={{ width, opacity }} className="h-1.5 rounded-full bg-primary" />;
+  return (
+    <motion.div
+      style={{ width, opacity }}
+      className="h-1.5 rounded-full bg-primary"
+    />
+  );
 };
 
 const ScrollIndicator = ({
@@ -137,7 +157,12 @@ const ScrollIndicator = ({
   return (
     <div className="flex items-center justify-center gap-2 h-3">
       {Array.from({ length: itemCount }).map((_, i) => (
-        <Dot key={i} index={i} itemCount={itemCount} scrollXProgress={scrollXProgress} />
+        <Dot
+          key={i}
+          index={i}
+          itemCount={itemCount}
+          scrollXProgress={scrollXProgress}
+        />
       ))}
     </div>
   );
@@ -160,7 +185,8 @@ function isCompletedTournament(t: TournamentData) {
 
 function isUpcomingTournament(t: TournamentData) {
   if (isLiveTournament(t) || isCompletedTournament(t)) return false;
-  if (t.tournamentState === "drafted" || t.tournamentState === "published") return true;
+  if (t.tournamentState === "drafted" || t.tournamentState === "published")
+    return true;
   if (!t.startDate) return false;
   return new Date(t.startDate) > new Date();
 }
@@ -177,7 +203,10 @@ function formatLiveStage(t: TournamentData) {
   if (totalMs <= 0) return "Live";
 
   const totalDays = Math.max(1, Math.ceil(totalMs / dayMs) + 1);
-  const elapsedDays = Math.max(1, Math.ceil((now.getTime() - start.getTime()) / dayMs) + 1);
+  const elapsedDays = Math.max(
+    1,
+    Math.ceil((now.getTime() - start.getTime()) / dayMs) + 1,
+  );
   const day = Math.min(totalDays, elapsedDays);
 
   return `Day ${day} of ${totalDays}`;
@@ -203,6 +232,51 @@ export default function OrgHomePage() {
   const { activeOrganization: organization } = useApp();
   const [tournaments, setTournaments] = useState<TournamentData[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+
+  const [notificationsOpen, setNotificationsOpen] = useState(false);
+  const [notifications, setNotifications] = useState<NotificationItem[]>([]);
+  const [readIds, setReadIds] = useState<Set<string>>(new Set());
+
+  const attachActions = (items: NotificationItem[]) =>
+    items.map((item) => ({
+      ...item,
+      unread: item.unread && !readIds.has(item.id),
+      onAccept:
+        item.type === "invite"
+          ? async () => {
+              const targetId = item.inviteId || item.id;
+              await notificationApi.respondToInvite(targetId, "accept");
+              setNotifications((prev) => prev.filter((n) => n.id !== item.id));
+            }
+          : undefined,
+      onReject:
+        item.type === "invite"
+          ? async () => {
+              const targetId = item.inviteId || item.id;
+              await notificationApi.respondToInvite(targetId, "reject");
+              setNotifications((prev) => prev.filter((n) => n.id !== item.id));
+            }
+          : undefined,
+    }));
+
+  useEffect(() => {
+    let active = true;
+    const loadNotifications = async () => {
+      try {
+        const items = await notificationApi.getUserNotifications();
+        if (!active) return;
+        setNotifications(attachActions(items));
+      } catch (error) {
+        if (!active) return;
+        console.error("Failed to load notifications", error);
+        setNotifications([]);
+      }
+    };
+    void loadNotifications();
+    return () => {
+      active = false;
+    };
+  }, [readIds]);
 
   useEffect(() => {
     let active = true;
@@ -251,12 +325,32 @@ export default function OrgHomePage() {
     [tournaments],
   );
 
+  const unreadCount = notifications.filter((n) => n.unread).length;
+
   return (
     <Layout hideTopNav>
-      <HomeHeader />
+      <div className="bg-[var(--color-surface)] px-4 pt-10 pb-4 shadow-sm relative z-10">
+        <div className="mx-auto w-full max-w-md flex items-center justify-between">
+          <HomeHeader />
+          <button
+            onClick={() => setNotificationsOpen(true)}
+            className="relative w-10 h-10 rounded-full bg-[var(--color-surface-elevated)] border border-[var(--color-border)] flex items-center justify-center text-[var(--color-text)] hover:bg-[var(--color-border)] active:scale-95 transition-all shrink-0 cursor-pointer"
+            aria-label="Open notifications"
+          >
+            <BellIcon size={20} />
+            {unreadCount > 0 && (
+              <span className="absolute top-0 right-0 flex h-4 w-4 items-center justify-center rounded-full bg-primary ring-2 ring-[var(--color-surface)] text-[9px] font-bold text-white">
+                {unreadCount}
+              </span>
+            )}
+          </button>
+        </div>
+      </div>
       <div className="font-body mx-auto w-full max-w-md space-y-6 px-4 pb-24 pt-6">
         <section className="space-y-4">
-          <h2 className="px-1 text-lg font-bold tracking-tight">Tournament Overview</h2>
+          <h2 className="px-1 text-lg font-bold tracking-tight">
+            Tournament Overview
+          </h2>
           <div className="grid grid-cols-3 gap-3">
             {[
               {
@@ -269,15 +363,23 @@ export default function OrgHomePage() {
                 count: String(overview.completed).padStart(2, "0"),
                 icon: TrophyIcon,
               },
-              { label: "Live", count: String(overview.live).padStart(2, "0"), icon: TimerIcon },
+              {
+                label: "Live",
+                count: String(overview.live).padStart(2, "0"),
+                icon: TimerIcon,
+              },
             ].map((item) => (
               <article
                 key={item.label}
                 className="flex flex-col items-center justify-center gap-2 rounded-[24px] border border-[var(--color-border)] bg-[var(--color-surface)] py-6 px-3 shadow-sm transition-transform active:scale-95"
               >
                 <item.icon size={28} className="text-[#ff7a1a]" />
-                <p className="text-3xl font-bold leading-none tracking-tight text-[var(--color-text)]">{item.count}</p>
-                <p className="text-[11px] font-semibold uppercase tracking-wider text-[var(--color-text-secondary)] opacity-70">{item.label}</p>
+                <p className="text-3xl font-bold leading-none tracking-tight text-[var(--color-text)]">
+                  {item.count}
+                </p>
+                <p className="text-[11px] font-semibold uppercase tracking-wider text-[var(--color-text-secondary)] opacity-70">
+                  {item.label}
+                </p>
               </article>
             ))}
           </div>
@@ -285,8 +387,13 @@ export default function OrgHomePage() {
 
         <section>
           <div className="mb-3 flex items-center justify-between">
-            <h3 className="font-heading text-xl font-semibold">Live Tournaments</h3>
-            <Link href="/org/tournaments" className="text-xs font-medium uppercase text-primary">
+            <h3 className="font-heading text-xl font-semibold">
+              Live Tournaments
+            </h3>
+            <Link
+              href="/org/tournaments"
+              className="text-xs font-medium uppercase text-primary"
+            >
               See All
             </Link>
           </div>
@@ -311,10 +418,17 @@ export default function OrgHomePage() {
           ) : liveTournaments.length === 0 ? (
             <div className="card flex flex-col items-center justify-center p-8 text-center bg-[var(--color-surface)] border-dashed border-2">
               <div className="w-12 h-12 rounded-full bg-[var(--color-surface-elevated)] flex items-center justify-center mb-3">
-                <TimerIcon size={24} className="text-[var(--color-muted)] opacity-50" />
+                <TimerIcon
+                  size={24}
+                  className="text-[var(--color-muted)] opacity-50"
+                />
               </div>
-              <p className="text-sm font-semibold text-[var(--color-text-secondary)]">No live tournaments</p>
-              <p className="text-xs text-[var(--color-muted)] mt-1">When you start a tournament, it will appear here.</p>
+              <p className="text-sm font-semibold text-[var(--color-text-secondary)]">
+                No live tournaments
+              </p>
+              <p className="text-xs text-[var(--color-muted)] mt-1">
+                When you start a tournament, it will appear here.
+              </p>
             </div>
           ) : (
             <>
@@ -326,33 +440,55 @@ export default function OrgHomePage() {
                 animate="visible"
               >
                 {liveTournaments.map((item) => (
-                  <AnimatedCard key={item.id} containerRef={tournamentContainerRef} className="card min-w-[85%] snap-center p-4">
+                  <AnimatedCard
+                    key={item.id}
+                    containerRef={tournamentContainerRef}
+                    className="card min-w-[85%] snap-center p-4"
+                  >
                     <div className="mb-2 flex items-center justify-between">
                       <span className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wide text-[var(--color-success)]">
-                        <CircleIcon size={6} className="text-[var(--color-success)] fill-current" />
+                        <CircleIcon
+                          size={6}
+                          className="text-[var(--color-success)] fill-current"
+                        />
                         Live
                       </span>
-                      <span className="text-xs text-[var(--color-muted)]">{item.stage}</span>
+                      <span className="text-xs text-[var(--color-muted)]">
+                        {item.stage}
+                      </span>
                     </div>
-                    <h4 className="font-heading text-lg font-bold leading-tight">{item.name}</h4>
-                    <p className="mt-0.5 text-xs text-[var(--color-muted)]">{item.subtitle}</p>
+                    <h4 className="font-heading text-lg font-bold leading-tight">
+                      {item.name}
+                    </h4>
+                    <p className="mt-0.5 text-xs text-[var(--color-muted)]">
+                      {item.subtitle}
+                    </p>
                     <div className="mt-3 flex items-center justify-between border-t border-[var(--color-border)] pt-2">
-                      <span className="text-xs text-[var(--color-text-secondary)]">Participants</span>
-                      <span className="text-sm font-semibold">{item.participants}</span>
+                      <span className="text-xs text-[var(--color-text-secondary)]">
+                        Participants
+                      </span>
+                      <span className="text-sm font-semibold">
+                        {item.participants}
+                      </span>
                     </div>
                   </AnimatedCard>
                 ))}
               </motion.div>
 
               <div className="mt-1">
-                <ScrollIndicator itemCount={liveTournaments.length} containerRef={tournamentContainerRef} />
+                <ScrollIndicator
+                  itemCount={liveTournaments.length}
+                  containerRef={tournamentContainerRef}
+                />
               </div>
             </>
           )}
         </section>
 
         <section>
-          <h3 className="mb-3 font-heading text-xl font-semibold">Live Matches</h3>
+          <h3 className="mb-3 font-heading text-xl font-semibold">
+            Live Matches
+          </h3>
 
           <motion.div
             ref={matchContainerRef}
@@ -430,6 +566,17 @@ export default function OrgHomePage() {
           </div>
         </section>
       </div>
+
+      <NotificationsSlideOver
+        open={notificationsOpen}
+        onClose={() => setNotificationsOpen(false)}
+        items={notifications}
+        unreadCount={unreadCount}
+        onMarkAllRead={() =>
+          setReadIds(new Set(notifications.map((n) => n.id)))
+        }
+        onClearAll={() => setNotifications([])}
+      />
     </Layout>
   );
 }

@@ -1,6 +1,9 @@
 import { fetchApi, getApiUrl } from "./interceptor";
 import { NotificationItem } from "@/components/NotificationsSlideOver";
 
+/**
+ * Arguments for sending an invite notification.
+ */
 type InviteNotificationArgs = {
   phone: string;
   tournamentId: string;
@@ -8,6 +11,11 @@ type InviteNotificationArgs = {
   role: "admin" | "scorer";
 };
 
+/**
+ * Helper function to post to the first working path from a list of candidates.
+ * @param pathCandidates - Array of path strings to try.
+ * @param body - The request body.
+ */
 async function postBestEffort(pathCandidates: string[], body: unknown) {
   for (const path of pathCandidates) {
     const { error } = await fetchApi(getApiUrl({ path }), {
@@ -19,9 +27,27 @@ async function postBestEffort(pathCandidates: string[], body: unknown) {
   }
 }
 
+/**
+ * API client for managing user notifications and invitation responses.
+ */
 export const notificationApi = {
+  /**
+   * Retrieves all notifications and invitations for the current user.
+   * Formats the backend response into a standardized `NotificationItem` for UI components.
+   *
+   * @returns A promise resolving to an array of `NotificationItem` objects:
+   *   - id (string): Unique ID.
+   *   - type (string): 'invite' etc.
+   *   - title (string): Display title.
+   *   - body (string): Display message.
+   *   - source (string): Source name (e.g., tournament name).
+   *   - timeAgo (string): Formatted relative time.
+   *   - unread (boolean): Read/unread status.
+   */
   getUserNotifications: async (): Promise<NotificationItem[]> => {
-    const { data, error } = await fetchApi(getApiUrl({ path: "/user/notifications" }));
+    const { data, error } = await fetchApi(
+      getApiUrl({ path: "/user/notifications" }),
+    );
     if (error) throw error;
 
     const rows = Array.isArray(data) ? data : [];
@@ -34,9 +60,12 @@ export const notificationApi = {
           )} min ago`
         : "Just now";
 
+      // If it's an invite, the backend might provide an inviteId in metadata or as the row id
+      // For now we use row.id as the fallback for invite actions
       return {
         id: String(row.id),
-        type: "invite",
+        inviteId: row.inviteId || row.id,
+        type: row.type || "invite",
         title: row.title || "Notification",
         body: row.body || "",
         source: row.source || "",
@@ -46,6 +75,13 @@ export const notificationApi = {
     });
   },
 
+  /**
+   * Responds to an invitation to join a tournament or organization.
+   *
+   * @param inviteId - The unique ID of the invitation.
+   * @param action - 'accept' or 'reject'.
+   * @returns A promise resolving when the response is recorded.
+   */
   respondToInvite: async (inviteId: string, action: "accept" | "reject") => {
     const { error } = await fetchApi(getApiUrl({ path: "/invite/respond" }), {
       method: "POST",
@@ -55,6 +91,11 @@ export const notificationApi = {
     if (error) throw error;
   },
 
+  /**
+   * Rejects all currently pending invitations for the user.
+   *
+   * @returns A promise resolving when all invites are rejected.
+   */
   rejectAllPendingInvites: async () => {
     const { error } = await fetchApi(
       getApiUrl({ path: "/invite/reject-all-pending" }),
@@ -67,6 +108,12 @@ export const notificationApi = {
     if (error) throw error;
   },
 
+  /**
+   * Sends a tournament invite notification (via best-effort endpoints).
+   *
+   * @param args - `InviteNotificationArgs`: phone, tournamentId, tournamentName, role.
+   * @returns A promise resolving once the attempt is made.
+   */
   sendInviteNotification: async ({
     phone,
     tournamentId,
@@ -86,6 +133,12 @@ export const notificationApi = {
     );
   },
 
+  /**
+   * Sends an organization invite notification (via best-effort endpoints).
+   *
+   * @param args - phone, organizationId, organizationName, role.
+   * @returns A promise resolving once the attempt is made.
+   */
   sendOrgInviteNotification: async ({
     phone,
     organizationId,

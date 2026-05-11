@@ -107,31 +107,20 @@ export default function TournamentCheckoutScreen() {
       setIsRegistering(true);
 
       for (const ev of selectedEvents) {
-        const isSingles =
-          ev.teamTypeCode?.toLowerCase().includes("single") ||
-          ev.teamType?.label?.toLowerCase().includes("single");
+        if (!ev.id) continue;
 
-        if (isSingles) {
-          // 1. Create a new team with the current user as the first participant
-          const result = await teamApi.createTeam({
-            eventId: ev.id!,
-            participantIds: [userId],
-          });
+        // Fetch the existing team for this event (created in the detail page)
+        const team = await teamApi.getMyTeam(ev.id).catch(() => null);
 
-          // The ID could be in result, result.data, or result.id
-          const teamId =
-            typeof result === "string"
-              ? result
-              : result?.id || result?.data?.id || result?.data;
-
-          if (!teamId) {
-            console.error("Team creation returned no ID. Full result:", result);
-            throw new Error(`Failed to create team for event "${ev.name}".`);
-          }
-
-          // 2. Update the team state to registered
-          await teamApi.updateTeamState(teamId, "registered");
+        if (!team || !team.id) {
+          console.error(`No team found for event ${ev.name}`);
+          throw new Error(
+            `Registration not initialized for event "${ev.name}". Please go back and add it again.`,
+          );
         }
+
+        // Update the team state to registered
+        await teamApi.updateTeamState(team.id, "registered");
       }
 
       setCompleted(true);

@@ -2,12 +2,18 @@ import { fetchApi, getApiUrl } from "./interceptor";
 
 type InviteState = "pending" | "accepted" | "rejected";
 
+/**
+ * Arguments for sending an organization member invite.
+ */
 type SendOrganizationMemberInviteArgs = {
   phone: string;
   organizationId: string;
   role?: "admin";
 };
 
+/**
+ * Structure of an organization member invite.
+ */
 export type OrganizationMemberInvite = {
   id: string;
   name: string;
@@ -16,6 +22,9 @@ export type OrganizationMemberInvite = {
   phone?: string;
 };
 
+/**
+ * Response structure when an organization invite is sent.
+ */
 type OrganizationMemberInviteResponse = {
   inviteId?: string;
   receiverName?: string;
@@ -23,13 +32,19 @@ type OrganizationMemberInviteResponse = {
   inviteState?: InviteState;
 };
 
-const configuredCreatePath = process.env.NEXT_PUBLIC_ORG_MEMBER_INVITE_CREATE_PATH;
+const configuredCreatePath =
+  process.env.NEXT_PUBLIC_ORG_MEMBER_INVITE_CREATE_PATH;
 const configuredListPath = process.env.NEXT_PUBLIC_ORG_MEMBER_INVITE_LIST_PATH;
-const configuredRemovePath = process.env.NEXT_PUBLIC_ORG_MEMBER_INVITE_REMOVE_PATH;
+const configuredRemovePath =
+  process.env.NEXT_PUBLIC_ORG_MEMBER_INVITE_REMOVE_PATH;
 
 const createPathCandidates = configuredCreatePath
   ? [configuredCreatePath]
-  : ["/invite/organization/member/create", "/invite/org/member/create", "/invite/create"];
+  : [
+      "/invite/organization/member/create",
+      "/invite/org/member/create",
+      "/invite/create",
+    ];
 
 const listPathCandidates = configuredListPath
   ? [configuredListPath]
@@ -41,12 +56,21 @@ const removePathCandidates = configuredRemovePath
 
 const unavailablePaths = new Set<string>();
 
-function statusFromInviteState(state?: InviteState): OrganizationMemberInvite["status"] {
+/**
+ * Maps backend invite state to frontend status label.
+ */
+function statusFromInviteState(
+  state?: InviteState,
+): OrganizationMemberInvite["status"] {
   if (state === "accepted") return "Accepted";
   if (state === "rejected") return "Rejected";
   return "Invited";
 }
 
+/**
+ * Helper to post to the first available endpoint from a list of candidates.
+ * Used for handling potential variations in backend route implementation.
+ */
 async function postToFirstWorkingPath(
   pathCandidates: string[],
   body: unknown,
@@ -78,11 +102,25 @@ function isRouteMissingError(error: unknown) {
 function isTournamentInviteValidationError(error: unknown) {
   return (
     error instanceof Error &&
-    (error.message.includes("tournamentId") || error.message.includes("Expected string"))
+    (error.message.includes("tournamentId") ||
+      error.message.includes("Expected string"))
   );
 }
 
+/**
+ * API client for managing invitations to join an organization.
+ */
 export const orgMemberInviteApi = {
+  /**
+   * Sends an invitation to a user to join an organization as an administrator.
+   *
+   * @param args - `SendOrganizationMemberInviteArgs` object:
+   *   - phone (string): Recipient's phone number.
+   *   - organizationId (string): ID of the organization.
+   *   - role (optional): Defaults to 'admin'.
+   *
+   * @returns A promise resolving to a formatted `OrganizationMemberInvite` object.
+   */
   sendOrganizationMemberInvite: async ({
     phone,
     organizationId,
@@ -103,7 +141,10 @@ export const orgMemberInviteApi = {
         payload,
       )) as OrganizationMemberInviteResponse;
     } catch (error) {
-      if (isRouteMissingError(error) || isTournamentInviteValidationError(error)) {
+      if (
+        isRouteMissingError(error) ||
+        isTournamentInviteValidationError(error)
+      ) {
         throw new Error(
           "Organization member invite API is not available on backend yet. Please add org invite routes (create/list/remove) and set NEXT_PUBLIC_ORG_MEMBER_INVITE_* paths.",
         );
@@ -120,6 +161,12 @@ export const orgMemberInviteApi = {
     };
   },
 
+  /**
+   * Retrieves a list of all pending and responded invitations for a specific organization.
+   *
+   * @param organizationId - The unique ID of the organization.
+   * @returns A promise resolving to an array of formatted `OrganizationMemberInvite` objects.
+   */
   listOrganizationMemberInvites: async (
     organizationId: string,
   ): Promise<OrganizationMemberInvite[]> => {
@@ -142,7 +189,17 @@ export const orgMemberInviteApi = {
     }));
   },
 
-  removeOrganizationMemberInvite: async (inviteId: string, organizationId: string) => {
+  /**
+   * Removes (deletes) a specific invitation to join an organization.
+   *
+   * @param inviteId - The unique ID of the invitation.
+   * @param organizationId - The unique ID of the organization.
+   * @returns A promise resolving when the invitation is removed.
+   */
+  removeOrganizationMemberInvite: async (
+    inviteId: string,
+    organizationId: string,
+  ) => {
     try {
       await postToFirstWorkingPath(removePathCandidates, {
         inviteId,
@@ -150,7 +207,9 @@ export const orgMemberInviteApi = {
       });
     } catch (error) {
       if (isRouteMissingError(error)) {
-        throw new Error("Organization member remove-invite API is not available.");
+        throw new Error(
+          "Organization member remove-invite API is not available.",
+        );
       }
       throw error;
     }

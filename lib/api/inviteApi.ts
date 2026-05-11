@@ -2,6 +2,9 @@ import { fetchApi, getApiUrl } from "./interceptor";
 
 type CrewRole = "admin" | "scorer";
 
+/**
+ * Arguments for sending a tournament crew invite.
+ */
 type SendInviteArgs = {
   phone: string;
   role: CrewRole;
@@ -9,6 +12,9 @@ type SendInviteArgs = {
   organizationId?: string;
 };
 
+/**
+ * Expected structure of an invite response.
+ */
 type InviteResponse = {
   inviteId?: string;
   receiverName?: string;
@@ -16,6 +22,9 @@ type InviteResponse = {
   inviteState?: "pending" | "accepted" | "rejected";
 };
 
+/**
+ * Expected structure of a crew member response.
+ */
 type CrewMemberResponse = {
   id: string;
   role: CrewRole;
@@ -25,7 +34,25 @@ type CrewMemberResponse = {
   status?: "invite_sent" | "accepted" | "rejected" | "idle";
 };
 
+/**
+ * API client for managing tournament and team invitations.
+ */
 export const inviteApi = {
+  /**
+   * Sends an invitation to a user to join a tournament's crew (as admin or scorer).
+   *
+   * @param args - `SendInviteArgs` object:
+   *   - phone (string): Recipient's phone number.
+   *   - role (string): 'admin' or 'scorer'.
+   *   - tournamentId (string): ID of the tournament.
+   *   - organizationId (optional string): ID of the parent organization.
+   *
+   * @returns A promise resolving to an `InviteResponse`:
+   *   - inviteId (string): ID of the created invitation.
+   *   - receiverName (string): Name of the user found with the phone number.
+   *   - receiverProfilePicUrl (string): URL to user's avatar.
+   *   - inviteState (string): Current state of the invitation (usually 'pending').
+   */
   sendTournamentCrewInvite: async ({
     phone,
     role,
@@ -41,56 +68,45 @@ export const inviteApi = {
       notifyReceiver: true,
     };
     const url = getApiUrl({ path: "/invite/create" });
-    console.log("[inviteApi] sendTournamentCrewInvite:start", {
-      url,
-      payload,
-    });
 
     const { data, error } = await fetchApi(url, {
       method: "POST",
       contentType: "json",
       body: payload,
     });
-    if (error) {
-      console.error("[inviteApi] sendTournamentCrewInvite:error", {
-        url,
-        payload,
-        error,
-      });
-      throw error;
-    }
-    console.log("[inviteApi] sendTournamentCrewInvite:success", { url, data });
+    if (error) throw error;
 
     return (data || {}) as InviteResponse;
   },
 
+  /**
+   * Retrieves all crew member invitations (both pending and accepted) for a specific tournament.
+   *
+   * @param tournamentId - The unique ID of the tournament.
+   * @returns A promise resolving to an array of `CrewMemberResponse` objects.
+   */
   getTournamentCrew: async (
     tournamentId: string,
   ): Promise<CrewMemberResponse[]> => {
     const url = getApiUrl({ path: "/invite/tournament/crew" });
     const payload = { tournamentId };
-    console.log("[inviteApi] getTournamentCrew:start", { url, payload });
     const { data, error } = await fetchApi(url, {
       method: "POST",
       contentType: "json",
       body: payload,
     });
-    if (error) {
-      console.error("[inviteApi] getTournamentCrew:error", {
-        url,
-        payload,
-        error,
-      });
-      throw error;
-    }
-    console.log("[inviteApi] getTournamentCrew:success", {
-      url,
-      count: Array.isArray(data) ? data.length : 0,
-      data,
-    });
+    if (error) throw error;
+
     return Array.isArray(data) ? (data as CrewMemberResponse[]) : [];
   },
 
+  /**
+   * Removes (deletes) a specific tournament crew invitation.
+   *
+   * @param inviteId - The unique ID of the invitation to remove.
+   * @param tournamentId - The unique ID of the tournament.
+   * @returns A promise resolving when the invitation is removed.
+   */
   removeTournamentCrewInvite: async (
     inviteId: string,
     tournamentId: string,
@@ -106,20 +122,99 @@ export const inviteApi = {
     if (error) throw error;
   },
 
+  /**
+   * Sends an invitation to a user to join an event's team.
+   *
+   * @param payload - Object containing:
+   *   - phone (string): Recipient's phone number.
+   *   - eventId (string): ID of the event.
+   *   - teamId (optional string): ID of the team (if joining an existing doubles team).
+   *
+   * @returns A promise resolving to the created invitation's data: { inviteId: string }.
+   */
   sendEventTeamInvite: async (payload: {
     phone: string;
     eventId: string;
     teamId?: string | null;
+    eventDisplayName?: string;
+    inviterName?: string;
   }) => {
     const { data, error } = await fetchApi(
       getApiUrl({ path: "/invite/event/team/create" }),
       {
         method: "POST",
         contentType: "json",
-        body: payload,
+        body: {
+          ...payload,
+          title: "Team Invitation",
+          body: `${payload.inviterName || "A player"} has invited you to join their team for the event "${payload.eventDisplayName || "Tournament Event"}".`,
+        },
       },
     );
     if (error) throw error;
     return data;
+  },
+
+  /**
+   * Retrieves all team-related invitations sent by the current user for a specific event.
+   *
+   * @param eventId - The unique ID of the event.
+   * @returns A promise resolving to an array of invitation objects with nested `receiver` profiles.
+   */
+  getEventTeamInvites: async (eventId: string) => {
+    const { data, error } = await fetchApi(
+      getApiUrl({ path: "/invite/event/team", param: eventId }),
+    );
+    if (error) throw error;
+    return data;
+  },
+
+  /**
+   * Permanently deletes a specific invitation by its ID.
+   *
+   * @param inviteId - The unique ID of the invitation.
+   * @returns A promise resolving when the invitation is deleted.
+   */
+  deleteInvite: async (inviteId: string) => {
+    const { error } = await fetchApi(
+      getApiUrl({ path: "/invite/delete", param: inviteId }),
+      {
+        method: "DELETE",
+      },
+    );
+    if (error) throw error;
+  },
+
+  /**
+   * Responds to an invitation (accept or reject).
+   *
+   * @param inviteId - The unique ID of the invitation.
+   * @param action - The response action: 'accept' or 'reject'.
+   * @returns A promise resolving when the response is recorded.
+   */
+  respondToInvite: async (inviteId: string, action: "accept" | "reject") => {
+    const { error } = await fetchApi(getApiUrl({ path: "/invite/respond" }), {
+      method: "POST",
+      contentType: "json",
+      body: { inviteId, action },
+    });
+    if (error) throw error;
+  },
+
+  /**
+   * Rejects all currently pending invitations for the user.
+   *
+   * @returns A promise resolving when all invites are rejected.
+   */
+  rejectAllPendingInvites: async () => {
+    const { error } = await fetchApi(
+      getApiUrl({ path: "/invite/reject-all-pending" }),
+      {
+        method: "POST",
+        contentType: "json",
+        body: {},
+      },
+    );
+    if (error) throw error;
   },
 };

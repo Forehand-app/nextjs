@@ -134,6 +134,7 @@ export interface TeamData {
   teamTypeCode?: string | null;
   teamType?: OptionsData | null;
   event?: EventData | null;
+  participants?: ParticipantData[] | null;
 }
 
 export interface ParticipantData {
@@ -141,6 +142,7 @@ export interface ParticipantData {
   eventId: string;
   name: string;
   userId?: string;
+  user?: ProfileData | null;
   partnerId?: string; // for doubles
   status: "pending" | "confirmed" | "rejected";
   ageCategory?: string;

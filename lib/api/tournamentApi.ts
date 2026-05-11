@@ -1,7 +1,24 @@
 import { EventData, TournamentData } from "../models";
 import { fetchApi, getApiUrl } from "./interceptor";
 
+/**
+ * API client for tournament and event management.
+ */
 export const tournamentApi = {
+  /**
+   * Creates a new tournament within an organization.
+   *
+   * @param tournament - `TournamentData` object containing details:
+   *   - organizationId (string): ID of the parent organization.
+   *   - name (string): Tournament name.
+   *   - description (string): About the tournament.
+   *   - startDate, endDate (string): ISO dates.
+   *   - venue details (venueName, address, city, state, postalCode, venueCourts).
+   *   - contact details (contactName, contactEmail, contactPhone).
+   *   - upiId (optional string): For payments.
+   *
+   * @returns A promise resolving to the created tournament's ID (string).
+   */
   createTournament: async (tournament: TournamentData): Promise<string> => {
     const { data, error } = await fetchApi(
       getApiUrl({ path: "/tournament/create" }),
@@ -16,6 +33,23 @@ export const tournamentApi = {
     return data as string;
   },
 
+  /**
+   * Creates one or more events for a specific tournament.
+   *
+   * @param events - Array of `EventData` objects:
+   *   - tournamentId (string): The tournament this event belongs to.
+   *   - name (string): Event name (e.g., 'Men's Singles Under 19').
+   *   - sportsOptionCode (string): Code for the sport.
+   *   - eventFormatCode (string): Code for the format (e.g., 'knockout').
+   *   - teamTypeCode (string): Code for team type (e.g., 'singles').
+   *   - gender (string | null): 'male', 'female', or null for mixed.
+   *   - startDate, dueDate (string): ISO dates for event start and registration deadline.
+   *   - setsPerMatch, pointsPerSet (number): Scoring configuration.
+   *   - amount (number): Registration fee.
+   *   - paymentModeCode (optional string): How to pay.
+   *
+   * @returns A promise resolving when events are created.
+   */
   createEvents: async (events: EventData[]) => {
     const { error } = await fetchApi(
       getApiUrl({ path: "/tournament/events/create" }),
@@ -28,6 +62,12 @@ export const tournamentApi = {
     if (error) throw error;
   },
 
+  /**
+   * Fetches detailed information for a specific tournament, including its events and organization details.
+   *
+   * @param tournamentId - The unique ID of the tournament.
+   * @returns A promise resolving to a `TournamentData` object with nested `events` and `organization`.
+   */
   getInfo: async (tournamentId: string): Promise<TournamentData> => {
     const { data, error } = await fetchApi(
       getApiUrl({ path: "/tournament/info", param: tournamentId }),
@@ -37,6 +77,12 @@ export const tournamentApi = {
     return data as TournamentData;
   },
 
+  /**
+   * Retrieves all tournaments owned by a specific organization.
+   *
+   * @param orgId - The unique ID of the organization.
+   * @returns A promise resolving to an array of `TournamentData` objects, each including basic event info.
+   */
   getOrganizationTournaments: async (
     orgId: string,
   ): Promise<TournamentData[]> => {
@@ -48,6 +94,12 @@ export const tournamentApi = {
     return data as TournamentData[];
   },
 
+  /**
+   * Retrieves all 'published' tournaments available for users to browse and join.
+   * Filters out tournaments the user has already joined and those not matching their gender.
+   *
+   * @returns A promise resolving to an array of `TournamentData` objects.
+   */
   getBrowseTournaments: async (): Promise<TournamentData[]> => {
     const { data, error } = await fetchApi(
       getApiUrl({ path: "/tournament/list/user/browse" }),
@@ -57,6 +109,11 @@ export const tournamentApi = {
     return data as TournamentData[];
   },
 
+  /**
+   * Retrieves tournaments that the currently authenticated user has joined as a participant.
+   *
+   * @returns A promise resolving to an array of `TournamentData` objects with nested joined `events`.
+   */
   getJoinedTournaments: async (): Promise<TournamentData[]> => {
     const { data, error = null } = await fetchApi(
       getApiUrl({ path: "/tournament/list/user/joined" }),
@@ -66,6 +123,11 @@ export const tournamentApi = {
     return data as TournamentData[];
   },
 
+  /**
+   * Retrieves historical (completed) tournaments that the current user participated in.
+   *
+   * @returns A promise resolving to an array of completed `TournamentData` objects.
+   */
   getHistoryTournaments: async (): Promise<TournamentData[]> => {
     const { data, error } = await fetchApi(
       getApiUrl({ path: "/tournament/list/user/history" }),
@@ -75,6 +137,12 @@ export const tournamentApi = {
     return data as TournamentData[];
   },
 
+  /**
+   * Fetches all unique participants (users/players) and their associated teams/events for a tournament.
+   *
+   * @param tournamentId - The unique ID of the tournament.
+   * @returns A promise resolving to an array of objects: { user: Profile, team: Team, event: Event }.
+   */
   getTournamentParticipants: async (tournamentId: string) => {
     const { data, error } = await fetchApi(
       getApiUrl({ path: "/tournament/participants", param: tournamentId }),
@@ -83,6 +151,12 @@ export const tournamentApi = {
     return data;
   },
 
+  /**
+   * Fetches all participants (users and their teams) registered for a specific event.
+   *
+   * @param eventId - The unique ID of the event.
+   * @returns A promise resolving to an array of objects: { user: Profile, team: Team }.
+   */
   getEventParticipants: async (eventId: string) => {
     const { data, error } = await fetchApi(
       getApiUrl({ path: "/tournament/events/participants", param: eventId }),
@@ -91,6 +165,13 @@ export const tournamentApi = {
     return data;
   },
 
+  /**
+   * Updates the overall state of a tournament.
+   *
+   * @param tournamentId - The unique ID of the tournament.
+   * @param state - The new state: 'drafted', 'published', 'in_progress', 'completed', 'cancelled'.
+   * @returns A promise resolving when the state is updated.
+   */
   updateTournamentState: async (
     tournamentId: string,
     state: "drafted" | "published" | "in_progress" | "completed" | "cancelled",
@@ -106,6 +187,12 @@ export const tournamentApi = {
     if (error) throw error;
   },
 
+  /**
+   * Transitions a tournament from 'drafted' to 'published', making it visible to users.
+   *
+   * @param tournamentId - The unique ID of the tournament.
+   * @returns A promise resolving when the tournament is published.
+   */
   publishTournament: async (tournamentId: string) => {
     const { error } = await fetchApi(
       getApiUrl({ path: "/tournament/publish", param: tournamentId }),
@@ -116,6 +203,12 @@ export const tournamentApi = {
     if (error) throw error;
   },
 
+  /**
+   * Permanently deletes a tournament and ALL related data (events, teams, matches, sets).
+   *
+   * @param tournamentId - The unique ID of the tournament to delete.
+   * @returns A promise resolving when the tournament is deleted.
+   */
   deleteTournament: async (tournamentId: string) => {
     const { error } = await fetchApi(
       getApiUrl({ path: "/tournament/delete", param: tournamentId }),
@@ -126,6 +219,12 @@ export const tournamentApi = {
     if (error) throw error;
   },
 
+  /**
+   * Permanently deletes a specific event from a tournament and its related data (teams, matches).
+   *
+   * @param eventId - The unique ID of the event to delete.
+   * @returns A promise resolving when the event is deleted.
+   */
   deleteEvent: async (eventId: string) => {
     const { error } = await fetchApi(
       getApiUrl({ path: "/tournament/events", param: eventId }),
@@ -136,6 +235,13 @@ export const tournamentApi = {
     if (error) throw error;
   },
 
+  /**
+   * Updates the state of a specific event within a tournament.
+   *
+   * @param eventId - The unique ID of the event.
+   * @param state - The new state: 'created', 'registration_closed', 'participants_finalized', 'scheduled', 'in_progress', 'round_over', 'completed', 'cancelled'.
+   * @returns A promise resolving when the event state is updated.
+   */
   updateEventState: async (
     eventId: string,
     state:

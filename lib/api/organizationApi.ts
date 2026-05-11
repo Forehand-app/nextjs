@@ -1,7 +1,25 @@
 import { OrganizationData } from "../models";
 import { fetchApi, getApiUrl } from "./interceptor";
 
+/**
+ * API client for organization management.
+ */
 export const organizationApi = {
+  /**
+   * Registers a new organization and assigns the current user as the owner.
+   *
+   * @param organizationData - `OrganizationData` object containing:
+   *   - name (string): Organization name.
+   *   - description (string): About the organization.
+   *   - orgTypeCode (string): 'educationalInstitute', 'sportsAcademy', 'sportsClub', etc.
+   *   - establishedYear (number): Year founded.
+   *   - contactEmail (string): Official email.
+   *   - contactPhone (string): Official phone.
+   *   - address details (address, city, state, postalCode).
+   *   - website (optional string): URL.
+   *
+   * @returns A promise resolving to the created organization's ID (string).
+   */
   createOrganization: async (
     organizationData: OrganizationData,
   ): Promise<string> => {
@@ -18,6 +36,12 @@ export const organizationApi = {
     return data as string;
   },
 
+  /**
+   * Fetches detailed information for a specific organization, including its type.
+   *
+   * @param orgId - The unique ID of the organization.
+   * @returns A promise resolving to an `OrganizationData` object with nested `orgType`.
+   */
   getInfo: async (orgId: string): Promise<OrganizationData> => {
     const { data, error } = await fetchApi(
       getApiUrl({ path: "/org/info", param: orgId }),
@@ -27,12 +51,23 @@ export const organizationApi = {
     return data as OrganizationData;
   },
 
+  /**
+   * Retrieves all organizations that the current user is a member of (as owner or invited member).
+   *
+   * @returns A promise resolving to an array of `OrganizationData` objects.
+   */
   getUserOrganizations: async (): Promise<OrganizationData[]> => {
     const { data } = await fetchApi(getApiUrl({ path: "/org/list" }));
 
     return data as OrganizationData[];
   },
 
+  /**
+   * Updates the profile and contact details of an existing organization.
+   *
+   * @param organizationData - Updated `OrganizationData` object. Must include the organization `id`.
+   * @returns A promise resolving when the update is successful.
+   */
   updateOrganization: async (
     organizationData: OrganizationData,
   ): Promise<void> => {

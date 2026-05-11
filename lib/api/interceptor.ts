@@ -11,6 +11,13 @@ type ParsedRespone = {
   error?: any | undefined | unknown;
 };
 
+/**
+ * Formats the API URL by joining the base URL, path, and optional parameters.
+ * Handles both relative paths and absolute URLs.
+ *
+ * @param options - Object containing the path and an optional param.
+ * @returns The complete API URL.
+ */
 export function getApiUrl({
   path,
   param,
@@ -31,6 +38,15 @@ export function getApiUrl({
   return `${cleanBaseUrl}${cleanPath}${cleanParam}`;
 }
 
+/**
+ * Generic fetch wrapper for API requests.
+ * Handles authentication headers, content-type, and standardizes error handling.
+ * Automatically parses JSON responses and extracts data from the standard response wrapper.
+ *
+ * @param path - The full URL or relative path to fetch.
+ * @param options - Fetch options including method, body, and content-type.
+ * @returns A promise resolving to an object containing either `data` or `error`.
+ */
 export const fetchApi = async (
   path: string,
   {

@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, Suspense } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import TournamentHeroCard from "@/components/TournamentHeroCard";
 import {
   ArrowLeftIcon,
@@ -20,18 +20,9 @@ import { tournamentApi } from "@/lib/api/tournamentApi";
 import { TournamentData, EventData } from "@/lib/models";
 import { toQuery } from "@/lib/utils";
 import { useApp } from "@/components/AppProvider";
+import RegistrationEventCard from "@/components/Card/RegistrationEventCard";
 
 type MainTab = "about" | "events";
-type PairStep = "idle" | "adding" | "invited" | "pairing" | "paired";
-
-function PersonChip({ name }: { name: string }) {
-  return (
-    <div className="flex items-center gap-2 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2 text-[14px]">
-      <div className="h-6 w-6 rounded-full bg-[radial-gradient(circle_at_30%_30%,#d1d1d1,#7b7b7b)]" />
-      <span>{name}</span>
-    </div>
-  );
-}
 
 function formatDate(value?: string | null) {
   if (!value) return "TBA";
@@ -57,24 +48,25 @@ function formatDateTime(value?: string | null) {
   });
 }
 
-export default function TournamentDetailPage() {
-  const [searchParams, setSearchParams] = useState<URLSearchParams>(
-    new URLSearchParams(),
-  );
+function TournamentDetailContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { userProfile } = useApp();
   const [tournament, setTournament] = useState<TournamentData | null>(null);
-  const [joinedTournaments, setJoinedTournaments] = useState<TournamentData[]>(
-    [],
-  );
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
 
-  useEffect(() => {
-    setSearchParams(new URLSearchParams(window.location.search));
-  }, []);
-
   const id = searchParams.get("id");
+  const [selected, setSelected] = useState<Record<string, boolean>>({});
+
+  useEffect(() => {
+    const sel = searchParams.get("selected")?.split(",") || [];
+    const obj: Record<string, boolean> = {};
+    sel.forEach((sid) => {
+      if (sid) obj[sid] = true;
+    });
+    setSelected(obj);
+  }, [searchParams]);
 
   useEffect(() => {
     if (!id) return;
@@ -84,13 +76,9 @@ export default function TournamentDetailPage() {
       try {
         setIsLoading(true);
         setError("");
-        const [data, joined] = await Promise.all([
-          tournamentApi.getInfo(id),
-          tournamentApi.getJoinedTournaments(),
-        ]);
+        const data = await tournamentApi.getInfo(id);
         if (active) {
           setTournament(data);
-          setJoinedTournaments(joined);
         }
       } catch (err) {
         console.error("Failed to load tournament info", err);
@@ -107,15 +95,6 @@ export default function TournamentDetailPage() {
   }, [id]);
 
   const [tab, setTab] = useState<MainTab>("about");
-  const [selected, setSelected] = useState<Record<string, boolean>>({});
-  const [pairState, setPairState] = useState<PairStep>("idle");
-  const [partnerPhone, setPartnerPhone] = useState("");
-
-  const isAlreadyRegistered = (eventId: string) => {
-    return joinedTournaments.some((jt) =>
-      jt.events?.some((e) => e.id === eventId),
-    );
-  };
 
   const total = useMemo(() => {
     if (!tournament?.events) return 0;
@@ -124,26 +103,8 @@ export default function TournamentDetailPage() {
       .reduce((sum, ev) => sum + (ev.amount ?? 0), 0);
   }, [selected, tournament]);
 
-  const toggleEvent = (ev: EventData) => {
-    if (!ev.id || isAlreadyRegistered(ev.id)) return;
-    const isEligible = !ev.gender || ev.gender === userProfile?.gender;
-    if (!isEligible) return;
-
-    const current = Boolean(selected[ev.id]);
-    const isDoubles =
-      ev.teamTypeCode?.toLowerCase().includes("double") ||
-      ev.teamType?.label?.toLowerCase().includes("double");
-
-    if (current) {
-      setSelected((prev) => ({ ...prev, [ev.id!]: false }));
-      if (isDoubles) {
-        setPairState("idle");
-        setPartnerPhone("");
-      }
-      return;
-    }
-    setSelected((prev) => ({ ...prev, [ev.id!]: true }));
-    if (isDoubles && pairState === "idle") setPairState("adding");
+  const handleAddedChange = (eventId: string, isAdded: boolean) => {
+    setSelected((prev) => ({ ...prev, [eventId]: isAdded }));
   };
 
   if (isLoading) {
@@ -176,7 +137,7 @@ export default function TournamentDetailPage() {
         <TournamentHeroCard
           title={tournament.name}
           subtitle={tournament.organization?.name || "Organizer"}
-          registeredCount={0} // TODO: Add registeredCount to TournamentData if needed
+          registeredCount={0}
           registrationStatus={
             tournament.tournamentState === "published" ? "Open" : "Closed"
           }
@@ -311,179 +272,14 @@ export default function TournamentDetailPage() {
             </section>
           </>
         ) : (
-          tournament.events?.map((ev) => {
-            if (!ev.id) return null;
-            const isSelected = Boolean(selected[ev.id]);
-            const registered = isAlreadyRegistered(ev.id);
-            const isEligible = !ev.gender || ev.gender === userProfile?.gender;
-
-            const isDoubles =
-              ev.teamTypeCode?.toLowerCase().includes("double") ||
-              ev.teamType?.label?.toLowerCase().includes("double");
-            return (
-              <section
-                key={ev.id}
-                className={`rounded-3xl border p-5 shadow-lg ${isSelected ? "border-[#ff7a1a] bg-[#ff7a1a]/5" : registered ? "border-green-500 bg-green-500/5" : !isEligible ? "border-red-500/20 bg-red-500/5 opacity-80" : "border-[var(--color-border)] bg-[var(--color-surface-elevated)]"}`}
-              >
-                <h3 className="text-[20px] font-bold text-[var(--color-text)]">
-                  {ev.name}
-                  {!isEligible && (
-                    <span className="ml-2 text-[10px] uppercase tracking-widest text-red-500 bg-red-500/10 px-2 py-0.5 rounded-full">
-                      {ev.gender} only
-                    </span>
-                  )}
-                </h3>
-                <div className="mt-4 grid grid-cols-2 gap-3">
-                  <div className="flex items-center gap-2 text-[13px] text-[var(--color-text-secondary)] opacity-60">
-                    <CalendarIcon size={14} className="text-[#ff7a1a]" />
-                    <span>Starts: {formatDate(ev.startDate)}</span>
-                  </div>
-                  <div className="flex items-center gap-2 text-[13px] text-[var(--color-text-secondary)] opacity-60">
-                    <SearchIcon size={14} className="text-[#ff7a1a]" />
-                    <span>Closes: {formatDate(ev.dueDate)}</span>
-                  </div>
-                </div>
-                <div className="mt-5 flex items-center justify-between border-t border-[var(--color-border)] pt-5">
-                  <div>
-                    <p className="text-[24px] font-bold text-[#ff7a1a]">
-                      {ev.amount === 0 ? (
-                        "Free Entry"
-                      ) : (
-                        <>
-                          <span className="currency-inr mr-0.5">&#8377;</span>
-                          {ev.amount}
-                        </>
-                      )}
-                    </p>
-                    {ev.amount > 0 && ev.paymentMode !== undefined && (
-                      <p className="mt-1 text-[12px] font-medium text-[var(--color-text-secondary)] opacity-60 uppercase tracking-wider">
-                        {ev.paymentMode?.label || ev.paymentModeCode || "N/A"}
-                      </p>
-                    )}
-                  </div>
-                  <button
-                    onClick={() => toggleEvent(ev)}
-                    disabled={registered || !isEligible}
-                    className={`inline-flex h-11 min-w-[120px] items-center justify-center gap-2 rounded-full border-2 px-6 text-[16px] font-bold transition-all active:scale-95 ${isSelected ? "border-[#ff7a1a] bg-[#ff7a1a] text-white shadow-lg shadow-orange-500/20" : registered ? "border-green-500 bg-green-500 text-white cursor-default" : !isEligible ? "border-red-500/50 text-red-500 bg-red-500/10 cursor-not-allowed" : "border-[var(--color-border)] bg-[var(--color-surface-elevated)] text-[var(--color-text)] hover:border-gray-400"}`}
-                  >
-                    {isSelected ? (
-                      "Added"
-                    ) : registered ? (
-                      "Registered"
-                    ) : !isEligible ? (
-                      "Ineligible"
-                    ) : (
-                      <>
-                        <PlusIcon size={14} /> Add
-                      </>
-                    )}
-                  </button>
-                </div>
-
-                {isDoubles && isSelected ? (
-                  <div className="mt-5 rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface-elevated)] p-4">
-                    {pairState === "adding" ? (
-                      <>
-                        <p className="text-[18px] font-bold text-[var(--color-text)]">
-                          Add your partner
-                        </p>
-                        <input
-                          value={partnerPhone}
-                          onChange={(e) => setPartnerPhone(e.target.value)}
-                          placeholder="Enter partner's Phone No."
-                          className="mt-3 h-12 w-full rounded-xl border border-[var(--color-border)] bg-[var(--color-background)] px-4 text-[15px] text-[var(--color-text)] outline-none focus:border-[#ff7a1a]/50"
-                        />
-                        <div className="mt-3 flex items-start gap-2 text-[12px] text-[var(--color-text-secondary)]">
-                          <InfoIcon
-                            size={14}
-                            className="mt-0.5 text-[#ff7a1a]"
-                          />
-                          <p>
-                            Your partner must be registered on the app to
-                            enroll.
-                          </p>
-                        </div>
-                        <button
-                          onClick={() => setPairState("invited")}
-                          className="mt-4 h-11 w-full rounded-full bg-[var(--color-surface-elevated)] border border-[var(--color-border)] text-[16px] font-bold text-[var(--color-text)] transition-all hover:bg-[var(--color-border)] active:scale-95"
-                        >
-                          Add Partner
-                        </button>
-                      </>
-                    ) : null}
-
-                    {pairState === "invited" ? (
-                      <>
-                        <p className="text-[18px] font-bold text-white">
-                          Add your partner
-                        </p>
-                        <div className="mt-3 flex items-center justify-between rounded-xl border border-white/10 bg-white/5 p-3 text-[15px]">
-                          <div className="flex items-center gap-3">
-                            <div className="h-8 w-8 rounded-full bg-gradient-to-br from-gray-400 to-gray-600" />
-                            <span className="font-medium text-white">
-                              Anil Kumar
-                            </span>
-                          </div>
-                          <span className="rounded-lg bg-[#ff7a1a]/20 px-2.5 py-1 text-[11px] font-bold text-[#ff7a1a]">
-                            Invite Pending
-                          </span>
-                        </div>
-                        <div className="mt-3 flex items-center gap-2 text-[12px] text-white/50">
-                          <InfoIcon size={14} className="text-[#ff7a1a]" />
-                          <p>Waiting for Anil Kumar to accept the invite.</p>
-                        </div>
-                        <button
-                          onClick={() => setPairState("pairing")}
-                          className="mt-4 h-11 w-full rounded-full bg-[#ff7a1a] text-[16px] font-bold text-white shadow-lg shadow-orange-500/20 active:scale-95"
-                        >
-                          Continue
-                        </button>
-                      </>
-                    ) : null}
-
-                    {pairState === "pairing" ? (
-                      <>
-                        <div className="flex items-center gap-2">
-                          <button
-                            onClick={() => setPairState("adding")}
-                            className="text-white/60 hover:text-white"
-                          >
-                            <ArrowLeftIcon size={18} />
-                          </button>
-                          <p className="text-[18px] font-bold text-white">
-                            Create Your Pair
-                          </p>
-                        </div>
-                        <div className="mt-4 grid grid-cols-2 gap-3">
-                          <PersonChip name="You" />
-                          <button
-                            onClick={() => setPairState("adding")}
-                            className="flex items-center justify-center gap-2 rounded-xl bg-red-500/10 px-4 py-2.5 text-[14px] font-bold text-red-400 transition-all hover:bg-red-500/20"
-                          >
-                            <TrashIcon size={14} />
-                            Remove
-                          </button>
-                        </div>
-                        <button
-                          onClick={() => setPairState("paired")}
-                          className="mt-4 h-11 w-full rounded-full bg-[#ff7a1a] text-[16px] font-bold text-white shadow-lg shadow-orange-500/20 active:scale-95"
-                        >
-                          Confirm Your Pair
-                        </button>
-                      </>
-                    ) : null}
-
-                    {pairState === "paired" ? (
-                      <div className="grid grid-cols-2 gap-3">
-                        <PersonChip name="You" />
-                        <PersonChip name="Anil Kumar" />
-                      </div>
-                    ) : null}
-                  </div>
-                ) : null}
-              </section>
-            );
-          })
+          tournament.events?.map((ev) => (
+            <RegistrationEventCard
+              key={ev.id}
+              event={ev}
+              onAddedChange={handleAddedChange}
+              isInitiallyAdded={Boolean(ev.id && selected[ev.id])}
+            />
+          ))
         )}
       </div>
 
@@ -536,5 +332,19 @@ export default function TournamentDetailPage() {
 
       {tab === "events" && total > 0 ? <div className="h-24" /> : null}
     </div>
+  );
+}
+
+export default function TournamentDetailPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-[var(--color-background)] flex items-center justify-center">
+          <div className="h-8 w-8 animate-spin rounded-full border-4 border-[#ff7a1a] border-t-transparent" />
+        </div>
+      }
+    >
+      <TournamentDetailContent />
+    </Suspense>
   );
 }
