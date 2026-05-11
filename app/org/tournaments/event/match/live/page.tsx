@@ -1,23 +1,14 @@
 "use client";
 
-import React, {
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import {
-  ArrowLeftIcon,
-  EllipsisIcon,
-  ChevronDownIcon,
-  XIcon,
-} from "@/components/Icons";
-import Scoreboard from "@/components/Match/Scoreboard";
-import ScoringControls from "@/components/Match/ScoringControls";
+import LiveMatchReplica from "@/components/QuickMatch/LiveMatchReplica";
 import { getItem, setItem } from "@/lib/storage";
-import type { LiveMatchStateData, MatchConfigData } from "@/lib/models";
+import type {
+  LiveMatchStateData,
+  MatchConfigData,
+  ScoreEventData,
+} from "@/lib/models";
 import {
   applyFault,
   applyRally,
@@ -28,172 +19,59 @@ import { toQuery } from "@/lib/utils";
 
 type SidePlayer = { name: string; initials: string };
 
+function initialsFromName(name: string) {
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  const a = parts[0]?.[0] ?? "P";
+  const b = parts[1]?.[0] ?? "";
+  return (a + b).toUpperCase();
+}
+
 function ensurePlayers(players: unknown, format: MatchConfigData["format"]) {
   const fallbackSingles = {
-    side0: [{ initials: "KV", name: "Kunal Verma" }],
-    side1: [{ initials: "AK", name: "Anil Kumar" }],
+    side0: [{ initials: "P1", name: "Player 1" }],
+    side1: [{ initials: "P2", name: "Player 2" }],
   };
   const fallbackDoubles = {
     side0: [
-      { initials: "KV", name: "Kunal Verma" },
-      { initials: "AC", name: "Alex Costa" },
+      { initials: "P1", name: "Player 1" },
+      { initials: "P3", name: "Player 3" },
     ],
     side1: [
-      { initials: "AK", name: "Anil Kumar" },
-      { initials: "TR", name: "The Rock" },
+      { initials: "P2", name: "Player 2" },
+      { initials: "P4", name: "Player 4" },
     ],
   };
 
   const p = players as { side0?: SidePlayer[]; side1?: SidePlayer[] } | null;
-  if (!p?.side0?.length || !p?.side1?.length)
+  if (!p?.side0?.length || !p?.side1?.length) {
     return format === "doubles" ? fallbackDoubles : fallbackSingles;
+  }
 
   if (format === "doubles") {
+    const s0a = p.side0[0] ?? fallbackDoubles.side0[0];
+    const s0b = p.side0[1] ?? fallbackDoubles.side0[1];
+    const s1a = p.side1[0] ?? fallbackDoubles.side1[0];
+    const s1b = p.side1[1] ?? fallbackDoubles.side1[1];
     return {
       side0: [
-        p.side0[0] ?? fallbackDoubles.side0[0],
-        p.side0[1] ?? fallbackDoubles.side0[1],
+        { ...s0a, initials: s0a.initials || initialsFromName(s0a.name) },
+        { ...s0b, initials: s0b.initials || initialsFromName(s0b.name) },
       ],
       side1: [
-        p.side1[0] ?? fallbackDoubles.side1[0],
-        p.side1[1] ?? fallbackDoubles.side1[1],
+        { ...s1a, initials: s1a.initials || initialsFromName(s1a.name) },
+        { ...s1b, initials: s1b.initials || initialsFromName(s1b.name) },
       ],
     };
   }
 
+  const s0 = p.side0[0] ?? fallbackSingles.side0[0];
+  const s1 = p.side1[0] ?? fallbackSingles.side1[0];
   return {
-    side0: [p.side0[0] ?? fallbackSingles.side0[0]],
-    side1: [p.side1[0] ?? fallbackSingles.side1[0]],
+    side0: [{ ...s0, initials: s0.initials || initialsFromName(s0.name) }],
+    side1: [{ ...s1, initials: s1.initials || initialsFromName(s1.name) }],
   };
 }
 
-// ─── Exit Popup ───────────────────────────────────────────────────────────────
-function ExitPopup({
-  onLeave,
-  onContinue,
-}: {
-  onLeave: () => void;
-  onContinue: () => void;
-}) {
-  return (
-    <>
-      <div
-        className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50"
-        onClick={onContinue}
-      />
-      <div className="fixed top-1/2 left-1/2 z-50 -translate-x-1/2 -translate-y-1/2 w-[88%] max-sm bg-white dark:bg-[var(--color-surface)] rounded-2xl shadow-2xl p-6 animate-in zoom-in-95 duration-200">
-        <h2 className="text-center font-black text-lg text-[var(--color-text)] mb-1">
-          Exit Live Match?
-        </h2>
-        <div className="text-center text-sm text-[var(--color-muted)] mb-5 flex items-start gap-2 justify-center px-2">
-          <svg
-            width={16}
-            height={16}
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="#f97316"
-            strokeWidth={2.5}
-            className="mt-0.5 shrink-0"
-          >
-            <circle cx="12" cy="12" r="10" />
-            <path d="M12 16v-4" />
-            <path d="M12 8h.01" />
-          </svg>
-          <span>
-            You&apos;re currently scoring a live match. Changes won&apos;t be
-            saved.
-          </span>
-        </div>
-        <div className="flex gap-3">
-          <button
-            onClick={onLeave}
-            className="flex-1 py-3 rounded-full bg-red-500 text-white font-semibold text-sm hover:bg-red-600 transition-colors"
-          >
-            Leave Anyways
-          </button>
-          <button
-            onClick={onContinue}
-            className="flex-1 py-3 rounded-full bg-green-500 text-white font-semibold text-sm hover:bg-green-600 transition-colors"
-          >
-            Continue Scoring
-          </button>
-        </div>
-      </div>
-    </>
-  );
-}
-
-// ─── Unified Popup ─────────────────────────────────────────────────────────────
-function LiveMatchActionPopup({
-  title,
-  description,
-  buttonLabel,
-  onAction,
-  onDismiss,
-}: {
-  title: string;
-  description: string;
-  buttonLabel: string;
-  onAction: () => void;
-  onDismiss?: () => void;
-}) {
-  return (
-    <>
-      <div
-        className="fixed inset-0 bg-black/40 backdrop-blur-[4px] z-[100]"
-        onClick={onDismiss}
-      />
-      <div className="fixed top-1/2 left-1/2 z-[101] -translate-x-1/2 -translate-y-1/2 w-[85%] max-w-[340px] bg-white dark:bg-[var(--color-surface)] rounded-[28px] shadow-2xl p-8 animate-in zoom-in-95 duration-200 text-center">
-        {/* Icon */}
-        <div className="flex justify-center mb-5">
-          <div className="w-14 h-14 rounded-full bg-orange-100 dark:bg-orange-500/10 flex items-center justify-center">
-            <svg
-              width={28}
-              height={28}
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="#f97316"
-              strokeWidth={2.5}
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <path d="M12 12c2.7 0 4-1.8 4-4s-1.3-4-4-4-4 1.8-4 4 1.3 4 4 4Z" />
-              <path d="M4 20c0-3.3 3.6-6 8-6s8 2.7 8 6" />
-              <path d="M16 11l2 2 2-2" />
-            </svg>
-          </div>
-        </div>
-        <h3 className="font-bold text-2xl text-[var(--color-text)] mb-2 tracking-tight">
-          {title}
-        </h3>
-        <p className="text-sm text-[var(--color-muted)] mb-8 leading-relaxed px-2">
-          {description}
-        </p>
-        <button
-          onClick={onAction}
-          className="w-full py-4 rounded-[20px] font-bold text-white text-base transition-all active:scale-[0.98] shadow-lg shadow-orange-500/25"
-          style={{ background: "linear-gradient(135deg,#ff8c00,#f97316)" }}
-        >
-          {buttonLabel}
-        </button>
-      </div>
-    </>
-  );
-}
-
-// ─── Match Timer ──────────────────────────────────────────────────────────────
-function useMatchTimer() {
-  const [seconds, setSeconds] = useState(0);
-  useEffect(() => {
-    const id = setInterval(() => setSeconds((s) => s + 1), 1000);
-    return () => clearInterval(id);
-  }, []);
-  const mm = String(Math.floor(seconds / 60)).padStart(2, "0");
-  const ss = String(seconds % 60).padStart(2, "0");
-  return `${mm}:${ss}`;
-}
-
-// ─── Main Page ────────────────────────────────────────────────────────────────
 export default function OrgLiveMatchPage() {
   const router = useRouter();
   const [searchParams, setSearchParams] = useState<URLSearchParams>(
@@ -207,12 +85,6 @@ export default function OrgLiveMatchPage() {
   const tournamentId = searchParams.get("tournamentId") || "1";
   const eventId = searchParams.get("eventId") || "1";
   const matchId = searchParams.get("matchId") || "m-1";
-
-  const [showExitPopup, setShowExitPopup] = useState(false);
-  const [activePopup, setActivePopup] = useState<"serve" | "sides" | null>(
-    null,
-  );
-  const timer = useMatchTimer();
 
   const config = useMemo<MatchConfigData>(() => {
     const stored = getItem<MatchConfigData>(`match:${matchId}:config`);
@@ -238,9 +110,62 @@ export default function OrgLiveMatchPage() {
     if (stored) return stored;
     return createInitialLiveState(matchId, config);
   });
-
+  const [history, setHistory] = useState<LiveMatchStateData[]>([]);
+  const [seq, setSeq] = useState(0);
+  const [showSwitchServe, setShowSwitchServe] = useState(false);
+  const [showSwitchSides, setShowSwitchSides] = useState(false);
   const [matchWinner, setMatchWinner] = useState<0 | 1 | null>(null);
-  const redirectedRef = useRef(false);
+  const [showExitConfirm, setShowExitConfirm] = useState(false);
+  const [scorerSide, setScorerSide] = useState<0 | 1>(
+    config.initialServer === 2 ? 1 : 0,
+  );
+  const [elapsedSeconds, setElapsedSeconds] = useState(0);
+
+  const isDoubles = config.format === "doubles";
+  const sideALabel = isDoubles
+    ? `${players.side0[0].name} / ${players.side0[1]?.name ?? "Player"}`
+    : players.side0[0].name;
+  const sideBLabel = isDoubles
+    ? `${players.side1[0].name} / ${players.side1[1]?.name ?? "Player"}`
+    : players.side1[0].name;
+  const sideAActionLabel = isDoubles ? "Team 1" : players.side0[0].name;
+  const sideBActionLabel = isDoubles ? "Team 2" : players.side1[0].name;
+  const scorerLabel = scorerSide === 0 ? sideAActionLabel : sideBActionLabel;
+
+  useEffect(() => {
+    const timer = window.setInterval(() => {
+      setElapsedSeconds((prev) => prev + 1);
+    }, 1000);
+    return () => window.clearInterval(timer);
+  }, []);
+
+  useEffect(() => {
+    setScorerSide(config.initialServer === 2 ? 1 : 0);
+  }, [config.initialServer]);
+
+  const matchTimer = useMemo(() => {
+    const hours = Math.floor(elapsedSeconds / 3600);
+    const minutes = Math.floor((elapsedSeconds % 3600) / 60);
+    const seconds = elapsedSeconds % 60;
+    return `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
+  }, [elapsedSeconds]);
+
+  const emit = useCallback(
+    (type: ScoreEventData["type"], details: Record<string, unknown>) => {
+      const nextSeq = seq + 1;
+      const event: ScoreEventData = {
+        seq: nextSeq,
+        timestamp: Date.now(),
+        actorId: "org",
+        type,
+        details,
+      };
+      setSeq(nextSeq);
+      const logs = getItem<ScoreEventData[]>(`match:${matchId}:events`) || [];
+      setItem(`match:${matchId}:events`, [...logs, event]);
+    },
+    [matchId, seq],
+  );
 
   const persist = useCallback(
     (next: LiveMatchStateData) => {
@@ -249,233 +174,134 @@ export default function OrgLiveMatchPage() {
     [matchId],
   );
 
-  const onRally = useCallback(
+  const applyRallyAction = useCallback(
     (winnerSide: 0 | 1) => {
-      setState((s) => {
-        const next = applyRally(s, config, winnerSide);
+      emit("rally", { side: winnerSide });
+      setScorerSide(winnerSide);
+      setState((previous) => {
+        setHistory((historyPrevious) => [...historyPrevious, previous]);
+        const next = applyRally(previous, config, winnerSide);
         const advanced = maybeAdvanceSet(next, config);
         persist(advanced.state);
         setMatchWinner(advanced.matchWinner);
         return advanced.state;
       });
     },
-    [config, persist],
+    [config, emit, persist],
   );
 
-  const onFault = useCallback(
+  const applyFaultAction = useCallback(
     (faultSide: 0 | 1) => {
-      setState((s) => {
-        const next = applyFault(s, config, faultSide);
+      emit("fault", { side: faultSide });
+      setScorerSide(faultSide === 0 ? 1 : 0);
+      setState((previous) => {
+        setHistory((historyPrevious) => [...historyPrevious, previous]);
+        const next = applyFault(previous, config, faultSide);
         const advanced = maybeAdvanceSet(next, config);
         persist(advanced.state);
         setMatchWinner(advanced.matchWinner);
         return advanced.state;
       });
     },
-    [config, persist],
+    [config, emit, persist],
   );
 
-  useEffect(() => {
-    if (matchWinner === null || redirectedRef.current) return;
-    redirectedRef.current = true;
-    router.replace(
-      "/org/tournaments/event/match/result" +
-        toQuery({ tournamentId, eventId, matchId }),
-    );
-  }, [eventId, matchId, matchWinner, router, tournamentId]);
+  const undo = useCallback(() => {
+    emit("undo", {});
+    setHistory((previous) => {
+      const snapshot = previous[previous.length - 1];
+      if (snapshot) {
+        setState(snapshot);
+        setMatchWinner(null);
+        persist(snapshot);
+      }
+      return previous.slice(0, -1);
+    });
+  }, [emit, persist]);
 
-  // Automated Popups
-  const lastSetRef = useRef(state.currentSet);
-  const lastServerRef = useRef(state.serverSide);
+  const lastSetRef = React.useRef(state.currentSet);
+  const lastServerRef = React.useRef(state.serverSide);
 
   useEffect(() => {
-    // Set changed -> Switch Sides
     if (state.currentSet > lastSetRef.current) {
-      setActivePopup("sides");
+      setShowSwitchSides(true);
       lastSetRef.current = state.currentSet;
     }
-    // Server changed -> Switch Serve
-    // We only trigger this if the match has actually started (score is not 0-0 in the current set)
-    // or if it's explicitly a serve change after the first serve.
     const currentScore = state.setScores[state.currentSet] || [0, 0];
     const isFirstServe =
       currentScore[0] === 0 && currentScore[1] === 0 && state.currentSet === 0;
-
     if (state.serverSide !== lastServerRef.current && !isFirstServe) {
-      setActivePopup("serve");
+      setShowSwitchServe(true);
     }
     lastServerRef.current = state.serverSide;
   }, [state.currentSet, state.serverSide, state.setScores]);
 
-  const handleBackPress = () => setShowExitPopup(true);
-  const handleLeave = () => {
-    setShowExitPopup(false);
-    router.back();
-  };
-
-  const side0Name =
-    config.format === "doubles"
-      ? `${players.side0[0].initials} / ${players.side0[1]?.initials ?? ""}`
-      : players.side0[0].name;
-  const side1Name =
-    config.format === "doubles"
-      ? `${players.side1[0].initials} / ${players.side1[1]?.initials ?? ""}`
-      : players.side1[0].name;
+  const currentSet: [number, number] = [
+    state.setScores[state.currentSet]?.[0] ?? 0,
+    state.setScores[state.currentSet]?.[1] ?? 0,
+  ];
+  const setScores: Array<[number | null, number | null]> = Array.from({
+    length: config.bestOf,
+  }).map((_, index) => [
+    state.setScores[index]?.[0] ?? (index === 0 ? 0 : null),
+    state.setScores[index]?.[1] ?? (index === 0 ? 0 : null),
+  ]);
+  const winnerScore = `${String(currentSet[0] ?? 0).padStart(2, "0")}-${String(currentSet[1] ?? 0).padStart(2, "0")}`;
 
   return (
-    <div className="min-h-screen bg-[var(--color-background)] flex flex-col">
-      {/* ── Popups ── */}
-      {showExitPopup && (
-        <ExitPopup
-          onLeave={handleLeave}
-          onContinue={() => setShowExitPopup(false)}
-        />
-      )}
-      {activePopup === "serve" && (
-        <LiveMatchActionPopup
-          title="Switch Serve Now"
-          description="It's time for the players to switch serve on the court."
-          buttonLabel="Switch Serve"
-          onAction={() => setActivePopup(null)}
-        />
-      )}
-      {activePopup === "sides" && (
-        <LiveMatchActionPopup
-          title="Switch Sides Now"
-          description="The set has ended. Players must switch sides of the court."
-          buttonLabel="Switch Sides"
-          onAction={() => setActivePopup(null)}
-        />
-      )}
-
-      {/* ── Header ── */}
-      <div className="sticky top-0 z-40 bg-[var(--color-surface)] border-b border-[var(--color-border)] px-4 py-3 flex items-center justify-between">
-        <button
-          onClick={handleBackPress}
-          className="p-2 -ml-2 rounded-full hover:bg-[var(--color-surface-elevated)] transition-colors text-[var(--color-text)]"
-        >
-          <ArrowLeftIcon size={20} />
-        </button>
-        <h1 className="font-bold text-base text-[var(--color-text)]">
-          Live Match
-        </h1>
-        <button className="p-2 -mr-2 text-[var(--color-muted)]">
-          <EllipsisIcon size={20} />
-        </button>
-      </div>
-
-      <div className="flex-1 p-4 space-y-4 pb-6">
-        {/* ── Match Overview Card ── */}
-        <div className="bg-white dark:bg-[var(--color-surface)] rounded-[24px] border border-[var(--color-border)] shadow-sm p-5">
-          <div className="flex items-center justify-between mb-4">
-            <span className="font-bold text-[15px] text-[var(--color-text)]">
-              Match Overview
-            </span>
-            <button className="text-xs font-bold text-orange-500 flex items-center gap-1.5 active:scale-95 transition-transform">
-              <svg
-                width={14}
-                height={14}
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth={3}
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <path d="M9 14L4 9l5-5" />
-                <path d="M20 20v-7a4 4 0 0 0-4-4H4" />
-              </svg>
-              Undo
-            </button>
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            {/* Change Scorer */}
-            <div className="bg-gray-50 dark:bg-white/5 rounded-2xl border border-[var(--color-border)] p-1.5">
-              <div className="flex items-center justify-between px-2 py-1 mb-1 border-b border-[var(--color-border)]">
-                <span className="text-[10px] text-[var(--color-muted)] font-bold uppercase tracking-wider">
-                  Change Scorer
-                </span>
-                <ChevronDownIcon
-                  size={12}
-                  className="text-[var(--color-muted)]"
-                />
-              </div>
-              <p className="py-1 text-sm font-bold text-center text-[var(--color-text)]">
-                Alex Costa
-              </p>
-            </div>
-
-            {/* Match Timer */}
-            <div className="bg-gray-50 dark:bg-white/5 rounded-2xl border border-[var(--color-border)] p-1.5">
-              <div className="flex items-center justify-between px-2 py-1 mb-1 border-b border-[var(--color-border)]">
-                <span className="text-[10px] text-[var(--color-muted)] font-bold uppercase tracking-wider">
-                  Match Timer
-                </span>
-                <svg
-                  width={12}
-                  height={12}
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth={2.5}
-                  className="text-[var(--color-muted)]"
-                >
-                  <circle cx="12" cy="12" r="10" />
-                  <polyline points="12 6 12 12 16 14" />
-                  <path d="M12 2v2" />
-                </svg>
-              </div>
-              <p className="py-1 text-sm font-bold text-center text-[var(--color-text)] tabular-nums">
-                {timer}
-              </p>
-            </div>
-          </div>
-        </div>
-
-        {/* ── Scoreboard ── */}
-        <Scoreboard
-          state={state}
-          player1Name={
-            config.format === "doubles" ? "Kunal Verma" : players.side0[0].name
-          }
-          player2Name={
-            config.format === "doubles" ? "Anil Kumar" : players.side1[0].name
-          }
-          player1Initials={players.side0[0].initials}
-          player2Initials={players.side1[0].initials}
-          servingSide={state.serverSide}
-          scoringMode={config.scoringSystem}
-          format={config.format}
-          side0Players={
-            config.format === "doubles"
-              ? (players.side0 as [SidePlayer, SidePlayer])
-              : undefined
-          }
-          side1Players={
-            config.format === "doubles"
-              ? (players.side1 as [SidePlayer, SidePlayer])
-              : undefined
-          }
-        />
-
-        {/* ── Scoring Controls ── */}
-        <ScoringControls
-          sideOutMode={config.scoringSystem === "sideout"}
-          onSide0Rally={() => onRally(0)}
-          onSide1Rally={() => onRally(1)}
-          onSide0Fault={() => onFault(0)}
-          onSide1Fault={() => onFault(1)}
-          onUndo={() => {}}
-          side0Label={
-            config.format === "doubles" ? "Kunal V." : players.side0[0].initials
-          }
-          side1Label={
-            config.format === "doubles" ? "Anil K." : players.side1[0].initials
-          }
-          canUndo={false}
-        />
-      </div>
-    </div>
+    <LiveMatchReplica
+      currentSetNumber={Math.min(state.currentSet + 1, config.bestOf)}
+      sideAScore={currentSet[0] ?? 0}
+      sideBScore={currentSet[1] ?? 0}
+      setScores={setScores}
+      bestOf={config.bestOf}
+      scoringLabel={
+        config.scoringSystem === "sideout"
+          ? "Side-Out Scoring"
+          : "Rally Scoring"
+      }
+      sideAServing={state.serverSide === 0}
+      sideBServing={state.serverSide === 1}
+      sideALabel={sideALabel}
+      sideBLabel={sideBLabel}
+      scorerLabel={scorerLabel}
+      matchTimer={matchTimer}
+      sideAActionLabel={sideAActionLabel}
+      sideBActionLabel={sideBActionLabel}
+      showSwitchServe={showSwitchServe}
+      showSwitchSides={showSwitchSides}
+      showWinnerConfirm={matchWinner != null}
+      showExitConfirm={showExitConfirm}
+      onBack={() => setShowExitConfirm(true)}
+      onConfirmExit={() =>
+        router.replace(
+          "/org/tournaments/event/match/setup" +
+            toQuery({ tournamentId, eventId, matchId }),
+        )
+      }
+      onCloseExitConfirm={() => setShowExitConfirm(false)}
+      onUndo={undo}
+      onSideARally={() => applyRallyAction(0)}
+      onSideBRally={() => applyRallyAction(1)}
+      onSideAFault={() => applyFaultAction(0)}
+      onSideBFault={() => applyFaultAction(1)}
+      onCloseSwitch={() => {
+        setShowSwitchServe(false);
+        setShowSwitchSides(false);
+      }}
+      onRestoreWinner={() => {
+        undo();
+        setMatchWinner(null);
+      }}
+      onConfirmWinner={() =>
+        router.replace(
+          "/org/tournaments/event/match/result" +
+            toQuery({ tournamentId, eventId, matchId }),
+        )
+      }
+      winnerName={matchWinner === 1 ? sideBActionLabel : sideAActionLabel}
+      winnerScore={winnerScore}
+    />
   );
 }
+
