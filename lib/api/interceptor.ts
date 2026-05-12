@@ -53,10 +53,12 @@ export const fetchApi = async (
     method = "GET",
     contentType,
     body,
+    silent = false,
   }: {
     method?: "POST" | "GET" | "PUT" | "DELETE";
     contentType?: "json";
     body?: any;
+    silent?: boolean;
   } = {},
 ): Promise<ParsedRespone> => {
   try {
@@ -96,13 +98,16 @@ export const fetchApi = async (
         result?.summary ||
         (result?.errors ? JSON.stringify(result.errors) : null) ||
         `HTTP ${res.status} ${res.statusText} for ${path}`;
-      console.error("[fetchApi] non-2xx response", {
-        path,
-        method,
-        status: res.status,
-        statusText: res.statusText,
-        response: result,
-      });
+
+      if (!silent) {
+        console.error("[fetchApi] non-2xx response", {
+          path,
+          method,
+          status: res.status,
+          statusText: res.statusText,
+          response: result,
+        });
+      }
       throw new Error(errorMessage);
     }
 
@@ -129,14 +134,12 @@ export const fetchApi = async (
       data: result,
     };
   } catch (e) {
-    console.error("[fetchApi] request failed", {
-      path,
-      method,
-      hasBody: Boolean(body),
-      error: e instanceof Error ? e.message : e,
-    });
+    const errorMessage = e instanceof Error ? e.message : String(e);
+    if (!silent) {
+      console.error(`[fetchApi] ${method} ${path} failed:`, errorMessage);
+    }
     return {
-      error: e,
+      error: errorMessage,
     };
   }
 };

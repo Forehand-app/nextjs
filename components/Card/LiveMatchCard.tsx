@@ -26,13 +26,28 @@ type LiveMatchCardProps = {
 
 function HeartIcon({ size = 14 }: { size?: number }) {
   return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={2}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden
+    >
       <path d="m12 20.25-.9-.82C5.2 14.08 2 11.14 2 7.5A4.5 4.5 0 0 1 6.5 3 5 5 0 0 1 12 6.1 5 5 0 0 1 17.5 3 4.5 4.5 0 0 1 22 7.5c0 3.64-3.2 6.58-9.1 11.93Z" />
     </svg>
   );
 }
 
-function avatarDataUri(seed: string, accent: string, skin: string, shirt: string) {
+function avatarDataUri(
+  seed: string,
+  accent: string,
+  skin: string,
+  shirt: string,
+) {
   const svg = `
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 72 72">
       <defs>
@@ -87,14 +102,16 @@ function TeamAvatarStack({
 }) {
   return (
     <div className="flex items-center">
-      {players.slice(0, 2).map((player, index) => (
+      {(players || []).slice(0, 2).map((player, index) => (
         <div
           key={`${player}-${index}`}
           className={`relative ${index === 0 ? "z-20" : "z-10 -ml-3"}`}
         >
           <div
             className={`relative h-9 w-9 overflow-hidden rounded-full border-2 bg-[var(--color-surface)] shadow-[0_4px_12px_rgba(15,23,42,0.18)] ${
-              index === 0 ? "border-orange-400 ring-2 ring-orange-200/80" : "border-white"
+              index === 0
+                ? "border-orange-400 ring-2 ring-orange-200/80"
+                : "border-white"
             }`}
           >
             <Image
@@ -126,55 +143,96 @@ export default function LiveMatchCard({
   const isSpacious = size === "spacious";
 
   return (
-    <div className={`rounded-2xl border border-neutral-200/80 bg-[var(--color-surface)] shadow-[0_6px_18px_rgba(15,23,42,0.05)] ${isSpacious ? "space-y-4 p-5" : "space-y-3 p-3.5"}`}>
-      <div className={`flex items-start justify-between ${isSpacious ? "gap-4" : "gap-3"}`}>
+    <div
+      className={`rounded-2xl border border-neutral-200/80 bg-[var(--color-surface)] shadow-[0_6px_18px_rgba(15,23,42,0.05)] ${isSpacious ? "space-y-4 p-5" : "space-y-3 p-3.5"}`}
+    >
+      <div
+        className={`flex items-start justify-between ${isSpacious ? "gap-4" : "gap-3"}`}
+      >
         <div className="min-w-0">
-          <p className={`truncate font-bold text-[var(--color-text)] ${isSpacious ? "text-sm" : "text-xs"}`}>
+          <p
+            className={`truncate font-bold text-[var(--color-text)] ${isSpacious ? "text-sm" : "text-xs"}`}
+          >
             {tournamentName}
           </p>
-          <p className={`mt-0.5 truncate font-medium text-[var(--color-text-secondary)] ${isSpacious ? "text-base" : "text-sm"}`}>
+          <p
+            className={`mt-0.5 truncate font-medium text-[var(--color-text-secondary)] ${isSpacious ? "text-base" : "text-sm"}`}
+          >
             {matchTitle}
           </p>
         </div>
 
         {isLive && (
-          <div className={`flex shrink-0 items-center gap-1.5 rounded-full bg-red-50 font-semibold text-red-600 dark:bg-red-500/15 dark:text-red-300 ${isSpacious ? "px-3 py-1.5 text-xs" : "px-2 py-1 text-[11px]"}`}>
-            <span className={`animate-pulse rounded-full bg-red-500 ${isSpacious ? "h-2 w-2" : "h-1.5 w-1.5"}`} />
+          <div
+            className={`flex shrink-0 items-center gap-1.5 rounded-full bg-red-50 font-semibold text-red-600 dark:bg-red-500/15 dark:text-red-300 ${isSpacious ? "px-3 py-1.5 text-xs" : "px-2 py-1 text-[11px]"}`}
+          >
+            <span
+              className={`animate-pulse rounded-full bg-red-500 ${isSpacious ? "h-2 w-2" : "h-1.5 w-1.5"}`}
+            />
             LIVE
           </div>
         )}
       </div>
 
-      <div className={`border-t border-neutral-200/70 ${isSpacious ? "pt-4" : "pt-3"}`}>
-        <div className={`grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center ${isSpacious ? "gap-4" : "gap-3"}`}>
+      <div
+        className={`border-t border-neutral-200/70 ${isSpacious ? "pt-4" : "pt-3"}`}
+      >
+        <div
+          className={`grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center ${isSpacious ? "gap-4" : "gap-3"}`}
+        >
           <div className="flex min-w-0 flex-col items-center text-center">
-            <TeamAvatarStack players={teamA.players} images={teamA.images} />
-            <p className={`mt-1.5 w-full truncate font-semibold text-[var(--color-text)] ${isSpacious ? "max-w-[140px] text-sm" : "max-w-[110px] text-[13px]"}`}>
-              {teamA.players.join(" & ")}
+            <TeamAvatarStack
+              players={teamA?.players || []}
+              images={teamA?.images}
+            />
+            <p
+              className={`mt-1.5 w-full truncate font-semibold text-[var(--color-text)] ${isSpacious ? "max-w-[140px] text-sm" : "max-w-[110px] text-[13px]"}`}
+            >
+              {(teamA?.players || ["Player"]).join(" & ")}
             </p>
           </div>
 
-          <div className={`flex flex-col items-center ${isSpacious ? "min-w-[96px]" : "min-w-[74px]"}`}>
-            <div className={`font-extrabold leading-none tracking-[-0.04em] text-[var(--color-text)] ${isSpacious ? "text-[42px]" : "text-[34px]"}`}>
-              {score.teamA} <span className="text-[var(--color-muted)]">{"\u2013"}</span> {score.teamB}
+          <div
+            className={`flex flex-col items-center ${isSpacious ? "min-w-[96px]" : "min-w-[74px]"}`}
+          >
+            <div
+              className={`font-extrabold leading-none tracking-[-0.04em] text-[var(--color-text)] ${isSpacious ? "text-[42px]" : "text-[34px]"}`}
+            >
+              {score?.teamA ?? 0}{" "}
+              <span className="text-[var(--color-muted)]">{"\u2013"}</span>{" "}
+              {score?.teamB ?? 0}
             </div>
-            <div className={`rounded-full bg-orange-100 font-semibold text-orange-600 dark:bg-orange-500/15 dark:text-orange-300 ${isSpacious ? "mt-2 px-3 py-1 text-xs" : "mt-1.5 px-2 py-0.5 text-[10px]"}`}>
-              Set {score.currentSet}
+            <div
+              className={`rounded-full bg-orange-100 font-semibold text-orange-600 dark:bg-orange-500/15 dark:text-orange-300 ${isSpacious ? "mt-2 px-3 py-1 text-xs" : "mt-1.5 px-2 py-0.5 text-[10px]"}`}
+            >
+              Set {score?.currentSet ?? 1}
             </div>
           </div>
 
           <div className="flex min-w-0 flex-col items-center text-center">
-            <TeamAvatarStack players={teamB.players} images={teamB.images} />
-            <p className={`mt-1.5 w-full truncate font-semibold text-[var(--color-text)] ${isSpacious ? "max-w-[140px] text-sm" : "max-w-[110px] text-[13px]"}`}>
-              {teamB.players.join(" & ")}
+            <TeamAvatarStack
+              players={teamB?.players || []}
+              images={teamB?.images}
+            />
+            <p
+              className={`mt-1.5 w-full truncate font-semibold text-[var(--color-text)] ${isSpacious ? "max-w-[140px] text-sm" : "max-w-[110px] text-[13px]"}`}
+            >
+              {(teamB?.players || ["Player"]).join(" & ")}
             </p>
           </div>
         </div>
       </div>
 
-      <div className={`flex items-center justify-between border-t border-neutral-200/70 ${isSpacious ? "pt-3.5" : "pt-2.5"}`}>
-        <div className={`flex min-w-0 items-center gap-1.5 font-medium text-[var(--color-text-secondary)] ${isSpacious ? "text-sm" : "text-xs"}`}>
-          <MapPinIcon size={isSpacious ? 15 : 13} className="shrink-0 text-[var(--color-muted)]" />
+      <div
+        className={`flex items-center justify-between border-t border-neutral-200/70 ${isSpacious ? "pt-3.5" : "pt-2.5"}`}
+      >
+        <div
+          className={`flex min-w-0 items-center gap-1.5 font-medium text-[var(--color-text-secondary)] ${isSpacious ? "text-sm" : "text-xs"}`}
+        >
+          <MapPinIcon
+            size={isSpacious ? 15 : 13}
+            className="shrink-0 text-[var(--color-muted)]"
+          />
           <span className="truncate">{court}</span>
         </div>
 

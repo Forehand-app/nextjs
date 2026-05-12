@@ -38,8 +38,8 @@ export default function EventChampionPage() {
     setSearchParams(new URLSearchParams(window.location.search));
   }, []);
 
-  const tournamentId = searchParams.get("tournamentId") || "1";
-  const eventId = searchParams.get("eventId") || "1";
+  const tournamentId = searchParams.get("tournamentId");
+  const eventId = searchParams.get("eventId");
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-orange-500 to-orange-600">

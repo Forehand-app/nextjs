@@ -158,4 +158,63 @@ export const userApi = {
     if (error) throw error;
     return data as UserNotification[];
   },
+
+  /**
+   * Retrieves the current user's match statistics (played, won, lost).
+   *
+   * @returns A promise resolving to an object containing match statistics.
+   */
+  getUserStats: async (): Promise<{
+    matchesPlayed: number;
+    matchesWon: number;
+    matchesLost: number;
+  }> => {
+    const { data, error } = await fetchApi(getApiUrl({ path: "/user/stats" }));
+    if (error) throw error;
+    return data as {
+      matchesPlayed: number;
+      matchesWon: number;
+      matchesLost: number;
+    };
+  },
+
+  /**
+   * Retrieves the current user's past (completed) matches.
+   *
+   * @returns A promise resolving to an array of past match objects.
+   */
+  getPastMatches: async (): Promise<any[]> => {
+    const { data, error } = await fetchApi(
+      getApiUrl({ path: "/user/matches/past" }),
+    );
+    if (error) throw error;
+    return data as any[];
+  },
+
+  /**
+   * Retrieves the current user's live match, if any.
+   *
+   * @returns A promise resolving to the live match data, or null.
+   */
+  getLiveMatch: async (): Promise<any | null> => {
+    const { data, error } = await fetchApi(
+      getApiUrl({ path: "/user/matches/live" }),
+      { silent: true },
+    );
+    if (error) throw error;
+    return data;
+  },
+
+  /**
+   * Retrieves the live match feed for tournaments the user has joined.
+   * Grouped by tournament.
+   */
+  getLiveFeed: async (): Promise<any[]> => {
+    const { data, error } = await fetchApi(
+      getApiUrl({ path: "/user/matches/live-feed" }),
+      { silent: true },
+    );
+    if (error) throw error;
+    return data as any[];
+  },
 };

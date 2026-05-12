@@ -16,6 +16,8 @@ import NotificationsSlideOver, {
 } from "@/components/NotificationsSlideOver";
 import { notificationApi } from "@/lib/api/notificationApi";
 import { tournamentApi } from "@/lib/api/tournamentApi";
+import { userApi } from "@/lib/api/userApi";
+import { getSupabaseBrowserClient } from "@/lib/supabase";
 import { TournamentData } from "@/lib/models";
 import { toQuery } from "@/lib/utils";
 
@@ -130,27 +132,6 @@ function isUpcomingTournament(t: TournamentData) {
   return new Date(t.startDate) > new Date();
 }
 
-const liveMatches = [
-  {
-    id: "l1",
-    tournamentName: "Raipur Racket Sports League",
-    matchTitle: "Men's Doubles · Match #42",
-    teamA: {
-      players: ["S. Williams", "A. Lee"],
-    },
-    teamB: {
-      players: ["J. Brown", "K. Patel"],
-    },
-    score: {
-      teamA: 11,
-      teamB: 9,
-      currentSet: 2,
-    },
-    court: "Court 3",
-    isLive: true,
-  },
-];
-
 export default function UserHomePage() {
   const { userProfile } = useApp();
   const [activeTab, setActiveTab] = useState("explore");
@@ -162,6 +143,15 @@ export default function UserHomePage() {
     [],
   );
   const [isTournamentsLoading, setIsTournamentsLoading] = useState(true);
+  const [userStats, setUserStats] = useState<{
+    matchesPlayed: number;
+    matchesWon: number;
+    matchesLost: number;
+  } | null>(null);
+  const [liveMatch, setLiveMatch] = useState<any | null>(null);
+  const [isLiveMatchLoading, setIsLiveMatchLoading] = useState(true);
+  const [liveFeed, setLiveFeed] = useState<any[]>([]);
+  const [isLiveFeedLoading, setIsLiveFeedLoading] = useState(true);
 
   const attachNotificationActions = (items: NotificationItem[]) =>
     items.map((item) => ({
@@ -206,6 +196,198 @@ export default function UserHomePage() {
       active = false;
     };
   }, [readIds]);
+
+  useEffect(() => {
+    let active = true;
+    const loadStats = async () => {
+      try {
+        const stats = await userApi.getUserStats();
+        if (!active) return;
+        setUserStats(stats);
+      } catch (error) {
+        if (!active) return;
+        console.error("Failed to load user stats", error);
+      }
+    };
+    void loadStats();
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    let active = true;
+    let socket: WebSocket | null = null;
+
+    const initializeLiveConnections = async () => {
+      try {
+        setIsLiveMatchLoading(true);
+        setIsLiveFeedLoading(true);
+
+        // Fetch both with separate error handling to be resilient
+        const [matchResult, feedResult] = await Promise.allSettled([
+          userApi.getLiveMatch(),
+          userApi.getLiveFeed(),
+        ]);
+
+        if (!active) return;
+
+        const match =
+          matchResult.status === "fulfilled" ? matchResult.value : null;
+        const feed = feedResult.status === "fulfilled" ? feedResult.value : [];
+
+        if (matchResult.status === "rejected") {
+          // It's normal for live matches to fail if the user isn't in one or the endpoint isn't ready
+          console.log("[UserHome] Live match fetch skipped or unavailable");
+        }
+        if (feedResult.status === "rejected") {
+          console.log("[UserHome] Live feed fetch skipped or unavailable");
+        }
+
+        setLiveMatch(match);
+        setLiveFeed(feed);
+
+        const supabase = getSupabaseBrowserClient();
+        const { data } = await supabase.auth.getSession();
+        const token = data.session?.access_token;
+
+        if (token) {
+          let wsUrl = "";
+          const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
+
+          if (baseUrl && baseUrl.startsWith("http")) {
+            wsUrl = baseUrl.replace(/^http/, "ws").replace(/\/$/, "") + "/ws";
+          } else {
+            // Fallback to current origin if baseUrl is relative or missing
+            const protocol =
+              window.location.protocol === "https:" ? "wss:" : "ws:";
+            const host = window.location.host;
+            wsUrl = `${protocol}//${host}/ws`;
+          }
+
+          console.log(`[WS] Attempting connection: ${wsUrl}`);
+          socket = new WebSocket(`${wsUrl}?token=${encodeURIComponent(token)}`);
+
+          socket.onopen = () => {
+            console.log("[WS] Connected successfully");
+            if (match?.id) {
+              socket?.send(
+                JSON.stringify({ type: "SUBSCRIBE_MATCH", matchId: match.id }),
+              );
+            }
+            feed.forEach((group: any) => {
+              socket?.send(
+                JSON.stringify({
+                  type: "SUBSCRIBE_TOURNAMENT",
+                  tournamentId: group.tournamentId,
+                }),
+              );
+            });
+          };
+
+          socket.onmessage = (event) => {
+            try {
+              const message = JSON.parse(event.data);
+              if (message.type === "SCORE_UPDATE") {
+                const {
+                  matchId,
+                  tournamentId,
+                  teamAScore,
+                  teamBScore,
+                  setNumber,
+                } = message.data;
+
+                if (matchId === match?.id) {
+                  setLiveMatch((prev: any) =>
+                    prev
+                      ? {
+                          ...prev,
+                          score: {
+                            teamA: teamAScore,
+                            teamB: teamBScore,
+                            currentSet: setNumber,
+                          },
+                        }
+                      : prev,
+                  );
+                }
+
+                setLiveFeed((prevFeed) =>
+                  prevFeed.map((group) => {
+                    if (group.tournamentId === tournamentId) {
+                      return {
+                        ...group,
+                        matches: group.matches.map((m: any) =>
+                          m.id === matchId
+                            ? {
+                                ...m,
+                                score: {
+                                  teamA: teamAScore,
+                                  teamB: teamBScore,
+                                  currentSet: setNumber,
+                                },
+                              }
+                            : m,
+                        ),
+                      };
+                    }
+                    return group;
+                  }),
+                );
+              } else if (message.type === "MATCH_COMPLETE") {
+                const { matchId, tournamentId } = message.data;
+                if (matchId === match?.id) setLiveMatch(null);
+
+                setLiveFeed((prevFeed) =>
+                  prevFeed
+                    .map((group) => {
+                      if (group.tournamentId === tournamentId) {
+                        return {
+                          ...group,
+                          matches: group.matches.filter(
+                            (m: any) => m.id !== matchId,
+                          ),
+                        };
+                      }
+                      return group;
+                    })
+                    .filter((group) => group.matches.length > 0),
+                );
+              } else if (message.type === "MATCH_START") {
+                void userApi.getLiveFeed().then((newFeed) => {
+                  if (active) setLiveFeed(newFeed);
+                });
+              }
+            } catch (e) {
+              console.error("[WS] Error parsing message", e);
+            }
+          };
+
+          socket.onerror = () =>
+            console.warn(
+              `[WS] Connection failed for ${wsUrl}. Real-time updates disabled.`,
+            );
+          socket.onclose = (event) =>
+            console.log(`[WS] Closed: ${event.code} ${event.reason}`);
+        }
+      } catch (error) {
+        if (!active) return;
+        console.error("Unexpected error in initializeLiveConnections:", error);
+      } finally {
+        if (active) {
+          setIsLiveMatchLoading(false);
+          setIsLiveFeedLoading(false);
+        }
+      }
+    };
+
+    void initializeLiveConnections();
+
+    return () => {
+      active = false;
+      if (socket) socket.close();
+    };
+  }, []);
 
   useEffect(() => {
     let active = true;
@@ -554,50 +736,113 @@ export default function UserHomePage() {
         )}
 
         {activeTab === "live" && (
-          <div className="space-y-4 animate-fade-in">
+          <div className="space-y-8 animate-fade-in">
             <div className="flex items-center justify-center py-1 mb-2">
               <span className="mr-2 h-2.5 w-2.5 rounded-full bg-orange-500 animate-pulse" />
               <h3 className="text-xs font-semibold uppercase tracking-widest text-[var(--color-text-secondary)]">
-                Ongoing Matches
+                Live Feed
               </h3>
             </div>
-            {liveMatches.map((match) => (
-              <LiveMatchCard
-                key={match.id}
-                tournamentName={match.tournamentName}
-                matchTitle={match.matchTitle}
-                teamA={match.teamA}
-                teamB={match.teamB}
-                score={match.score}
-                court={match.court}
-                isLive={match.isLive}
-                size="spacious"
-              />
-            ))}
+
+            {isLiveFeedLoading ? (
+              <div className="space-y-6">
+                {[1, 2].map((i) => (
+                  <div key={i} className="space-y-3 px-1">
+                    <div className="h-5 w-40 rounded bg-[var(--color-surface-elevated)] animate-pulse" />
+                    <div className="flex gap-4 overflow-x-hidden">
+                      <div className="h-40 min-w-[85%] rounded-2xl bg-[var(--color-surface-elevated)] animate-pulse" />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : liveFeed.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-12 text-center px-6">
+                <div className="w-16 h-16 bg-neutral-100 rounded-full flex items-center justify-center mb-4">
+                  <span className="text-2xl text-neutral-400">📡</span>
+                </div>
+                <h4 className="font-bold text-neutral-700">No Live Matches</h4>
+                <p className="text-sm text-neutral-500 mt-1 max-w-[240px]">
+                  Matches from tournaments you've joined will appear here when
+                  they go live.
+                </p>
+              </div>
+            ) : (
+              liveFeed.map((group) => (
+                <section key={group.tournamentId} className="space-y-3">
+                  <div className="flex items-center justify-between px-1">
+                    <h4 className="font-heading text-base font-bold text-[var(--color-text)] truncate max-w-[80%]">
+                      {group.tournamentName}
+                    </h4>
+                    <span className="text-[10px] font-bold text-orange-600 uppercase bg-orange-50 px-2 py-0.5 rounded">
+                      {group.matches.length} Live
+                    </span>
+                  </div>
+                  <div className="flex gap-4 overflow-x-auto snap-x snap-mandatory [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden -mx-4 px-4 pb-1">
+                    {group.matches.map((match: any) => (
+                      <div
+                        key={match.id}
+                        className="min-w-[85vw] sm:min-w-[320px] snap-center shrink-0"
+                      >
+                        <LiveMatchCard
+                          tournamentName={group.tournamentName}
+                          matchTitle={match.matchTitle}
+                          teamA={match.teamA}
+                          teamB={match.teamB}
+                          score={match.score}
+                          court={match.court}
+                          isLive={true}
+                        />
+                      </div>
+                    ))}
+                  </div>
+                </section>
+              ))
+            )}
           </div>
         )}
 
         {activeTab === "myspace" && (
           <div className="space-y-8 animate-fade-in">
             <section>
-              <QuickStatsSection won={28} played={38} lost={12} />
+              <QuickStatsSection
+                won={userStats?.matchesWon || 0}
+                played={userStats?.matchesPlayed || 0}
+                lost={userStats?.matchesLost || 0}
+              />
             </section>
 
             <section>
               <h3 className="mb-3 font-heading text-lg font-semibold tracking-tight flex items-center gap-2 px-1">
-                <span className="h-2 w-2 rounded-full bg-[var(--color-error)] animate-pulse" />
+                <span
+                  className={`h-2 w-2 rounded-full ${liveMatch ? "bg-[var(--color-error)] animate-pulse" : "bg-gray-400"}`}
+                />
                 Your Live Match
               </h3>
 
-              <LiveMatchCard
-                tournamentName="Badminton Championship"
-                matchTitle="Men's Doubles - Round 3"
-                teamA={{ players: ["S. Verma", "A. Mehta"] }}
-                teamB={{ players: ["J. Brown", "K. Patel"] }}
-                score={{ teamA: 11, teamB: 9, currentSet: 2 }}
-                court="Sports Arena, 24 block street, Raipur"
-                isLive={true}
-              />
+              {isLiveMatchLoading ? (
+                <div className="h-48 w-full rounded-2xl bg-[var(--color-surface-elevated)] animate-pulse" />
+              ) : liveMatch && liveMatch.teamA && liveMatch.teamB ? (
+                <LiveMatchCard
+                  tournamentName={liveMatch.tournamentName || "Tournament"}
+                  matchTitle={liveMatch.matchTitle || "Live Match"}
+                  teamA={liveMatch.teamA}
+                  teamB={liveMatch.teamB}
+                  score={
+                    liveMatch.score || { teamA: 0, teamB: 0, currentSet: 1 }
+                  }
+                  court={liveMatch.court || "TBD"}
+                  isLive={true}
+                />
+              ) : (
+                <div className="rounded-2xl border border-dashed border-neutral-300 bg-neutral-50/50 p-8 text-center">
+                  <p className="text-sm font-medium text-neutral-500">
+                    You are not in any live match right now.
+                  </p>
+                  <p className="mt-1 text-xs text-neutral-400">
+                    Your active matches will appear here automatically.
+                  </p>
+                </div>
+              )}
             </section>
 
             <section>

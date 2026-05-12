@@ -1,6 +1,11 @@
+"use client";
+
+import { useEffect, useState } from "react";
 import Image from "next/image";
+import { userApi } from "@/lib/api/userApi";
 
 type PastMatch = {
+  id?: string;
   type: string;
   timeAgo: string;
   status: string;
@@ -14,49 +19,12 @@ type PastMatch = {
   accentColor: string;
 };
 
-const pastMatches: PastMatch[] = [
-  {
-    type: "Doubles",
-    timeAgo: "2 Days Ago",
-    status: "WIN",
-    leagueTitle: "Raipur Pro League",
-    leftTeamName: "You & Arun",
-    rightTeamName: "Yug & Harsh",
-    leftTeamPlayers: ["You", "Arun"],
-    rightTeamPlayers: ["Yug", "Harsh"],
-    score: "21 - 18",
-    scoreLabel: "Final Score",
-    accentColor: "bg-yellow-400",
-  },
-  {
-    type: "Doubles",
-    timeAgo: "4 Days Ago",
-    status: "WIN",
-    leagueTitle: "City Smash Cup",
-    leftTeamName: "You & Neha",
-    rightTeamName: "Ravi & Ishita",
-    leftTeamPlayers: ["You", "Neha"],
-    rightTeamPlayers: ["Ravi", "Ishita"],
-    score: "18 - 14",
-    scoreLabel: "Final Score",
-    accentColor: "bg-lime-400",
-  },
-  {
-    type: "Mixed",
-    timeAgo: "1 Week Ago",
-    status: "WIN",
-    leagueTitle: "Weekend Rally Open",
-    leftTeamName: "You & Kabir",
-    rightTeamName: "Mehul & Siya",
-    leftTeamPlayers: ["You", "Kabir"],
-    rightTeamPlayers: ["Mehul", "Siya"],
-    score: "22 - 20",
-    scoreLabel: "Final Score",
-    accentColor: "bg-amber-400",
-  },
-];
-
-function avatarDataUri(seed: string, accent: string, skin: string, shirt: string) {
+function avatarDataUri(
+  seed: string,
+  accent: string,
+  skin: string,
+  shirt: string,
+) {
   const svg = `
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 72 72">
       <defs>
@@ -175,7 +143,88 @@ function PastMatchCard({ match }: { match: PastMatch }) {
   );
 }
 
+function getTimeAgo(dateString: string): string {
+  const now = new Date();
+  const past = new Date(dateString);
+  const diffInMs = now.getTime() - past.getTime();
+  const diffInDays = Math.floor(diffInMs / (1000 * 60 * 60 * 24));
+
+  if (diffInDays === 0) return "Today";
+  if (diffInDays === 1) return "Yesterday";
+  if (diffInDays < 7) return `${diffInDays} Days Ago`;
+  if (diffInDays < 30) {
+    const weeks = Math.floor(diffInDays / 7);
+    return `${weeks} Week${weeks > 1 ? "s" : ""} Ago`;
+  }
+  const months = Math.floor(diffInDays / 30);
+  return `${months} Month${months > 1 ? "s" : ""} Ago`;
+}
+
+const accentColors = [
+  "bg-yellow-400",
+  "bg-lime-400",
+  "bg-amber-400",
+  "bg-orange-400",
+];
+
 export default function PastMatchesSection() {
+  const [matches, setMatches] = useState<PastMatch[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let active = true;
+    const fetchMatches = async () => {
+      try {
+        const data = await userApi.getPastMatches();
+        if (!active) return;
+
+        const formattedMatches = data.map((m, idx) => ({
+          ...m,
+          timeAgo: m.endedAt ? getTimeAgo(m.endedAt) : "N/A",
+          accentColor: accentColors[idx % accentColors.length],
+        }));
+
+        setMatches(formattedMatches);
+      } catch (err) {
+        console.error("Failed to fetch past matches:", err);
+      } finally {
+        if (active) setLoading(false);
+      }
+    };
+
+    void fetchMatches();
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  if (loading) {
+    return (
+      <section className="space-y-3">
+        <div className="h-6 w-32 animate-pulse rounded bg-surface-elevated" />
+        <div className="flex gap-3 overflow-x-auto pb-1">
+          {[1, 2].map((i) => (
+            <div
+              key={i}
+              className="h-40 min-w-[72vw] animate-pulse rounded-[18px] bg-surface-elevated sm:min-w-[290px]"
+            />
+          ))}
+        </div>
+      </section>
+    );
+  }
+
+  if (matches.length === 0) {
+    return (
+      <section className="space-y-3">
+        <h3 className="text-xl font-bold tracking-tight text-[var(--color-text)]">
+          Past Matches
+        </h3>
+        <p className="px-1 text-sm italic text-muted">No past matches found.</p>
+      </section>
+    );
+  }
+
   return (
     <section className="space-y-3">
       <div className="flex items-end justify-between px-1">
@@ -188,11 +237,14 @@ export default function PastMatchesSection() {
       </div>
 
       <div className="flex gap-3 overflow-x-auto [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden -mx-4 px-4 pb-1">
-        {pastMatches.map((match, index) => (
+        {matches.map((match, index) => (
           <div
-            key={`${match.leagueTitle}-${match.timeAgo}`}
+            key={match.id || index}
             className="animate-fade-in"
-            style={{ animationDelay: `${index * 100}ms`, animationFillMode: "both" }}
+            style={{
+              animationDelay: `${index * 100}ms`,
+              animationFillMode: "both",
+            }}
           >
             <PastMatchCard match={match} />
           </div>

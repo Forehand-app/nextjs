@@ -33,6 +33,8 @@ export interface UpdateScorePayload {
   winnerId?: string | null;
   matchFinished?: boolean;
   matchWinnerId?: string | null;
+  teamAId?: string | null;
+  teamBId?: string | null;
 }
 
 /**

@@ -112,11 +112,21 @@ export default function OrgLiveMatchPage() {
     setSearchParams(new URLSearchParams(window.location.search));
   }, []);
 
-  const tournamentId = searchParams.get("tournamentId") || "1";
-  const eventId = searchParams.get("eventId") || "1";
-  const matchId = searchParams.get("matchId") || "m-1";
+  const tournamentId = searchParams.get("tournamentId");
+  const eventId = searchParams.get("eventId");
+  const matchId = searchParams.get("matchId");
 
   const config = useMemo<MatchConfigData>(() => {
+    if (!matchId) {
+      return {
+        scoringSystem: "sideout",
+        format: "doubles",
+        bestOf: 3,
+        pointsToWin: 11,
+        winByTwo: true,
+        initialServer: 1,
+      };
+    }
     const stored = getItem<MatchConfigData>(`match:${matchId}:config`);
     return (
       stored ?? {
@@ -131,11 +141,16 @@ export default function OrgLiveMatchPage() {
   }, [matchId]);
 
   const players = useMemo(
-    () => ensurePlayers(getItem(`match:${matchId}:players`), config.format),
+    () =>
+      ensurePlayers(
+        matchId ? getItem(`match:${matchId}:players`) : null,
+        config.format,
+      ),
     [matchId, config.format],
   );
 
   const [state, setState] = useState<LiveMatchStateData>(() => {
+    if (!matchId) return createInitialLiveState("temp", config);
     const stored = getItem<LiveMatchStateData>(`match:${matchId}:state`);
     if (stored) return stored;
     return createInitialLiveState(matchId, config);
@@ -164,7 +179,7 @@ export default function OrgLiveMatchPage() {
   const sideBActionLabel = isDoubles ? "Team 2" : players.side1[0].name;
 
   useEffect(() => {
-    if (!matchId) return;
+    if (!matchId || matchId === "temp") return;
     let cancelled = false;
     const loadScorer = async () => {
       try {
@@ -264,9 +279,10 @@ export default function OrgLiveMatchPage() {
 
         // Ensure current set is initialized on the first point of a new set
         if (
-          previous.setScores[updatedSetIndex] === undefined ||
-          (previous.setScores[updatedSetIndex][0] === 0 &&
-            previous.setScores[updatedSetIndex][1] === 0)
+          matchId &&
+          (previous.setScores[updatedSetIndex] === undefined ||
+            (previous.setScores[updatedSetIndex][0] === 0 &&
+              previous.setScores[updatedSetIndex][1] === 0))
         ) {
           try {
             await matchApi.initializeSet(matchId, updatedSetIndex + 1);
@@ -275,18 +291,22 @@ export default function OrgLiveMatchPage() {
           }
         }
 
-        await matchApi.updateScore({
-          matchId,
-          setNumber: updatedSetIndex + 1,
-          teamAScore: setScore[0] ?? 0,
-          teamBScore: setScore[1] ?? 0,
-          setStatus: setFinished ? "completed" : "in_progress",
-          winnerId: setWinnerId,
-          matchFinished: winner != null,
-          matchWinnerId,
-        });
+        if (matchId) {
+          await matchApi.updateScore({
+            matchId,
+            setNumber: updatedSetIndex + 1,
+            teamAScore: setScore[0] ?? 0,
+            teamBScore: setScore[1] ?? 0,
+            setStatus: setFinished ? "completed" : "in_progress",
+            winnerId: setWinnerId,
+            matchFinished: winner != null,
+            matchWinnerId,
+            teamAId: teamIds.a || null,
+            teamBId: teamIds.b || null,
+          });
+        }
 
-        if (winner != null) {
+        if (winner != null && matchId) {
           // Final match state update via specialized complete endpoint
           try {
             if (matchWinnerId) {
@@ -299,10 +319,12 @@ export default function OrgLiveMatchPage() {
           }
 
           // Sync tournament and event status after match completion
-          try {
-            await tournamentApi.syncTournamentStatus(tournamentId);
-          } catch (err) {
-            console.warn("Post-match sync failed", err);
+          if (tournamentId) {
+            try {
+              await tournamentApi.syncTournamentStatus(tournamentId);
+            } catch (err) {
+              console.warn("Post-match sync failed", err);
+            }
           }
         }
       } catch (error) {

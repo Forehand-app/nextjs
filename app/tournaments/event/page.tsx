@@ -63,7 +63,7 @@ export default function TournamentEventPage() {
     setSearchParams(new URLSearchParams(window.location.search));
   }, []);
 
-  const id = searchParams.get("id") || "1";
+  const id = searchParams.get("id");
 
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
 
@@ -84,6 +84,20 @@ export default function TournamentEventPage() {
         .reduce((sum, ev) => sum + (ev.amount ?? 0), 0),
     [selectedIds],
   );
+
+  if (!id) {
+    return (
+      <div className="flex min-h-screen flex-col items-center justify-center p-4 text-center">
+        <p className="text-muted">Invalid tournament configuration.</p>
+        <button
+          onClick={() => router.back()}
+          className="mt-4 rounded-full bg-primary px-6 py-2 font-semibold text-white"
+        >
+          Go Back
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background pb-24 text-text">

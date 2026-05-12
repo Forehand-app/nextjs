@@ -77,12 +77,14 @@ export default function OrgMatchResultPage() {
     setSearchParams(new URLSearchParams(window.location.search));
   }, []);
 
-  const tournamentId = searchParams.get("tournamentId") || "1";
-  const matchId = searchParams.get("matchId") || "m-1";
+  const tournamentId = searchParams.get("tournamentId");
+  const matchId = searchParams.get("matchId");
 
   const config = useMemo(
     () =>
-      getItem<MatchConfigData>(`match:${matchId}:config`) ?? {
+      (matchId
+        ? getItem<MatchConfigData>(`match:${matchId}:config`)
+        : null) ?? {
         scoringSystem: "sideout",
         format: "doubles",
         bestOf: 3,
@@ -94,7 +96,8 @@ export default function OrgMatchResultPage() {
   );
 
   const state = useMemo(
-    () => getItem<LiveMatchStateData>(`match:${matchId}:state`),
+    () =>
+      matchId ? getItem<LiveMatchStateData>(`match:${matchId}:state`) : null,
     [matchId],
   );
 
@@ -104,7 +107,11 @@ export default function OrgMatchResultPage() {
       : "doubles";
 
   const players = useMemo(
-    () => ensurePlayers(getItem(`match:${matchId}:players`), format),
+    () =>
+      ensurePlayers(
+        matchId ? getItem(`match:${matchId}:players`) : null,
+        format,
+      ),
     [matchId, format],
   );
 
@@ -194,9 +201,9 @@ export default function OrgMatchResultPage() {
           <button
             type="button"
             onClick={() => {
-              removeItem(`match:${matchId}:state`);
+              if (matchId) removeItem(`match:${matchId}:state`);
               router.replace(
-                "/org/tournaments/detail" + toQuery({ id: tournamentId }),
+                "/org/tournaments/detail" + toQuery({ t: tournamentId }),
               );
             }}
             className="w-full rounded-2xl bg-primary py-4 text-base font-semibold text-white shadow-lg active:scale-[0.98] transition"

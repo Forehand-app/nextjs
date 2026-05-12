@@ -21,29 +21,13 @@ import {
 } from "framer-motion";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { tournamentApi } from "@/lib/api/tournamentApi";
+import { organizationApi } from "@/lib/api/organizationApi";
+import { getSupabaseBrowserClient } from "@/lib/supabase";
 import { TournamentData } from "@/lib/models";
 import NotificationsSlideOver, {
   NotificationItem,
 } from "@/components/NotificationsSlideOver";
 import { notificationApi } from "@/lib/api/notificationApi";
-
-const liveMatches = [
-  {
-    id: "lm-1",
-    score: "04 - 01",
-    label: "Premier League - Men's Doubles Raipur..",
-  },
-  {
-    id: "lm-2",
-    score: "03 - 03",
-    label: "Premier League - Men's Doubles Raipur..",
-  },
-  {
-    id: "lm-3",
-    score: "02 - 01",
-    label: "Premier League - Men's Doubles Raipur..",
-  },
-];
 
 const listContainerVariants: Variants = {
   hidden: { opacity: 0 },
@@ -232,6 +216,8 @@ export default function OrgHomePage() {
   const { activeOrganization: organization } = useApp();
   const [tournaments, setTournaments] = useState<TournamentData[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [liveFeed, setLiveFeed] = useState<any[]>([]);
+  const [isFeedLoading, setIsFeedLoading] = useState(true);
 
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
@@ -277,6 +263,136 @@ export default function OrgHomePage() {
       active = false;
     };
   }, [readIds]);
+
+  useEffect(() => {
+    let active = true;
+    let socket: WebSocket | null = null;
+    const orgId = organization?.id;
+
+    if (!orgId) {
+      setLiveFeed([]);
+      setIsFeedLoading(false);
+      return;
+    }
+
+    const initializeFeed = async () => {
+      try {
+        setIsFeedLoading(true);
+        const feed = await organizationApi.getOrgLiveMatches(orgId);
+        if (!active) return;
+        setLiveFeed(Array.isArray(feed) ? feed : []);
+
+        const supabase = getSupabaseBrowserClient();
+        const { data } = await supabase.auth.getSession();
+        const token = data.session?.access_token;
+
+        if (token) {
+          const baseUrl =
+            process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:3000";
+          const wsBase = baseUrl.replace(/^http/, "ws").replace(/\/$/, "");
+          const wsUrl = `${wsBase}/ws`;
+
+          console.log(`[WS] Attempting connection: ${wsUrl}`);
+          socket = new WebSocket(`${wsUrl}?token=${encodeURIComponent(token)}`);
+
+          socket.onopen = () => {
+            console.log("[WS] Connected successfully");
+            if (active) {
+              (feed || []).forEach((group: any) => {
+                socket?.send(
+                  JSON.stringify({
+                    type: "SUBSCRIBE_TOURNAMENT",
+                    tournamentId: group.tournamentId,
+                  }),
+                );
+              });
+            }
+          };
+
+          socket.onmessage = (event) => {
+            try {
+              const message = JSON.parse(event.data);
+              if (message.type === "SCORE_UPDATE") {
+                const {
+                  matchId,
+                  tournamentId,
+                  teamAScore,
+                  teamBScore,
+                  setNumber,
+                } = message.data;
+
+                setLiveFeed((prevFeed) =>
+                  prevFeed.map((group) => {
+                    if (group.tournamentId === tournamentId) {
+                      return {
+                        ...group,
+                        matches: group.matches.map((m: any) =>
+                          m.id === matchId
+                            ? {
+                                ...m,
+                                score: {
+                                  teamA: teamAScore,
+                                  teamB: teamBScore,
+                                  currentSet: setNumber,
+                                },
+                              }
+                            : m,
+                        ),
+                      };
+                    }
+                    return group;
+                  }),
+                );
+              } else if (message.type === "MATCH_COMPLETE") {
+                const { matchId, tournamentId } = message.data;
+                setLiveFeed((prevFeed) =>
+                  prevFeed
+                    .map((group) => {
+                      if (group.tournamentId === tournamentId) {
+                        return {
+                          ...group,
+                          matches: group.matches.filter(
+                            (m: any) => m.id !== matchId,
+                          ),
+                        };
+                      }
+                      return group;
+                    })
+                    .filter((group) => group.matches.length > 0),
+                );
+              } else if (message.type === "MATCH_START") {
+                void organizationApi.getOrgLiveMatches(orgId).then((f) => {
+                  if (active) setLiveFeed(f || []);
+                });
+              }
+            } catch (e) {
+              console.error("[WS] Org Feed Parsing Error:", e);
+            }
+          };
+
+          socket.onerror = () =>
+            console.warn(
+              `[WS] Org Feed Connection failed for ${wsUrl}. Real-time updates disabled.`,
+            );
+          socket.onclose = (event) =>
+            console.log(`[WS] Closed: ${event.code} ${event.reason}`);
+        }
+      } catch (error) {
+        if (!active) return;
+        console.log("[OrgHome] Org live feed fetch skipped or unavailable");
+        setLiveFeed([]); // Reset to empty on error
+      } finally {
+        if (active) setIsFeedLoading(false);
+      }
+    };
+
+    void initializeFeed();
+
+    return () => {
+      active = false;
+      if (socket) socket.close();
+    };
+  }, [organization?.id]);
 
   useEffect(() => {
     let active = true;
@@ -485,85 +601,114 @@ export default function OrgHomePage() {
           )}
         </section>
 
-        <section>
-          <h3 className="mb-3 font-heading text-xl font-semibold">
+        <section className="space-y-6">
+          <h3 className="px-1 text-xl font-bold tracking-tight">
             Live Matches
           </h3>
 
-          <motion.div
-            ref={matchContainerRef}
-            className="no-scrollbar -mx-4 flex snap-x snap-mandatory gap-4 overflow-x-auto px-4 pb-4"
-            variants={listContainerVariants}
-            initial="hidden"
-            animate="visible"
-          >
-            {liveMatches.map((match) => (
-              <AnimatedCard
-                key={match.id}
-                containerRef={matchContainerRef}
-                className="card min-w-[85%] snap-center p-4"
-              >
-                <div className="mb-3 flex items-center justify-between">
-                  <span className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wide text-[var(--color-success)]">
-                    <CircleIcon
-                      size={6}
-                      className="text-[var(--color-success)] fill-current"
-                    />
-                    Live
+          {isFeedLoading ? (
+            <div className="flex gap-4 overflow-x-auto pb-4">
+              {[1].map((i) => (
+                <div key={i} className="card min-w-[85%] p-4 animate-pulse">
+                  <div className="h-4 w-1/2 bg-[var(--color-surface-elevated)] rounded mb-4" />
+                  <div className="flex justify-between items-center h-12 bg-[var(--color-surface-elevated)] rounded" />
+                </div>
+              ))}
+            </div>
+          ) : liveFeed.length === 0 ? (
+            <div className="card flex flex-col items-center justify-center p-8 text-center bg-[var(--color-surface)] border-dashed border-2">
+              <div className="w-12 h-12 rounded-full bg-[var(--color-surface-elevated)] flex items-center justify-center mb-3">
+                <TimerIcon
+                  size={24}
+                  className="text-[var(--color-muted)] opacity-50"
+                />
+              </div>
+              <p className="text-sm font-semibold text-[var(--color-text-secondary)]">
+                No active matches
+              </p>
+              <p className="text-xs text-[var(--color-muted)] mt-1">
+                Matches currently in progress will appear here.
+              </p>
+            </div>
+          ) : (
+            liveFeed.map((group) => (
+              <div key={group.tournamentId} className="space-y-3">
+                <div className="flex items-center justify-between px-1">
+                  <h4 className="text-sm font-bold text-[var(--color-text-secondary)] uppercase tracking-wider">
+                    {group.tournamentName}
+                  </h4>
+                  <span className="text-[10px] font-bold text-primary bg-primary/10 px-2 py-0.5 rounded-full">
+                    {group.matches.length} Live
                   </span>
-                  <p className="truncate text-xs text-[var(--color-text-secondary)] max-w-[150px]">
-                    {match.label}
-                  </p>
                 </div>
 
-                <div className="mb-3 grid grid-cols-[1fr_auto_1fr] items-center gap-2">
-                  <div className="flex flex-col items-center gap-1">
-                    <div className="grid h-10 w-10 place-items-center rounded-full border border-[var(--color-border)] bg-white shadow-sm">
-                      <Image
-                        src="/pwa-icons/icon-192.png"
-                        alt="Team logo"
-                        width={24}
-                        height={24}
-                        className="rounded-full"
-                      />
-                    </div>
-                    <p className="text-xs font-medium">Chelsea</p>
-                  </div>
+                <div className="no-scrollbar -mx-4 flex snap-x snap-mandatory gap-4 overflow-x-auto px-4 pb-2">
+                  {group.matches.map((match: any) => (
+                    <article
+                      key={match.id}
+                      className="card min-w-[85%] snap-center p-4"
+                    >
+                      <div className="mb-3 flex items-center justify-between">
+                        <span className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wide text-[var(--color-success)]">
+                          <CircleIcon
+                            size={6}
+                            className="text-[var(--color-success)] fill-current"
+                          />
+                          Live
+                        </span>
+                        <p className="truncate text-xs text-[var(--color-text-secondary)] max-w-[150px]">
+                          {match.matchTitle}
+                        </p>
+                      </div>
 
-                  <div className="rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-1.5 font-heading text-2xl font-bold tracking-tight">
-                    {match.score}
-                  </div>
+                      <div className="mb-4 grid grid-cols-[1fr_auto_1fr] items-center gap-2">
+                        <div className="flex flex-col items-center gap-1">
+                          <div className="grid h-10 w-10 place-items-center rounded-full border border-[var(--color-border)] bg-white shadow-sm overflow-hidden">
+                            <Image
+                              src="/pwa-icons/icon-192.png"
+                              alt="Team logo"
+                              width={24}
+                              height={24}
+                              className="rounded-full"
+                            />
+                          </div>
+                          <p className="text-xs font-bold truncate max-w-[80px]">
+                            {match.teamA?.name || "Team A"}
+                          </p>
+                        </div>
 
-                  <div className="flex flex-col items-center gap-1">
-                    <div className="grid h-10 w-10 place-items-center rounded-full border border-[var(--color-border)] bg-white shadow-sm">
-                      <Image
-                        src="/pwa-icons/icon-192.png"
-                        alt="Team logo"
-                        width={24}
-                        height={24}
-                        className="rounded-full"
-                      />
-                    </div>
-                    <p className="text-xs font-medium">Man City</p>
-                  </div>
+                        <div className="flex flex-col items-center">
+                          <div className="rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-1.5 font-heading text-2xl font-bold tracking-tight">
+                            {String(match.score?.teamA || 0).padStart(2, "0")} -{" "}
+                            {String(match.score?.teamB || 0).padStart(2, "0")}
+                          </div>
+                        </div>
+
+                        <div className="flex flex-col items-center gap-1">
+                          <div className="grid h-10 w-10 place-items-center rounded-full border border-[var(--color-border)] bg-white shadow-sm overflow-hidden">
+                            <Image
+                              src="/pwa-icons/icon-192.png"
+                              alt="Team logo"
+                              width={24}
+                              height={24}
+                              className="rounded-full"
+                            />
+                          </div>
+                          <p className="text-xs font-bold truncate max-w-[80px]">
+                            {match.teamB?.name || "Team B"}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center justify-center rounded-lg bg-primary/5 border border-primary/10 py-2 text-sm font-bold text-primary">
+                        Set {match.score?.currentSet || 1}
+                      </div>
+                    </article>
+                  ))}
                 </div>
-
-                <button
-                  type="button"
-                  className="mx-auto mt-1 block w-full rounded-lg bg-primary py-2 text-sm font-medium text-white hover:bg-primary/90"
-                >
-                  Update Score
-                </button>
-              </AnimatedCard>
-            ))}
-          </motion.div>
-
-          <div className="mt-1">
-            <ScrollIndicator
-              itemCount={liveMatches.length}
-              containerRef={matchContainerRef}
-            />
-          </div>
+              </div>
+            ))
+          )}
         </section>
       </div>
 

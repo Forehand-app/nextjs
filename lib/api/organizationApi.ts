@@ -78,4 +78,19 @@ export const organizationApi = {
     });
     if (error) throw error;
   },
+
+  /**
+   * Retrieves all live matches within an organization, grouped by tournament.
+   *
+   * @param orgId - The unique ID of the organization.
+   * @returns A promise resolving to an array of tournament groups with matches.
+   */
+  getOrgLiveMatches: async (orgId: string): Promise<any[]> => {
+    const { data, error } = await fetchApi(
+      getApiUrl({ path: `/org/${orgId}/matches/live` }),
+      { silent: true },
+    );
+    if (error) throw error;
+    return data as any[];
+  },
 };

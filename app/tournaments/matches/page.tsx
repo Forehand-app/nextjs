@@ -53,7 +53,23 @@ export default function TournamentEventListPage() {
     setSearchParams(new URLSearchParams(window.location.search));
   }, []);
 
-  const id = searchParams.get("id") || "1";
+  const id = searchParams.get("id");
+
+  if (!id && searchParams.size > 0) {
+    return (
+      <Layout title="Tournament Matches" showBack>
+        <div className="flex min-h-[50vh] flex-col items-center justify-center p-4 text-center">
+          <p className="text-[var(--color-muted)]">Tournament not found.</p>
+          <button
+            onClick={() => window.history.back()}
+            className="mt-4 rounded-full bg-primary px-6 py-2 font-semibold text-white"
+          >
+            Go Back
+          </button>
+        </div>
+      </Layout>
+    );
+  }
 
   return (
     <Layout title="Men's Singles 2025" showBack>

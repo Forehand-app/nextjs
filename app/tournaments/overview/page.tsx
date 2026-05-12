@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Layout from "@/components/Layout";
 import Tabs, { type TabItem } from "@/components/Tabs";
 import Link from "next/link";
@@ -31,6 +31,15 @@ type EventCategory = {
 };
 
 export default function TournamentOverviewPage() {
+  const [searchParams, setSearchParams] = useState<URLSearchParams>(
+    new URLSearchParams(),
+  );
+
+  useEffect(() => {
+    setSearchParams(new URLSearchParams(window.location.search));
+  }, []);
+
+  const id = searchParams.get("id");
   const [activeTab, setActiveTab] = useState("events");
 
   const events: EventCategory[] = [
@@ -53,6 +62,22 @@ export default function TournamentOverviewPage() {
       entryFee: "₹1400",
     },
   ];
+
+  if (!id && searchParams.size > 0) {
+    return (
+      <Layout title="Tournament Overview" showBack>
+        <div className="flex min-h-[50vh] flex-col items-center justify-center p-4 text-center">
+          <p className="text-[var(--color-muted)]">Tournament not found.</p>
+          <button
+            onClick={() => window.history.back()}
+            className="mt-4 rounded-full bg-primary px-6 py-2 font-semibold text-white"
+          >
+            Go Back
+          </button>
+        </div>
+      </Layout>
+    );
+  }
 
   return (
     <Layout title="Tournament Overview" showBack>
@@ -182,7 +207,7 @@ export default function TournamentOverviewPage() {
                       </p>
                     </div>
                     <Link
-                      href={`/tournaments/event${toQuery({ id: "1" })}`}
+                      href={`/tournaments/event${toQuery({ id: id || "invalid" })}`}
                       className="px-4 py-2 rounded-[var(--radius-button)] text-sm font-semibold text-white"
                       style={{ background: "var(--gradient-orange)" }}
                     >

@@ -144,9 +144,9 @@ export default function OrgMatchSetupPage() {
     setSearchParams(new URLSearchParams(window.location.search));
   }, []);
 
-  const tournamentId = searchParams.get("tournamentId") || "1";
-  const eventId = searchParams.get("eventId") || "1";
-  const matchId = searchParams.get("matchId") || "m-1";
+  const tournamentId = searchParams.get("tournamentId");
+  const eventId = searchParams.get("eventId");
+  const matchId = searchParams.get("matchId");
 
   const [isReadyPopupOpen, setIsReadyPopupOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
@@ -167,12 +167,12 @@ export default function OrgMatchSetupPage() {
         switchSidesEvery: -1,
       },
       side0: [
-        { name: "Kunal Verma", initials: "KV" },
-        { name: "Alex Costa", initials: "AC" },
+        { name: "Player 1", initials: "P1" },
+        { name: "Player 2", initials: "P2" },
       ],
       side1: [
-        { name: "Anil Kumar", initials: "AK" },
-        { name: "The Rock", initials: "TR" },
+        { name: "Player 3", initials: "P3" },
+        { name: "Player 4", initials: "P4" },
       ],
     }),
     [],
@@ -181,7 +181,12 @@ export default function OrgMatchSetupPage() {
   const [draft, setDraft] = useState<MatchSetupDraft>(defaultDraft);
 
   useEffect(() => {
-    if (!tournamentId || !eventId || !matchId) return;
+    if (!tournamentId || !eventId || !matchId) {
+      if (searchParams.size > 0) {
+        setIsLoading(false);
+      }
+      return;
+    }
     let cancelled = false;
 
     const loadMatchSetup = async () => {
@@ -317,7 +322,7 @@ export default function OrgMatchSetupPage() {
   };
 
   const startMatch = () => {
-    if (isStarting) return;
+    if (isStarting || !matchId) return;
     setIsStarting(true);
     save();
     void matchApi.startMatch(matchId).catch((error) => {
